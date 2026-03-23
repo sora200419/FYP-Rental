@@ -6,14 +6,21 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { PasswordInput } from '@/components/ui/PasswordInput';
 
-const registerSchema = z.object({
-  name: z.string().min(2, 'Name must be at least 2 characters'),
-  email: z.string().email('Invalid email address'),
-  password: z.string().min(8, 'Password must be at least 8 characters'),
-  role: z.enum(['LANDLORD', 'TENANT']),
-  phone: z.string().optional(),
-});
+const registerSchema = z
+  .object({
+    name: z.string().min(2, 'Name must be at least 2 characters'),
+    email: z.string().email('Invalid email address'),
+    password: z.string().min(8, 'Password must be at least 8 characters'),
+    confirmPassword: z.string().min(1, 'Please confirm your password'),
+    role: z.enum(['LANDLORD', 'TENANT']),
+    phone: z.string().optional(),
+  })
+  .refine((data) => data.password === data.confirmPassword, {
+    message: 'Passwords do not match',
+    path: ['confirmPassword'],
+  });
 
 type RegisterFormData = z.infer<typeof registerSchema>;
 
@@ -36,10 +43,12 @@ export default function RegisterPage() {
     setServerError(null);
 
     try {
+      const { confirmPassword: _, ...payload } = data;
+
       const response = await fetch('/api/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
+        body: JSON.stringify(payload),
       });
 
       const result = await response.json();
@@ -49,9 +58,9 @@ export default function RegisterPage() {
         return;
       }
 
-      // Registration successful — redirect to login
       router.push('/login?registered=true');
     } catch (error) {
+      console.error('Registration fetch error:', error);
       setServerError('Network error. Please try again.');
     } finally {
       setIsLoading(false);
@@ -61,14 +70,12 @@ export default function RegisterPage() {
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center py-12 px-4">
       <div className="max-w-md w-full bg-white rounded-xl shadow-md p-8">
-        {/* Header */}
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-gray-900">RentalEase</h1>
           <p className="text-gray-500 mt-2">Create your account</p>
         </div>
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
-          {/* Full Name */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Full Name
@@ -84,7 +91,6 @@ export default function RegisterPage() {
             )}
           </div>
 
-          {/* Email */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Email Address
@@ -102,7 +108,6 @@ export default function RegisterPage() {
             )}
           </div>
 
-          {/* Phone (optional) */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Phone Number <span className="text-gray-400">(optional)</span>
@@ -115,25 +120,21 @@ export default function RegisterPage() {
             />
           </div>
 
-          {/* Password */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Password
-            </label>
-            <input
-              {...register('password')}
-              type="password"
-              placeholder="At least 8 characters"
-              className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-            {errors.password && (
-              <p className="text-red-500 text-xs mt-1">
-                {errors.password.message}
-              </p>
-            )}
-          </div>
+          {/* Two independent PasswordInput components — each owns its own toggle state */}
+          <PasswordInput
+            registration={register('password')}
+            label="Password"
+            placeholder="At least 8 characters"
+            error={errors.password?.message}
+          />
 
-          {/* Role Selection */}
+          <PasswordInput
+            registration={register('confirmPassword')}
+            label="Confirm Password"
+            placeholder="Re-enter your password"
+            error={errors.confirmPassword?.message}
+          />
+
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               I am a...
@@ -164,14 +165,12 @@ export default function RegisterPage() {
             </div>
           </div>
 
-          {/* Server Error */}
           {serverError && (
             <div className="bg-red-50 border border-red-200 text-red-600 text-sm rounded-lg px-4 py-3">
               {serverError}
             </div>
           )}
 
-          {/* Submit */}
           <button
             type="submit"
             disabled={isLoading}

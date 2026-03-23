@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import brcypt from 'bcryptjs';
+import bcrypt from 'bcryptjs';
 import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
 
@@ -16,6 +16,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const validatedData = registerSchema.parse(body);
 
+    // Check if a user with the same email already exists
     const existingUser = await prisma.user.findUnique({
       where: { email: validatedData.email },
     });
@@ -27,7 +28,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const hashedPassword = await brcypt.hash(validatedData.password, 12);
+    const hashedPassword = await bcrypt.hash(validatedData.password, 12);
 
     const user = await prisma.user.create({
       data: {
