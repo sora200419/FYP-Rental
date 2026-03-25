@@ -7,7 +7,8 @@ const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
   title: 'RentalEase Malaysia',
-  description: 'AI-Assisted Digital Tenanncy Agreement Platfrom',
+  description:
+    'AI-Assisted Digital Tenancy Agreement Platform for Malaysian Residential Rentals',
 };
 
 export default function RootLayout({
