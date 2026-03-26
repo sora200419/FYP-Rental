@@ -46,7 +46,16 @@ export default function TopNav({ user }: { user: NavUser }) {
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
   const links = getNavLinks(user.role);
-  const isActive = (href: string) => pathname.startsWith(href);
+  const isActive = (href: string) => {
+    if (
+      href === '/dashboard/landlord' ||
+      href === '/dashboard/tenant' ||
+      href === '/dashboard/admin'
+    ) {
+      return pathname === href;
+    }
+    return pathname.startsWith(href);
+  };
 
   return (
     <nav className="bg-white border-b border-gray-200 sticky top-0 z-50">
