@@ -7,6 +7,33 @@ import { z } from 'zod';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 
+// ✅ Field is defined OUTSIDE the page component so its reference is stable.
+// If it were inside NewTenancyPage, React would see a new component on every
+// render and unmount/remount the inputs inside it — destroying focus and content.
+function Field({
+  label,
+  error,
+  hint,
+  children,
+}: {
+  label: string;
+  error?: string;
+  hint?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div>
+      <label className="block text-sm font-medium text-gray-700 mb-1">
+        {label}
+      </label>
+      {children}
+      {hint && !error && <p className="text-gray-400 text-xs mt-1">{hint}</p>}
+      {error && <p className="text-red-500 text-xs mt-1">{error}</p>}
+    </div>
+  );
+}
+
+// Schema and types stay the same
 const tenancySchema = z
   .object({
     propertyId: z.string().min(1, 'Please select a property'),
@@ -26,7 +53,6 @@ const tenancySchema = z
 type TenancyFormInput = z.input<typeof tenancySchema>;
 type TenancyFormOutput = z.output<typeof tenancySchema>;
 
-// Tenant lookup state — shown after the landlord enters an email
 type TenantLookup =
   | { status: 'idle' }
   | { status: 'loading' }
@@ -36,7 +62,6 @@ type TenantLookup =
 export default function NewTenancyPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  // The propertyId can be pre-filled from the "Add Tenant" button on the properties page
   const prefilledPropertyId = searchParams.get('propertyId') ?? '';
 
   const [serverError, setServerError] = useState<string | null>(null);
@@ -48,19 +73,17 @@ export default function NewTenancyPage() {
   const {
     register,
     handleSubmit,
-    getValues,
+    watch,
     formState: { errors },
   } = useForm<TenancyFormInput, unknown, TenancyFormOutput>({
     resolver: zodResolver(tenancySchema),
-    defaultValues: {
-      propertyId: prefilledPropertyId,
-    },
+    defaultValues: { propertyId: prefilledPropertyId },
   });
 
-  // Look up the tenant by email before form submission
-  // This gives the landlord confirmation they've linked the right person
+  const watchedEmail = watch('tenantEmail');
+
   const handleTenantLookup = async () => {
-    const email = getValues('tenantEmail');
+    const email = watchedEmail;
     if (!email || !email.includes('@')) return;
 
     setTenantLookup({ status: 'loading' });
@@ -103,7 +126,6 @@ export default function NewTenancyPage() {
         return;
       }
 
-      // Redirect to the new tenancy's detail page after creation
       router.push(`/dashboard/landlord/tenancies/${result.tenancy.id}`);
       router.refresh();
     } catch (error) {
@@ -117,30 +139,12 @@ export default function NewTenancyPage() {
   const inputClass =
     'w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500';
 
-  const Field = ({
-    label,
-    error,
-    hint,
-    children,
-  }: {
-    label: string;
-    error?: string;
-    hint?: string;
-    children: React.ReactNode;
-  }) => (
-    <div>
-      <label className="block text-sm font-medium text-gray-700 mb-1">
-        {label}
-      </label>
-      {children}
-      {hint && !error && <p className="text-gray-400 text-xs mt-1">{hint}</p>}
-      {error && <p className="text-red-500 text-xs mt-1">{error}</p>}
-    </div>
-  );
+  // Destructure RHF's onChange so we can compose it with our state reset
+  const { onChange: emailRhfOnChange, ...emailRestProps } =
+    register('tenantEmail');
 
   return (
     <div className="max-w-2xl">
-      {/* Breadcrumb */}
       <div className="flex items-center gap-2 text-sm text-gray-400 mb-6">
         <Link
           href="/dashboard/landlord/tenancies"
@@ -162,13 +166,12 @@ export default function NewTenancyPage() {
         </p>
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-          {/* ── Property & Tenant section ──────────────────────────── */}
           <div>
             <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4">
               Property & Tenant
             </p>
             <div className="space-y-4">
-              {/* Property ID — pre-filled if coming from properties page */}
+              {/* ✅ Field is now a stable external component — no re-creation on render */}
               <Field
                 label="Property ID"
                 error={errors.propertyId?.message}
@@ -182,7 +185,6 @@ export default function NewTenancyPage() {
                 />
               </Field>
 
-              {/* Tenant email lookup */}
               <Field
                 label="Tenant Email Address"
                 error={errors.tenantEmail?.message}
@@ -190,24 +192,26 @@ export default function NewTenancyPage() {
               >
                 <div className="flex gap-2">
                   <input
-                    {...register('tenantEmail')}
+                    {...emailRestProps}
                     type="email"
                     placeholder="tenant@example.com"
                     className={inputClass}
-                    // Reset lookup state whenever the email field changes
-                    onChange={() => setTenantLookup({ status: 'idle' })}
+                    onChange={(e) => {
+                      emailRhfOnChange(e);
+                      setTenantLookup({ status: 'idle' });
+                    }}
                   />
                   <button
                     type="button"
                     onClick={handleTenantLookup}
-                    className="shrink-0 px-4 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-medium rounded-lg transition-colors"
+                    disabled={tenantLookup.status === 'loading'}
+                    className="shrink-0 px-4 py-2.5 bg-gray-100 hover:bg-gray-200 disabled:opacity-50 text-gray-700 text-sm font-medium rounded-lg transition-colors"
                   >
                     {tenantLookup.status === 'loading' ? '...' : 'Look up'}
                   </button>
                 </div>
               </Field>
 
-              {/* Tenant lookup result */}
               {tenantLookup.status === 'found' && (
                 <div className="bg-green-50 border border-green-200 rounded-lg px-4 py-3 flex items-center gap-3">
                   <span className="text-green-600 text-lg">✓</span>
@@ -221,6 +225,7 @@ export default function NewTenancyPage() {
                   </div>
                 </div>
               )}
+
               {tenantLookup.status === 'not_found' && (
                 <div className="bg-red-50 border border-red-200 rounded-lg px-4 py-3">
                   <p className="text-sm text-red-700 font-medium">
@@ -235,13 +240,11 @@ export default function NewTenancyPage() {
             </div>
           </div>
 
-          {/* ── Tenancy terms section ──────────────────────────────── */}
           <div>
             <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4">
               Tenancy Terms
             </p>
             <div className="space-y-4">
-              {/* Date range */}
               <div className="grid grid-cols-2 gap-4">
                 <Field label="Start Date" error={errors.startDate?.message}>
                   <input
@@ -259,7 +262,6 @@ export default function NewTenancyPage() {
                 </Field>
               </div>
 
-              {/* Financial terms */}
               <div className="grid grid-cols-2 gap-4">
                 <Field
                   label="Monthly Rent (RM)"
@@ -292,7 +294,6 @@ export default function NewTenancyPage() {
             </div>
           </div>
 
-          {/* Notice box explaining what happens next */}
           <div className="bg-blue-50 border border-blue-200 rounded-lg px-4 py-3">
             <p className="text-sm font-medium text-blue-800">
               What happens after you save?
