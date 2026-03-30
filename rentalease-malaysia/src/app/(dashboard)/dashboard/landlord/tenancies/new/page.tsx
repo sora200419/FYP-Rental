@@ -84,7 +84,12 @@ export default function NewTenancyPage() {
 
   const handleTenantLookup = async () => {
     const email = watchedEmail;
-    if (!email || !email.includes('@')) return;
+
+    // Show a helpful error instead of silently doing nothing
+    if (!email || !email.includes('@') || !email.includes('.')) {
+      setTenantLookup({ status: 'not_found' });
+      return;
+    }
 
     setTenantLookup({ status: 'loading' });
 
