@@ -3,6 +3,7 @@ import { authOptions } from '@/lib/auth';
 import { redirect, notFound } from 'next/navigation';
 import { prisma } from '@/lib/prisma';
 import Link from 'next/link';
+import GenerateAgreementButton from '@/components/ui/GenerateAgreementButton';
 
 const STATUS_STYLES: Record<string, string> = {
   PENDING: 'bg-amber-100 text-amber-700',
@@ -29,11 +30,7 @@ export default async function TenancyDetailPage({
     include: {
       property: true,
       tenant: {
-        select: {
-          name: true,
-          email: true,
-          phone: true,
-        },
+        select: { name: true, email: true, phone: true },
       },
       agreement: {
         select: {
@@ -42,6 +39,7 @@ export default async function TenancyDetailPage({
           plainLanguageSummary: true,
           redFlags: true,
           createdAt: true,
+          updatedAt: true,
         },
       },
       rentPayments: {
@@ -50,7 +48,6 @@ export default async function TenancyDetailPage({
     },
   });
 
-  // If the tenancy doesn't exist or doesn't belong to this landlord, show 404
   if (!tenancy) notFound();
 
   const formatDate = (date: Date) =>
@@ -62,6 +59,17 @@ export default async function TenancyDetailPage({
 
   const formatRM = (amount: unknown) =>
     `RM ${Number(amount).toLocaleString('en-MY', { minimumFractionDigits: 2 })}`;
+
+  // Parse red flags from the stored JSON string for the summary preview
+  let redFlagCount = 0;
+  if (tenancy.agreement?.redFlags) {
+    try {
+      const flags = JSON.parse(tenancy.agreement.redFlags);
+      redFlagCount = Array.isArray(flags) ? flags.length : 0;
+    } catch {
+      redFlagCount = 0;
+    }
+  }
 
   return (
     <div className="max-w-3xl">
@@ -151,7 +159,7 @@ export default async function TenancyDetailPage({
           </div>
         </div>
 
-        {/* Agreement card — this is where Gemini integration goes in Phase 6 */}
+        {/* Agreement card */}
         <div className="bg-white rounded-xl border border-gray-200 p-6">
           <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-4">
             Tenancy Agreement
@@ -159,24 +167,48 @@ export default async function TenancyDetailPage({
 
           {tenancy.agreement ? (
             <div>
-              <div className="flex items-center gap-2 mb-3">
-                <span className="text-sm font-medium text-gray-700">
-                  Status:
-                </span>
-                <span className="text-sm text-gray-500">
-                  {tenancy.agreement.status.charAt(0) +
-                    tenancy.agreement.status.slice(1).toLowerCase()}
-                </span>
+              {/* Agreement status + meta */}
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-2">
+                  <span
+                    className={`text-xs font-semibold px-2.5 py-1 rounded-full ${
+                      tenancy.agreement.status === 'FINALIZED'
+                        ? 'bg-green-100 text-green-700'
+                        : tenancy.agreement.status === 'SIGNED'
+                          ? 'bg-blue-100 text-blue-700'
+                          : 'bg-amber-100 text-amber-700'
+                    }`}
+                  >
+                    {tenancy.agreement.status.charAt(0) +
+                      tenancy.agreement.status.slice(1).toLowerCase()}
+                  </span>
+                  {redFlagCount > 0 && (
+                    <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-red-100 text-red-600">
+                      ⚠️ {redFlagCount} red{' '}
+                      {redFlagCount === 1 ? 'flag' : 'flags'}
+                    </span>
+                  )}
+                </div>
+                <p className="text-xs text-gray-400">
+                  Updated {formatDate(tenancy.agreement.updatedAt)}
+                </p>
               </div>
-              <p className="text-sm text-gray-400">
-                Generated on {formatDate(tenancy.agreement.createdAt)}
-              </p>
-              <Link
-                href={`/dashboard/landlord/tenancies/${tenancy.id}/agreement`}
-                className="inline-block mt-4 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold px-5 py-2.5 rounded-lg transition-colors"
-              >
-                View Agreement
-              </Link>
+
+              {/* Action buttons */}
+              <div className="flex flex-wrap gap-3">
+                <Link
+                  href={`/dashboard/landlord/tenancies/${tenancy.id}/agreement`}
+                  className="bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold px-5 py-2.5 rounded-lg transition-colors"
+                >
+                  View Agreement
+                </Link>
+                {/* Regenerate — uses the same GenerateAgreementButton with a different label */}
+                <GenerateAgreementButton
+                  tenancyId={tenancy.id}
+                  label="🔄 Regenerate"
+                  variant="secondary"
+                />
+              </div>
             </div>
           ) : (
             <div className="text-center py-8">
@@ -184,21 +216,21 @@ export default async function TenancyDetailPage({
               <p className="text-gray-700 font-semibold">
                 No agreement generated yet
               </p>
-              <p className="text-gray-400 text-sm mt-1 mb-5">
+              <p className="text-gray-400 text-sm mt-1 mb-5 max-w-sm mx-auto">
                 Generate an AI-assisted tenancy agreement based on the terms
-                above. The agreement will include plain-language explanations
-                and red-flag warnings.
+                above. Includes plain-language explanations and red-flag
+                warnings.
               </p>
-              {/* This button will trigger Gemini in Phase 6 */}
-              <div className="inline-flex items-center gap-2 bg-gray-100 text-gray-400 text-sm font-semibold px-5 py-2.5 rounded-lg cursor-not-allowed">
-                ✨ Generate Agreement
-                <span className="text-xs font-normal">(Phase 6)</span>
-              </div>
+              <GenerateAgreementButton
+                tenancyId={tenancy.id}
+                label="✨ Generate Agreement"
+                variant="primary"
+              />
             </div>
           )}
         </div>
 
-        {/* Rent payment schedule — empty for now, populated in Phase 6 */}
+        {/* Rent payment schedule */}
         <div className="bg-white rounded-xl border border-gray-200 p-6">
           <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-4">
             Rent Payment Schedule

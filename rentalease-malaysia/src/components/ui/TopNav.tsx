@@ -22,6 +22,7 @@ function getNavLinks(role: string): NavLink[] {
       { label: 'Dashboard', href: '/dashboard/landlord' },
       { label: 'Properties', href: '/dashboard/landlord/properties' },
       { label: 'Tenancies', href: '/dashboard/landlord/tenancies' },
+      { label: 'Payments', href: '/dashboard/landlord/payments' }, // ← add this
       { label: 'Messages', href: '/dashboard/landlord/messages' },
     ];
   }
