@@ -114,7 +114,7 @@ export default function MessageThread({
     });
 
   return (
-    <div className="flex flex-col bg-white rounded-xl border border-gray-200 overflow-hidden h-150">
+    <div className="flex flex-col bg-white rounded-xl border border-gray-200 overflow-hidden h-[600px]">
       {/* Thread header */}
       <div className="px-5 py-4 border-b border-gray-100 bg-gray-50">
         <p className="font-semibold text-gray-900 text-sm">{otherPartyName}</p>

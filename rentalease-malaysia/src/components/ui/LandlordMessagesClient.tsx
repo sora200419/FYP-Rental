@@ -26,7 +26,7 @@ export default function LandlordMessagesClient({
   const selected = tenancies.find((t) => t.id === selectedId);
 
   return (
-    <div className="flex gap-5 h-160">
+    <div className="flex gap-5 h-[640px]">
       {/* Sidebar — list of tenancy conversations */}
       <div className="w-72 shrink-0 flex flex-col bg-white rounded-xl border border-gray-200 overflow-hidden">
         <div className="px-4 py-3 border-b border-gray-100 bg-gray-50">

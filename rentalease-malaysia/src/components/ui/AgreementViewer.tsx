@@ -19,6 +19,7 @@ interface Props {
   redFlags: RedFlag[];
   tenantName: string;
   propertyAddress: string;
+  readOnly?: boolean; // ← When true, hides the finalize button (used for tenant view)
 }
 
 const SEVERITY_STYLES: Record<string, string> = {
@@ -31,13 +32,14 @@ type Tab = 'agreement' | 'summary' | 'redflags';
 
 export default function AgreementViewer({
   agreementId,
-  tenancyId,
+  tenancyId: _tenancyId, // prefixed with _ to signal intentionally unused
   status,
   rawContent,
   plainLanguageSummary,
   redFlags,
   tenantName,
   propertyAddress,
+  readOnly = false, // default to false so landlord pages work without passing it
 }: Props) {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<Tab>('agreement');
@@ -45,7 +47,9 @@ export default function AgreementViewer({
   const [finalizeError, setFinalizeError] = useState<string | null>(null);
 
   const highCount = redFlags.filter((f) => f.severity === 'HIGH').length;
+  // Only show finalize UI if it's a draft AND the viewer is not in read-only mode
   const isDraft = status === 'DRAFT';
+  const showFinalizeButton = isDraft && !readOnly;
 
   const handleFinalize = async () => {
     setIsFinalizing(true);
@@ -90,20 +94,21 @@ export default function AgreementViewer({
         </div>
 
         <div className="flex items-center gap-3 shrink-0">
-          {/* Status badge */}
           <span
             className={`text-xs font-semibold px-3 py-1.5 rounded-full ${
               status === 'FINALIZED'
                 ? 'bg-green-100 text-green-700'
                 : status === 'SIGNED'
                   ? 'bg-blue-100 text-blue-700'
-                  : 'bg-amber-100 text-amber-700'
+                  : status === 'NEGOTIATING'
+                    ? 'bg-purple-100 text-purple-700'
+                    : 'bg-amber-100 text-amber-700'
             }`}
           >
             {status.charAt(0) + status.slice(1).toLowerCase()}
           </span>
 
-          {/* PDF download */}
+          {/* Download available to both landlord and tenant */}
           <a
             href={`/api/agreements/${agreementId}/pdf`}
             download
@@ -112,8 +117,8 @@ export default function AgreementViewer({
             ⬇ Download
           </a>
 
-          {/* Finalize — only shown for DRAFT agreements */}
-          {isDraft && (
+          {/* Finalize button only shown to landlords (readOnly = false) */}
+          {showFinalizeButton && (
             <button
               onClick={handleFinalize}
               disabled={isFinalizing}
@@ -126,7 +131,7 @@ export default function AgreementViewer({
       </div>
 
       {/* High-severity warning banner */}
-      {highCount > 0 && isDraft && (
+      {highCount > 0 && isDraft && !readOnly && (
         <div className="bg-red-50 border border-red-200 rounded-xl px-5 py-4 mb-5 flex items-start gap-3">
           <span className="text-red-500 text-xl mt-0.5">⚠️</span>
           <div>
@@ -147,7 +152,7 @@ export default function AgreementViewer({
         </div>
       )}
 
-      {/* Tabs */}
+      {/* Tab navigation */}
       <div className="flex gap-1 bg-gray-100 p-1 rounded-xl mb-5">
         {tabs.map((tab) => (
           <button
@@ -175,9 +180,8 @@ export default function AgreementViewer({
           <div className="p-6 md:p-8">
             <p className="text-xs text-gray-400 mb-5 pb-4 border-b border-gray-100">
               AI-generated agreement text based on the tenancy terms. Review
-              carefully before finalizing.
+              carefully before {readOnly ? 'responding.' : 'finalizing.'}
             </p>
-            {/* Pre-wrap preserves the line breaks and paragraph structure from Gemini */}
             <pre className="whitespace-pre-wrap font-sans text-sm text-gray-800 leading-relaxed">
               {rawContent}
             </pre>

@@ -38,6 +38,7 @@ export default async function TenancyDetailPage({
           status: true,
           plainLanguageSummary: true,
           redFlags: true,
+          negotiationNotes: true,
           createdAt: true,
           updatedAt: true,
         },
@@ -166,8 +167,11 @@ export default async function TenancyDetailPage({
           </h2>
 
           {tenancy.agreement ? (
+            // ─── AGREEMENT EXISTS ──────────────────────────────────────────
+            // This branch handles all possible agreement states after generation.
+            // The UI adapts based on tenancy.agreement.status.
             <div>
-              {/* Agreement status + meta */}
+              {/* Status badge row — shows current status and red flag count */}
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-2">
                   <span
@@ -176,12 +180,16 @@ export default async function TenancyDetailPage({
                         ? 'bg-green-100 text-green-700'
                         : tenancy.agreement.status === 'SIGNED'
                           ? 'bg-blue-100 text-blue-700'
-                          : 'bg-amber-100 text-amber-700'
+                          : tenancy.agreement.status === 'NEGOTIATING'
+                            ? 'bg-purple-100 text-purple-700'
+                            : 'bg-amber-100 text-amber-700' // DRAFT
                     }`}
                   >
                     {tenancy.agreement.status.charAt(0) +
                       tenancy.agreement.status.slice(1).toLowerCase()}
                   </span>
+
+                  {/* Red flag badge — only meaningful when landlord should act */}
                   {redFlagCount > 0 && (
                     <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-red-100 text-red-600">
                       ⚠️ {redFlagCount} red{' '}
@@ -194,7 +202,68 @@ export default async function TenancyDetailPage({
                 </p>
               </div>
 
-              {/* Action buttons */}
+              {/* ── NEGOTIATING STATE ──────────────────────────────────────
+          When the tenant requests changes, this box appears so the
+          landlord can read exactly what the tenant wants revised.
+          Without this, the landlord would have no context before
+          clicking Regenerate. */}
+              {tenancy.agreement.status === 'NEGOTIATING' && (
+                <div className="bg-blue-50 border border-blue-200 rounded-xl px-5 py-4 mb-4">
+                  <p className="text-blue-800 font-semibold text-sm mb-2">
+                    💬 Tenant has requested changes
+                  </p>
+                  {/* negotiationNotes stores exactly what the tenant typed */}
+                  {tenancy.agreement.negotiationNotes && (
+                    <div className="bg-white rounded-lg border border-blue-200 px-4 py-3 mb-3">
+                      <p className="text-xs text-gray-400 mb-1">
+                        Tenant&apos;s feedback:
+                      </p>
+                      <p className="text-sm text-gray-700">
+                        {tenancy.agreement.negotiationNotes}
+                      </p>
+                    </div>
+                  )}
+                  <p className="text-blue-600 text-xs">
+                    Use Regenerate below to produce a revised agreement that
+                    addresses their concerns.
+                  </p>
+                </div>
+              )}
+
+              {/* ── SIGNED STATE ───────────────────────────────────────────
+          Once the tenant accepts, the tenancy is ACTIVE and no
+          further action is needed from the landlord on the agreement. */}
+              {tenancy.agreement.status === 'SIGNED' && (
+                <div className="bg-green-50 border border-green-200 rounded-xl px-5 py-4 mb-4">
+                  <p className="text-green-800 font-semibold text-sm">
+                    ✓ Agreement signed by tenant — Tenancy is active
+                  </p>
+                  <p className="text-green-600 text-xs mt-0.5">
+                    Both parties have agreed. The rent payment schedule has been
+                    generated automatically.
+                  </p>
+                </div>
+              )}
+
+              {/* ── FINALIZED STATE ────────────────────────────────────────
+          The landlord has approved, and is now waiting for the tenant
+          to respond. Show a gentle reminder so they know what to expect. */}
+              {tenancy.agreement.status === 'FINALIZED' && (
+                <div className="bg-amber-50 border border-amber-200 rounded-xl px-5 py-4 mb-4">
+                  <p className="text-amber-800 font-semibold text-sm">
+                    ⏳ Awaiting tenant review
+                  </p>
+                  <p className="text-amber-600 text-xs mt-0.5">
+                    The agreement has been sent to the tenant. They will accept
+                    it or request changes.
+                  </p>
+                </div>
+              )}
+
+              {/* ── ACTION BUTTONS ─────────────────────────────────────────
+          View Agreement navigates to the full tabbed viewer.
+          Regenerate calls Gemini again and resets the status to DRAFT,
+          starting the review cycle over — useful after negotiation. */}
               <div className="flex flex-wrap gap-3">
                 <Link
                   href={`/dashboard/landlord/tenancies/${tenancy.id}/agreement`}
@@ -202,7 +271,9 @@ export default async function TenancyDetailPage({
                 >
                   View Agreement
                 </Link>
-                {/* Regenerate — uses the same GenerateAgreementButton with a different label */}
+
+                {/* Regenerate is always available — landlord may want a fresh draft
+            at any point, not just after negotiation */}
                 <GenerateAgreementButton
                   tenancyId={tenancy.id}
                   label="🔄 Regenerate"
@@ -211,6 +282,9 @@ export default async function TenancyDetailPage({
               </div>
             </div>
           ) : (
+            // ─── NO AGREEMENT YET ─────────────────────────────────────────
+            // The empty state shown before the landlord has generated anything.
+            // The primary call-to-action is the Generate Agreement button.
             <div className="text-center py-8">
               <p className="text-4xl mb-3">📄</p>
               <p className="text-gray-700 font-semibold">

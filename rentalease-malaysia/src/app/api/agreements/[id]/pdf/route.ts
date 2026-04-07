@@ -8,19 +8,22 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> },
 ) {
   const session = await getServerSession(authOptions);
-
   if (!session) {
     return NextResponse.json({ error: 'Unauthorised' }, { status: 401 });
   }
 
   const { id } = await params;
 
-  // Fetch agreement + verify ownership through the tenancy → property → landlord chain
+  // Allow BOTH landlord (via property ownership) and tenant (via tenancy) to download.
+  // Previously this only checked the landlord chain, so tenants got a 404.
   const agreement = await prisma.agreement.findFirst({
     where: {
       id,
       tenancy: {
-        property: { landlordId: session.user.id },
+        OR: [
+          { property: { landlordId: session.user.id } }, // landlord access
+          { tenantId: session.user.id }, // tenant access
+        ],
       },
     },
     include: {
@@ -40,53 +43,18 @@ export async function GET(
     );
   }
 
-  // Build the HTML that will be converted to PDF
-  // We keep this self-contained with inline styles for maximum PDF compatibility
   const html = `
 <!DOCTYPE html>
 <html>
 <head>
   <meta charset="UTF-8" />
   <style>
-    body {
-      font-family: 'Times New Roman', serif;
-      font-size: 12pt;
-      line-height: 1.8;
-      color: #1a1a1a;
-      max-width: 800px;
-      margin: 0 auto;
-      padding: 60px 80px;
-    }
-    h1 {
-      text-align: center;
-      font-size: 16pt;
-      text-transform: uppercase;
-      letter-spacing: 2px;
-      margin-bottom: 8px;
-    }
-    .subtitle {
-      text-align: center;
-      font-size: 10pt;
-      color: #555;
-      margin-bottom: 40px;
-    }
-    .divider {
-      border: none;
-      border-top: 2px solid #1a1a1a;
-      margin: 24px 0;
-    }
-    pre {
-      white-space: pre-wrap;
-      font-family: 'Times New Roman', serif;
-      font-size: 12pt;
-      line-height: 1.8;
-    }
-    .footer {
-      margin-top: 60px;
-      font-size: 9pt;
-      color: #888;
-      text-align: center;
-    }
+    body { font-family: 'Times New Roman', serif; font-size: 12pt; line-height: 1.8; color: #1a1a1a; max-width: 800px; margin: 0 auto; padding: 60px 80px; }
+    h1 { text-align: center; font-size: 16pt; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 8px; }
+    .subtitle { text-align: center; font-size: 10pt; color: #555; margin-bottom: 40px; }
+    .divider { border: none; border-top: 2px solid #1a1a1a; margin: 24px 0; }
+    pre { white-space: pre-wrap; font-family: 'Times New Roman', serif; font-size: 12pt; line-height: 1.8; }
+    .footer { margin-top: 60px; font-size: 9pt; color: #888; text-align: center; }
   </style>
 </head>
 <body>
@@ -103,32 +71,8 @@ export async function GET(
     Document ID: ${agreement.id} &mdash; Status: ${agreement.status}
   </p>
 </body>
-</html>
-`;
+</html>`;
 
-  // Return the HTML as a downloadable file
-  // In a production deployment you would use puppeteer or html-pdf-node here;
-  // for FYP purposes, returning the HTML with a .html content-disposition
-  // is a valid and examinable approach that avoids binary dependency issues.
-  // To generate a true PDF, install: npm install html-pdf-node
-  // Then uncomment the block below and comment out the HTML return.
-
-  /*
-  // TRUE PDF generation (requires: npm install html-pdf-node @types/html-pdf-node)
-  const htmlPdf = require('html-pdf-node');
-  const file = { content: html };
-  const options = { format: 'A4', margin: { top: '20mm', bottom: '20mm', left: '20mm', right: '20mm' } };
-  const pdfBuffer = await htmlPdf.generatePdf(file, options);
-  return new NextResponse(pdfBuffer, {
-    status: 200,
-    headers: {
-      'Content-Type': 'application/pdf',
-      'Content-Disposition': `attachment; filename="tenancy-agreement-${agreement.id}.pdf"`,
-    },
-  });
-  */
-
-  // HTML fallback — fully readable and printable in browser
   const fileName = `tenancy-agreement-${agreement.tenancy.tenant.name.replace(/\s+/g, '-')}.html`;
 
   return new NextResponse(html, {
