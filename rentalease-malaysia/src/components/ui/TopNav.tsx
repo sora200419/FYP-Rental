@@ -31,6 +31,7 @@ function getNavLinks(role: string): NavLink[] {
       { label: 'Dashboard', href: '/dashboard/tenant' },
       { label: 'My Tenancy', href: '/dashboard/tenant/tenancy' },
       { label: 'Payments', href: '/dashboard/tenant/payments' },
+      { label: 'Conditions', href: '/dashboard/tenant/conditions' },
       { label: 'Messages', href: '/dashboard/tenant/messages' },
     ];
   }
@@ -92,7 +93,7 @@ export default function TopNav({ user }: { user: NavUser }) {
             RentalEase
           </Link>
 
-          {/* Desktop Nav Links — this is where the badge lives */}
+          {/* Desktop Nav Links */}
           <div className="hidden md:flex items-center gap-1">
             {links.map((link) => (
               <Link
@@ -105,7 +106,6 @@ export default function TopNav({ user }: { user: NavUser }) {
                 }`}
               >
                 {link.label}
-                {/* Badge only renders on the Messages link when there are unread messages */}
                 {link.label === 'Messages' && unreadCount > 0 && (
                   <span className="bg-blue-600 text-white text-xs font-bold w-4 h-4 rounded-full flex items-center justify-center leading-none">
                     {unreadCount > 9 ? '9+' : unreadCount}
@@ -190,7 +190,6 @@ export default function TopNav({ user }: { user: NavUser }) {
                 }`}
               >
                 {link.label}
-                {/* Badge in mobile menu too, for consistency */}
                 {link.label === 'Messages' && unreadCount > 0 && (
                   <span className="bg-blue-600 text-white text-xs font-bold w-4 h-4 rounded-full flex items-center justify-center leading-none">
                     {unreadCount > 9 ? '9+' : unreadCount}

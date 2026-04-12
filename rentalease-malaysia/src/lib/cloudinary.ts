@@ -36,6 +36,34 @@ export async function uploadPaymentProof(
   };
 }
 
+// Uploads a condition report photo to Cloudinary.
+// Stored in a separate folder from payment proofs so the
+// Cloudinary dashboard stays organised for the landlord.
+export async function uploadConditionPhoto(
+  fileBuffer: Buffer,
+  fileName: string,
+): Promise<{ url: string; publicId: string }> {
+  const base64 = fileBuffer.toString('base64');
+  const dataUri = `data:image/jpeg;base64,${base64}`;
+
+  const result = await cloudinary.uploader.upload(dataUri, {
+    folder: 'rentalease/conditions',
+    public_id: `${Date.now()}-${fileName.replace(/\.[^/.]+$/, '')}`,
+    resource_type: 'image',
+    transformation: [
+      { quality: 'auto', fetch_format: 'auto' },
+      // Higher resolution limit for condition photos — detail matters
+      // when documenting scratches, stains, or damage for dispute evidence
+      { width: 2048, crop: 'limit' },
+    ],
+  });
+
+  return {
+    url: result.secure_url,
+    publicId: result.public_id,
+  };
+}
+
 // Deletes a previously uploaded proof from Cloudinary.
 // Called when a landlord rejects and the tenant re-uploads (optional cleanup).
 export async function deletePaymentProof(publicId: string): Promise<void> {

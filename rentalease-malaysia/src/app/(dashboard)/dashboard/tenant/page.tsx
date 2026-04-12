@@ -3,11 +3,33 @@ import { authOptions } from '@/lib/auth';
 import { redirect } from 'next/navigation';
 import { prisma } from '@/lib/prisma';
 import Link from 'next/link';
+import TenancyInvitationCard from '@/components/ui/TenancyInvitationCard';
 
 export default async function TenantDashboard() {
   const session = await getServerSession(authOptions);
   if (!session || session.user.role !== 'TENANT') redirect('/login');
 
+  // Fetch pending invitations the tenant hasn't responded to yet.
+  const pendingInvitations = await prisma.tenancy.findMany({
+    where: {
+      tenantId: session.user.id,
+      status: 'INVITED',
+    },
+    include: {
+      room: {
+        include: {
+          property: {
+            include: {
+              landlord: { select: { name: true, email: true } },
+            },
+          },
+        },
+      },
+    },
+    orderBy: { createdAt: 'desc' },
+  });
+
+  // Fetch the most recent active or pending tenancy for the main dashboard view.
   const tenancy = await prisma.tenancy.findFirst({
     where: {
       tenantId: session.user.id,
@@ -16,9 +38,15 @@ export default async function TenantDashboard() {
     include: {
       agreement: { select: { status: true } },
       rentPayments: {
-        where: { status: { in: ['PENDING', 'LATE'] } },
+        // Count payments due and not yet paid (PENDING) — LATE is no longer stored,
+        // so we compute overdue status dynamically in the UI.
+        where: { status: 'PENDING' },
       },
-      property: { select: { address: true, city: true } },
+      room: {
+        include: {
+          property: { select: { address: true, city: true } },
+        },
+      },
     },
     orderBy: { createdAt: 'desc' },
   });
@@ -34,22 +62,54 @@ export default async function TenantDashboard() {
         </h1>
         <p className="text-gray-500 mt-1">
           {tenancy
-            ? `Your tenancy at ${tenancy.property.address}, ${tenancy.property.city}`
-            : 'You have no active tenancy yet.'}
+            ? `Your tenancy at ${tenancy.room.property.address}, ${tenancy.room.property.city}`
+            : pendingInvitations.length > 0
+              ? 'You have pending tenancy invitations.'
+              : 'You have no active tenancy yet.'}
         </p>
       </div>
 
-      {!tenancy ? (
+      {/* Pending invitations section — always shown first if any exist */}
+      {pendingInvitations.length > 0 && (
+        <div className="mb-8">
+          <h2 className="text-lg font-bold text-gray-900 mb-4">
+            📬 Pending Invitations ({pendingInvitations.length})
+          </h2>
+          <div className="space-y-4">
+            {pendingInvitations.map((inv) => (
+              <TenancyInvitationCard
+                key={inv.id}
+                tenancyId={inv.id}
+                propertyAddress={inv.room.property.address}
+                propertyCity={inv.room.property.city}
+                roomLabel={inv.room.label}
+                rentAmount={Number(inv.monthlyRent)}
+                depositAmount={Number(inv.depositAmount)}
+                startDate={inv.startDate.toISOString()}
+                endDate={inv.endDate.toISOString()}
+                landlordName={inv.room.property.landlord.name}
+                landlordEmail={inv.room.property.landlord.email}
+              />
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* No tenancy and no invitations */}
+      {!tenancy && pendingInvitations.length === 0 && (
         <div className="bg-blue-50 border border-blue-200 rounded-xl p-6">
           <p className="font-semibold text-blue-900">
             Waiting for your landlord
           </p>
           <p className="text-sm text-blue-700 mt-1">
-            Once your landlord creates a tenancy and generates an agreement, it
-            will appear here for you to review.
+            Once your landlord creates a tenancy and sends you an invitation, it
+            will appear here for you to accept.
           </p>
         </div>
-      ) : (
+      )}
+
+      {/* Active / pending tenancy dashboard */}
+      {tenancy && (
         <>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-5 mb-8">
             <Link
@@ -107,7 +167,7 @@ export default async function TenantDashboard() {
             </div>
           </div>
 
-          {/* Contextual prompt based on agreement state */}
+          {/* Contextual prompts based on agreement state */}
           {agreementStatus === 'FINALIZED' && (
             <div className="bg-amber-50 border border-amber-200 rounded-xl p-6 flex items-center justify-between">
               <div>

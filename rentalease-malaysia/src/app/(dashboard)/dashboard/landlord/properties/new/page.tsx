@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod'; // ← back to normal import
+import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -37,23 +37,41 @@ const PROPERTY_TYPES = [
   'Service Apartment',
 ];
 
+// Phase 10: no bedrooms, bathrooms, or rentAmount here — those live on Room
 const propertySchema = z.object({
   address: z.string().min(5, 'Please enter a full street address'),
   city: z.string().min(2, 'City is required'),
   state: z.string().min(1, 'Please select a state'),
   postcode: z.string().regex(/^\d{5}$/, 'Postcode must be exactly 5 digits'),
   type: z.string().min(1, 'Please select a property type'),
-  bedrooms: z.coerce.number().int().min(0).max(20),
-  bathrooms: z.coerce.number().int().min(1).max(20),
-  rentAmount: z.coerce.number().positive('Rent amount must be greater than 0'),
   description: z.string().optional(),
 });
 
-// Explicitly separate input (what the form fields produce — strings from HTML inputs)
-// from output (what Zod parses them into — numbers after coercion).
-// This is the correct Zod v4 + RHF pattern when coerce is involved.
 type PropertyFormInput = z.input<typeof propertySchema>;
 type PropertyFormOutput = z.output<typeof propertySchema>;
+
+function Field({
+  label,
+  error,
+  hint,
+  children,
+}: {
+  label: string;
+  error?: string;
+  hint?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div>
+      <label className="block text-sm font-medium text-gray-700 mb-1">
+        {label}
+      </label>
+      {children}
+      {hint && !error && <p className="text-gray-400 text-xs mt-1">{hint}</p>}
+      {error && <p className="text-red-500 text-xs mt-1">{error}</p>}
+    </div>
+  );
+}
 
 export default function NewPropertyPage() {
   const router = useRouter();
@@ -65,67 +83,32 @@ export default function NewPropertyPage() {
     handleSubmit,
     formState: { errors },
   } = useForm<PropertyFormInput, unknown, PropertyFormOutput>({
-    // Three type params: <InputType, Context, OutputType>
-    // InputType  = what the form fields contain (strings)
-    // Context    = unused, set to unknown
-    // OutputType = what onSubmit receives after Zod coerces the values (numbers)
     resolver: zodResolver(propertySchema),
-    defaultValues: {
-      bedrooms: 3,
-      bathrooms: 2,
-    },
   });
 
-  // onSubmit now correctly receives PropertyFormOutput — bedrooms/bathrooms/rentAmount
-  // are already numbers because Zod coerced them before this function is called
   const onSubmit = async (data: PropertyFormOutput) => {
     setIsLoading(true);
     setServerError(null);
-
     try {
       const response = await fetch('/api/properties', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
       });
-
       const result = await response.json();
-
       if (!response.ok) {
         setServerError(result.error || 'Failed to add property');
         return;
       }
-
-      router.push('/dashboard/landlord/properties');
+      // Redirect to property detail so landlord can immediately add rooms
+      router.push(`/dashboard/landlord/properties/${result.property.id}`);
       router.refresh();
-    } catch (error) {
-      console.error('Add property error:', error);
+    } catch {
       setServerError('Network error. Please try again.');
     } finally {
       setIsLoading(false);
     }
   };
-
-  const Field = ({
-    label,
-    error,
-    children,
-    hint,
-  }: {
-    label: string;
-    error?: string;
-    children: React.ReactNode;
-    hint?: string;
-  }) => (
-    <div>
-      <label className="block text-sm font-medium text-gray-700 mb-1">
-        {label}
-      </label>
-      {children}
-      {hint && !error && <p className="text-gray-400 text-xs mt-1">{hint}</p>}
-      {error && <p className="text-red-500 text-xs mt-1">{error}</p>}
-    </div>
-  );
 
   const inputClass =
     'w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500';
@@ -148,8 +131,8 @@ export default function NewPropertyPage() {
           Add New Property
         </h1>
         <p className="text-gray-400 text-sm mb-7">
-          Fill in the details below. You can add a tenant and generate an
-          agreement after saving.
+          Enter the property address and type. After saving, you&apos;ll add
+          individual rooms with their rent amounts.
         </p>
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
@@ -165,7 +148,6 @@ export default function NewPropertyPage() {
                   className={inputClass}
                 />
               </Field>
-
               <div className="grid grid-cols-2 gap-4">
                 <Field label="City" error={errors.city?.message}>
                   <input
@@ -187,7 +169,6 @@ export default function NewPropertyPage() {
                   />
                 </Field>
               </div>
-
               <Field label="State" error={errors.state?.message}>
                 <select {...register('state')} className={inputClass}>
                   <option value="">Select a state</option>
@@ -216,50 +197,29 @@ export default function NewPropertyPage() {
                   ))}
                 </select>
               </Field>
-
-              <div className="grid grid-cols-3 gap-4">
-                <Field label="Bedrooms" error={errors.bedrooms?.message}>
-                  <input
-                    {...register('bedrooms')}
-                    type="number"
-                    min={0}
-                    max={20}
-                    className={inputClass}
-                  />
-                </Field>
-                <Field label="Bathrooms" error={errors.bathrooms?.message}>
-                  <input
-                    {...register('bathrooms')}
-                    type="number"
-                    min={1}
-                    max={20}
-                    className={inputClass}
-                  />
-                </Field>
-                <Field
-                  label="Monthly Rent (RM)"
-                  error={errors.rentAmount?.message}
-                >
-                  <input
-                    {...register('rentAmount')}
-                    type="number"
-                    min={0}
-                    step="0.01"
-                    placeholder="e.g. 1500"
-                    className={inputClass}
-                  />
-                </Field>
-              </div>
-
-              <Field label="Description" error={errors.description?.message}>
+              <Field
+                label="Description (optional)"
+                error={errors.description?.message}
+              >
                 <textarea
                   {...register('description')}
                   rows={3}
-                  placeholder="Optional — any additional details about the property"
+                  placeholder="Any additional details"
                   className={`${inputClass} resize-none`}
                 />
               </Field>
             </div>
+          </div>
+
+          <div className="bg-blue-50 border border-blue-200 rounded-lg px-4 py-3">
+            <p className="text-sm font-medium text-blue-800">
+              What happens after you save?
+            </p>
+            <p className="text-xs text-blue-600 mt-1">
+              You&apos;ll be taken to the property detail page where you can add
+              rooms (e.g. &ldquo;Entire Unit&rdquo;, &ldquo;Master Room&rdquo;)
+              with individual rent amounts.
+            </p>
           </div>
 
           {serverError && (

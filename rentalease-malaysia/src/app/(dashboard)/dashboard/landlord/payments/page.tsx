@@ -12,7 +12,7 @@ export default async function LandlordPaymentsPage() {
   const pendingPayments = await prisma.rentPayment.findMany({
     where: {
       status: 'UNDER_REVIEW',
-      tenancy: { property: { landlordId: session.user.id } },
+      tenancy: { room: { property: { landlordId: session.user.id } } },
     },
     include: {
       proofs: {
@@ -21,7 +21,11 @@ export default async function LandlordPaymentsPage() {
       },
       tenancy: {
         include: {
-          property: { select: { address: true, city: true } },
+          room: {
+            include: {
+              property: { select: { address: true, city: true } },
+            },
+          },
           tenant: { select: { name: true, email: true } },
         },
       },
@@ -73,11 +77,12 @@ export default async function LandlordPaymentsPage() {
               <div className="flex items-center justify-between mb-2 px-1">
                 <div>
                   <p className="text-sm font-semibold text-gray-700">
-                    {payment.tenancy.property.address},{' '}
-                    {payment.tenancy.property.city}
+                    {payment.tenancy.room.property.address},{' '}
+                    {payment.tenancy.room.property.city}
                   </p>
                   <p className="text-xs text-gray-400">
-                    Tenant: {payment.tenancy.tenant.name} ·{' '}
+                    Room: {payment.tenancy.room.label} &middot; Tenant:{' '}
+                    {payment.tenancy.tenant.name} &middot;{' '}
                     {payment.tenancy.tenant.email}
                   </p>
                 </div>

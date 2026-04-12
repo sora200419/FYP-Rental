@@ -6,7 +6,7 @@ export interface TenancyForAgreement {
   id: string;
   startDate: Date;
   endDate: Date;
-  monthlyRent: unknown; // Prisma Decimal comes as unknown
+  monthlyRent: unknown;
   depositAmount: unknown;
   property: {
     address: string;
@@ -14,7 +14,10 @@ export interface TenancyForAgreement {
     state: string;
     postcode: string;
     type: string;
-    bedrooms: number;
+  };
+  // Phase 10: room replaces the old property.bedrooms / property.bathrooms fields
+  room: {
+    label: string; // e.g. "Entire Unit", "Master Room"
     bathrooms: number;
   };
   tenant: {
@@ -27,12 +30,14 @@ export interface TenancyForAgreement {
     email: string;
     phone?: string | null;
   };
+  // Passed during re-generation after a negotiation round
+  negotiationContext?: string | null;
 }
 
 export interface GeneratedAgreement {
-  rawContent: string; // Full formal agreement text
-  plainLanguageSummary: string; // Clause-by-clause plain English explanation
-  redFlags: string; // JSON-stringified array of warning objects
+  rawContent: string;
+  plainLanguageSummary: string;
+  redFlags: string; // JSON-stringified array
 }
 
 export async function generateTenancyAgreement(
@@ -40,7 +45,6 @@ export async function generateTenancyAgreement(
 ): Promise<GeneratedAgreement> {
   const model = genAI.getGenerativeModel({
     model: 'gemini-2.5-flash',
-    // Force JSON output so we can reliably parse the three sections
     generationConfig: {
       responseMimeType: 'application/json',
     },
@@ -62,22 +66,31 @@ export async function generateTenancyAgreement(
   const deposit = Number(tenancy.depositAmount).toLocaleString('en-MY', {
     minimumFractionDigits: 2,
   });
-
-  // Calculate tenancy duration in months for the agreement text
   const durationMonths = Math.round(
     (new Date(tenancy.endDate).getTime() -
       new Date(tenancy.startDate).getTime()) /
       (1000 * 60 * 60 * 24 * 30.44),
   );
 
-  const prompt = `
-You are a Malaysian legal document assistant specializing in residential tenancy agreements.
-Your task is to generate a comprehensive tenancy agreement for Malaysian residential rental,
-along with a plain-language summary and red-flag analysis.
+  // Only inject tenant notes when this is a re-generation after negotiation
+  const negotiationBlock = tenancy.negotiationContext
+    ? `
+IMPORTANT — TENANT-REQUESTED CHANGES:
+The tenant has reviewed the previous draft and requested the following changes.
+Incorporate these into the revised agreement where legally reasonable:
+<TENANT_NOTES>
+${tenancy.negotiationContext}
+</TENANT_NOTES>
+`
+    : '';
 
+  const prompt = `
+You are a Malaysian legal document assistant specialising in residential tenancy agreements.
+${negotiationBlock}
 The tenancy details are:
 - Property Address: ${tenancy.property.address}, ${tenancy.property.city}, ${tenancy.property.state} ${tenancy.property.postcode}
-- Property Type: ${tenancy.property.type} (${tenancy.property.bedrooms} bedrooms, ${tenancy.property.bathrooms} bathrooms)
+- Property Type: ${tenancy.property.type}
+- Rented Unit: ${tenancy.room.label} (${tenancy.room.bathrooms} bathroom${tenancy.room.bathrooms > 1 ? 's' : ''})
 - Landlord Name: ${tenancy.landlord.name}
 - Landlord Email: ${tenancy.landlord.email}
 - Landlord Phone: ${tenancy.landlord.phone ?? 'Not provided'}
@@ -105,40 +118,18 @@ Respond ONLY with a valid JSON object containing exactly these three keys:
   ]
 }
 
-For "rawContent": Write a complete, formal Malaysian residential tenancy agreement. Include:
-1. Parties (Landlord and Tenant details)
-2. Property description
-3. Tenancy period and renewal terms
-4. Rent amount, due date (1st of each month), and late payment penalty (typically 8% per annum in Malaysia)
-5. Security deposit terms and conditions for deduction
-6. Utilities and maintenance responsibilities
-7. Subletting prohibition
-8. Access rights for landlord inspection (24-hour notice required)
-9. Alterations and modifications clause
-10. Termination conditions (typically 2 months notice)
-11. Handover and condition report clause
-12. Governing law (Laws of Malaysia)
-13. Signature block with date lines
+For "rawContent": Write a complete, formal Malaysian residential tenancy agreement including all standard clauses (parties, property, period, rent, deposit, utilities, subletting, inspection, termination, governing law, signature block).
 
-For "plainLanguageSummary": For each numbered clause, write 2-3 sentences in plain, simple English 
-explaining what it means in practice for both landlord and tenant. Use "This means..." as a starter.
-Format as: "Clause [N] - [Title]: [Plain explanation]"
+For "plainLanguageSummary": For each numbered clause, write 2-3 sentences in plain English explaining what it means in practice.
 
-For "redFlags": Analyse the agreement terms and identify any clauses or conditions that could 
-disadvantage either party, violate common Malaysian rental practice, or create legal ambiguity.
-Consider the Malaysian context: no Residential Tenancy Act exists yet (governed by Contracts Act 1950),
-Distress Act 1951, and National Land Code 1965. Flag anything that might be unfair or risky.
-Return as a JSON array (can be empty array [] if no red flags found).
+For "redFlags": Analyse the agreement and identify clauses that could disadvantage either party or create legal ambiguity under Malaysian law (Contracts Act 1950, Distress Act 1951, NLC 1965). Return as a JSON array (can be empty []).
 `;
 
   try {
     const result = await model.generateContent(prompt);
     const text = result.response.text();
-
-    // Parse the JSON response from Gemini
     const parsed = JSON.parse(text);
 
-    // Validate the shape before trusting it
     if (
       !parsed.rawContent ||
       !parsed.plainLanguageSummary ||
@@ -150,7 +141,6 @@ Return as a JSON array (can be empty array [] if no red flags found).
     return {
       rawContent: parsed.rawContent,
       plainLanguageSummary: parsed.plainLanguageSummary,
-      // Store redFlags as a JSON string to match the Prisma schema (String? field)
       redFlags: JSON.stringify(parsed.redFlags),
     };
   } catch (error) {

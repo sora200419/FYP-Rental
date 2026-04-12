@@ -8,24 +8,32 @@ export default async function LandlordDashboard() {
   const session = await getServerSession(authOptions);
   if (!session || session.user.role !== 'LANDLORD') redirect('/login');
 
-  const [propertyCount, activeTenancyCount, pendingAgreementCount] =
-    await Promise.all([
-      prisma.property.count({
-        where: { landlordId: session.user.id },
-      }),
-      prisma.tenancy.count({
-        where: {
-          property: { landlordId: session.user.id },
-          status: 'ACTIVE',
-        },
-      }),
-      prisma.agreement.count({
-        where: {
-          tenancy: { property: { landlordId: session.user.id } },
-          status: 'DRAFT',
-        },
-      }),
-    ]);
+  const [
+    propertyCount,
+    activeTenancyCount,
+    pendingAgreementCount,
+    invitedCount,
+  ] = await Promise.all([
+    prisma.property.count({ where: { landlordId: session.user.id } }),
+    prisma.tenancy.count({
+      where: {
+        room: { property: { landlordId: session.user.id } },
+        status: 'ACTIVE',
+      },
+    }),
+    prisma.agreement.count({
+      where: {
+        tenancy: { room: { property: { landlordId: session.user.id } } },
+        status: 'DRAFT',
+      },
+    }),
+    prisma.tenancy.count({
+      where: {
+        room: { property: { landlordId: session.user.id } },
+        status: 'INVITED',
+      },
+    }),
+  ]);
 
   const stats = [
     {
@@ -62,6 +70,26 @@ export default async function LandlordDashboard() {
         </p>
       </div>
 
+      {invitedCount > 0 && (
+        <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-6 flex items-center justify-between">
+          <div>
+            <p className="font-semibold text-blue-900 text-sm">
+              {invitedCount} pending invitation{invitedCount > 1 ? 's' : ''}
+            </p>
+            <p className="text-xs text-blue-700 mt-0.5">
+              {invitedCount === 1 ? 'A tenant has' : 'Tenants have'} not yet
+              accepted their tenancy invitation.
+            </p>
+          </div>
+          <Link
+            href="/dashboard/landlord/tenancies"
+            className="text-xs font-semibold text-blue-600 hover:text-blue-800"
+          >
+            View →
+          </Link>
+        </div>
+      )}
+
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-5 mb-8">
         {stats.map((stat) => (
           <Link
@@ -85,7 +113,7 @@ export default async function LandlordDashboard() {
               Add your first property
             </p>
             <p className="text-sm text-blue-700 mt-1">
-              Start by adding a property before creating a tenancy agreement.
+              Start by adding a property, then add rooms, then invite a tenant.
             </p>
           </div>
           <Link

@@ -5,8 +5,6 @@ import { prisma } from '@/lib/prisma';
 import { generateRentSchedule } from '@/lib/payments';
 import { z } from 'zod';
 
-// discriminatedUnion: if action is 'accept', no notes needed.
-// If action is 'request_changes', notes are required and must be meaningful.
 const bodySchema = z.discriminatedUnion('action', [
   z.object({ action: z.literal('accept') }),
   z.object({
@@ -30,9 +28,8 @@ export async function POST(
   if (session.user.role !== 'TENANT')
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
-  const { id } = await params; // agreement ID
+  const { id } = await params;
 
-  // Verify this agreement belongs to a tenancy where this user is the tenant
   const agreement = await prisma.agreement.findFirst({
     where: {
       id,
@@ -46,37 +43,28 @@ export async function POST(
           startDate: true,
           endDate: true,
           monthlyRent: true,
-          property: { select: { landlordId: true } },
         },
       },
     },
   });
 
-  if (!agreement) {
+  if (!agreement)
     return NextResponse.json(
       { error: 'Agreement not found or access denied' },
       { status: 404 },
     );
-  }
 
-  // Tenants can only respond to FINALIZED agreements.
-  // DRAFT = landlord hasn't reviewed yet.
-  // NEGOTIATING = already in negotiation, wait for landlord to re-finalize.
-  // SIGNED = already accepted, no further action needed.
-  if (agreement.status !== 'FINALIZED') {
+  if (agreement.status !== 'FINALIZED')
     return NextResponse.json(
       { error: 'This agreement is not ready for your review yet.' },
       { status: 409 },
     );
-  }
 
   try {
     const body = await request.json();
     const data = bodySchema.parse(body);
 
     if (data.action === 'accept') {
-      // Use a transaction so agreement + tenancy status change together atomically.
-      // If either fails, neither is committed — data stays consistent.
       await prisma.$transaction([
         prisma.agreement.update({
           where: { id },
@@ -88,9 +76,6 @@ export async function POST(
         }),
       ]);
 
-      // Generate the monthly rent schedule now that the tenancy is live.
-      // This runs outside the transaction because it's additive — if it fails,
-      // the SIGNED status is already committed and can be retried.
       await generateRentSchedule(
         agreement.tenancy.id,
         agreement.tenancy.startDate,
@@ -117,12 +102,11 @@ export async function POST(
       });
     }
   } catch (error) {
-    if (error instanceof z.ZodError) {
+    if (error instanceof z.ZodError)
       return NextResponse.json(
         { error: error.issues[0].message },
         { status: 400 },
       );
-    }
     console.error('Agreement respond error:', error);
     return NextResponse.json(
       { error: 'Something went wrong. Please try again.' },

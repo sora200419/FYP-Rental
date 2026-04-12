@@ -9,15 +9,19 @@ export default async function LandlordMessagesPage() {
   if (!session || session.user.role !== 'LANDLORD') redirect('/login');
 
   // Fetch all tenancies with message metadata.
-  // The unread count per tenancy tells us which conversations have
-  // new activity so we can show badges in the sidebar.
+  // The unread count per tenancy tells which conversations have
+  // new activity so that can show badges in the sidebar.
   const tenancies = await prisma.tenancy.findMany({
     where: {
-      property: { landlordId: session.user.id },
+      room: { property: { landlordId: session.user.id } },
       status: { in: ['PENDING', 'ACTIVE'] },
     },
     include: {
-      property: { select: { address: true, city: true } },
+      room: {
+        include: {
+          property: { select: { address: true, city: true } },
+        },
+      },
       tenant: { select: { name: true } },
       // Count unread messages for this landlord in each tenancy
       messages: {
@@ -28,11 +32,11 @@ export default async function LandlordMessagesPage() {
     orderBy: { createdAt: 'desc' },
   });
 
-  // Shape the data for the client component — include unread count
+  // Shape the data for the client component.
   const tenancyList = tenancies.map((t) => ({
     id: t.id,
-    propertyAddress: t.property.address,
-    propertyCity: t.property.city,
+    propertyAddress: t.room.property.address,
+    propertyCity: t.room.property.city,
     tenantName: t.tenant.name,
     unreadCount: t.messages.length,
   }));

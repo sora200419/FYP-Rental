@@ -5,8 +5,6 @@ import { prisma } from '@/lib/prisma';
 import { ensureNextPaymentPending } from '@/lib/payments';
 import { z } from 'zod';
 
-// Discriminated union — same pattern as the agreement respond endpoint.
-// 'approve' needs no extra fields. 'reject' requires a reason string.
 const bodySchema = z.discriminatedUnion('action', [
   z.object({ action: z.literal('approve') }),
   z.object({
@@ -29,57 +27,44 @@ export async function PATCH(
 
   const { id: paymentId } = await params;
 
-  // Verify ownership — the payment must belong to a tenancy under this landlord
+  // Authorization chain: RentPayment → Tenancy → Room → Property → landlordId
   const payment = await prisma.rentPayment.findFirst({
     where: {
       id: paymentId,
-      tenancy: { property: { landlordId: session.user.id } },
+      tenancy: { room: { property: { landlordId: session.user.id } } },
     },
     include: { tenancy: { select: { id: true } } },
   });
 
-  if (!payment) {
+  if (!payment)
     return NextResponse.json(
       { error: 'Payment not found or access denied' },
       { status: 404 },
     );
-  }
 
-  // Only UNDER_REVIEW payments can be approved or rejected
-  if (payment.status !== 'UNDER_REVIEW') {
+  if (payment.status !== 'UNDER_REVIEW')
     return NextResponse.json(
       { error: 'This payment is not currently under review.' },
       { status: 409 },
     );
-  }
 
   try {
     const body = await request.json();
     const data = bodySchema.parse(body);
 
     if (data.action === 'approve') {
-      // Atomically mark as PAID and set isReadByTenant = false on all proofs
-      // so the tenant sees a "payment approved" notification
       await prisma.$transaction([
         prisma.rentPayment.update({
           where: { id: paymentId },
-          data: {
-            status: 'PAID',
-            paidDate: new Date(),
-            rejectionReason: null,
-          },
+          data: { status: 'PAID', paidDate: new Date(), rejectionReason: null },
         }),
-        // isReadByTenant = false signals to the tenant's UI that there's new info
         prisma.paymentProof.updateMany({
           where: { paymentId },
           data: { isReadByTenant: false },
         }),
       ]);
 
-      // Auto-advance the next month's record outside the transaction
-      // (additive operation — if it fails, the approval is still recorded)
       await ensureNextPaymentPending(payment.tenancy.id, payment.dueDate);
-
       return NextResponse.json({ message: 'Payment approved.' });
     }
 
@@ -87,13 +72,8 @@ export async function PATCH(
       await prisma.$transaction([
         prisma.rentPayment.update({
           where: { id: paymentId },
-          data: {
-            // Transition back to PENDING so tenant can re-upload
-            status: 'PENDING',
-            rejectionReason: data.reason,
-          },
+          data: { status: 'PENDING', rejectionReason: data.reason },
         }),
-        // Notify the tenant about the rejection
         prisma.paymentProof.updateMany({
           where: { paymentId },
           data: { isReadByTenant: false },
@@ -103,12 +83,11 @@ export async function PATCH(
       return NextResponse.json({ message: 'Payment proof rejected.' });
     }
   } catch (error) {
-    if (error instanceof z.ZodError) {
+    if (error instanceof z.ZodError)
       return NextResponse.json(
         { error: error.issues[0].message },
         { status: 400 },
       );
-    }
     console.error('Payment verify error:', error);
     return NextResponse.json(
       { error: 'Something went wrong.' },

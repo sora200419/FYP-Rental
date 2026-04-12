@@ -8,25 +8,25 @@ datasource db {
 }
 
 // ─── USER ────────────────────────────────────────────────────────────────────
-// The central entity. A user can be a LANDLORD, TENANT, or ADMIN.
-// We store the role here so middleware can protect routes accordingly.
 model User {
   id            String    @id @default(cuid())
   name          String
   email         String    @unique
-  password      String    // Always stored as bcrypt hash, never plain text
+  password      String    // bcrypt hash, never plaintext
   role          Role      @default(TENANT)
   phone         String?
-  icNumber      String?   // Malaysian IC number — sensitive, must be protected under PDPA
+  icNumber      String?   // Malaysian IC — sensitive, PDPA 2010 protected
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
-  // Relations — a user can own properties (as landlord) or rent them (as tenant)
-  ownedProperties    Property[]        @relation("LandlordProperties")
-  tenancies          Tenancy[]         @relation("TenantTenancies")
-  sentMessages       Message[]         @relation("SentMessages")
-  receivedMessages   Message[]         @relation("ReceivedMessages")
-  uploadedProofs     PaymentProof[]     @relation("UploadedProofs")
+  ownedProperties         Property[]          @relation("LandlordProperties")
+  tenancies               Tenancy[]           @relation("TenantTenancies")
+  sentMessages            Message[]           @relation("SentMessages")
+  receivedMessages        Message[]           @relation("ReceivedMessages")
+  uploadedProofs          PaymentProof[]      @relation("UploadedProofs")
+  createdReports          ConditionReport[]   @relation("CreatedReports")
+  acknowledgedReports     ConditionReport[]   @relation("AcknowledgedReports")
+  uploadedConditionPhotos ConditionPhoto[]    @relation("UploadedConditionPhotos")
 }
 
 enum Role {
@@ -36,71 +36,133 @@ enum Role {
 }
 
 // ─── PROPERTY ────────────────────────────────────────────────────────────────
-// A property belongs to one landlord (User with role LANDLORD).
+// A property is the physical building or unit. Room-level details (rent,
+// bathrooms) now live on the Room model so a single property can host
+// multiple tenants in separate rooms under separate agreements.
 model Property {
   id          String    @id @default(cuid())
   address     String
   city        String
   state       String
   postcode    String
-  type        String    // e.g. "Apartment", "Terrace House", "Condo"
-  bedrooms    Int
-  bathrooms   Int
-  rentAmount  Decimal   @db.Decimal(10, 2)
+  type        String    // "Apartment", "Terrace House", "Condo", etc.
   description String?
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 
-  // A property is owned by one landlord
   landlordId  String
   landlord    User      @relation("LandlordProperties", fields: [landlordId], references: [id])
 
-  // A property can have multiple tenancies over time (but only one active at a time)
-  tenancies   Tenancy[]
+  // A property has many rentable rooms (could be one "Entire Unit" or many rooms)
+  rooms       Room[]
+}
+
+// ─── ROOM ─────────────────────────────────────────────────────────────────────
+// A rentable unit within a property. For single-unit lets (whole apartment),
+// the landlord creates one Room labelled "Entire Unit". For room-by-room
+// rentals (terrace house), there can be one Room per bedroom.
+//
+// This sits between Property and Tenancy, allowing:
+//   - Multiple rooms per property with different rents
+//   - One active tenancy per room (enforced at API level)
+//   - isAvailable flag that the API keeps in sync
+model Room {
+  id              String        @id @default(cuid())
+  label           String        // Display name, e.g. "Master Room (Level 2)"
+  roomType        RoomType      // MASTER, MEDIUM, SMALL, STUDIO, ENTIRE_UNIT
+  bathroomType    BathroomType  // ATTACHED or SHARED
+  bathrooms       Int           @default(1)
+  rentAmount      Decimal       @db.Decimal(10, 2)
+  sizeSqFt        Int?          // Optional square footage
+  floorLevel      Int?          // Optional — which floor
+  furnishing      FurnishingLevel // FULLY_FURNISHED, PARTIALLY_FURNISHED, UNFURNISHED
+  maxOccupants    Int           @default(1)
+  wifiIncluded    Boolean       @default(false)
+  waterIncluded   Boolean       @default(false)
+  electricIncluded Boolean      @default(false)
+  genderPreference GenderPref  @default(ANY)
+  notes           String?       // Free-text additional details
+  isAvailable     Boolean       @default(true)
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  propertyId      String
+  property        Property      @relation(fields: [propertyId], references: [id])
+  tenancies       Tenancy[]
+}
+
+enum RoomType {
+  MASTER        // Largest room, usually with attached bathroom
+  MEDIUM        // Mid-size room
+  SMALL         // Single/small room
+  STUDIO        // Self-contained with own kitchen area
+  ENTIRE_UNIT   // Whole apartment/house let as one
+}
+
+enum BathroomType {
+  ATTACHED  // Private bathroom inside the room
+  SHARED    // Common bathroom shared with others
+}
+
+enum FurnishingLevel {
+  FULLY_FURNISHED       // Bed, wardrobe, AC, desk — move-in ready
+  PARTIALLY_FURNISHED   // Some items, typically wardrobe and fan/AC
+  UNFURNISHED           // Empty room
+}
+
+enum GenderPref {
+  ANY
+  MALE_ONLY
+  FEMALE_ONLY
 }
 
 // ─── TENANCY ─────────────────────────────────────────────────────────────────
-// The core entity — represents an active or historical rental agreement
-// between a landlord (via Property) and a tenant.
+// The core entity — represents one rental agreement between a landlord
+// (via Room → Property) and a tenant.
+//
+// Lifecycle: INVITED → PENDING → ACTIVE → EXPIRED | TERMINATED
+// INVITED: landlord created it, tenant must accept before work begins.
+// PENDING: tenant accepted, but agreement not yet signed.
+// ACTIVE:  agreement signed — rent schedule generated, tenancy is live.
 model Tenancy {
   id              String         @id @default(cuid())
   startDate       DateTime
   endDate         DateTime
   monthlyRent     Decimal        @db.Decimal(10, 2)
   depositAmount   Decimal        @db.Decimal(10, 2)
-  status          TenancyStatus  @default(PENDING)
+  status          TenancyStatus  @default(INVITED)
   createdAt       DateTime       @default(now())
   updatedAt       DateTime       @updatedAt
 
-  // Foreign keys connecting this tenancy to a property and a tenant
-  propertyId      String
-  property        Property       @relation(fields: [propertyId], references: [id])
+  // Foreign key to Room (not Property directly — go through room.property for auth)
+  roomId          String
+  room            Room           @relation(fields: [roomId], references: [id])
 
   tenantId        String
   tenant          User           @relation("TenantTenancies", fields: [tenantId], references: [id])
 
-  // A tenancy has one agreement document and many rent payments
-  agreement       Agreement?
-  rentPayments    RentPayment[]
-  messages        Message[]
+  agreement          Agreement?
+  rentPayments       RentPayment[]
+  messages           Message[]
+  conditionReports   ConditionReport[]
 }
 
 enum TenancyStatus {
-  PENDING     // Agreement drafted but not yet signed
-  ACTIVE      // Currently running tenancy
+  INVITED     // Landlord created — waiting for tenant to accept the invitation
+  PENDING     // Tenant accepted — agreement being drafted/negotiated
+  ACTIVE      // Agreement signed — tenancy is live
   EXPIRED     // Past the end date
   TERMINATED  // Ended early
 }
 
 // ─── AGREEMENT ───────────────────────────────────────────────────────────────
-// The actual tenancy agreement document — generated by AI, stored here.
-// One tenancy has exactly one agreement.
 model Agreement {
   id                   String          @id @default(cuid())
   rawContent           String          @db.Text
   plainLanguageSummary String          @db.Text
-  redFlags             String?         @db.Text
-  negotiationNotes     String?         @db.Text  // Tenant's feedback when requesting changes
+  redFlags             String?         @db.Text   // JSON string of RedFlag[]
+  negotiationNotes     String?         @db.Text   // Tenant's requested changes
+  negotiationRound     Int             @default(0) // How many revision rounds done
   status               AgreementStatus @default(DRAFT)
   fileUrl              String?
   createdAt            DateTime        @default(now())
@@ -111,14 +173,15 @@ model Agreement {
 }
 
 enum AgreementStatus {
-  DRAFT       // AI generated, landlord hasn't confirmed yet
-  FINALIZED   // Landlord reviewed and confirmed — awaiting tenant review
+  DRAFT       // AI generated, landlord reviewing
+  FINALIZED   // Landlord confirmed — awaiting tenant review
   NEGOTIATING // Tenant requested changes — landlord needs to revise
-  SIGNED      // Tenant accepted — both parties have agreed
+  SIGNED      // Tenant accepted
 }
 
 // ─── RENT PAYMENT ────────────────────────────────────────────────────────────
-// Tracks each monthly rent payment for a tenancy.
+// LATE status is intentionally not used — lateness is computed dynamically
+// by comparing dueDate < now() in the API/UI. This avoids needing a cron job.
 model RentPayment {
   id              String        @id @default(cuid())
   dueDate         DateTime
@@ -126,43 +189,82 @@ model RentPayment {
   amount          Decimal       @db.Decimal(10, 2)
   status          PaymentStatus @default(PENDING)
   notes           String?
-  rejectionReason String?       @db.Text  // Landlord's reason when rejecting proof
+  rejectionReason String?       @db.Text
   createdAt       DateTime      @default(now())
 
   tenancyId       String
   tenancy         Tenancy       @relation(fields: [tenancyId], references: [id])
 
-  // One payment can have multiple proof photos
   proofs          PaymentProof[]
 }
 
 enum PaymentStatus {
-  PENDING       // Payment is due but no proof uploaded yet
-  UNDER_REVIEW  // Tenant uploaded proof, awaiting landlord verification
-  PAID          // Landlord approved the proof
-  LATE          // Past due date with no proof uploaded
+  PENDING       // Due — treat as overdue in UI if dueDate < now()
+  UNDER_REVIEW  // Proof uploaded, awaiting landlord
+  PAID          // Landlord approved
+  LATE          // Legacy value — no longer written; existing rows kept for safety
   WAIVED        // Landlord waived this payment
 }
 
 // ─── PAYMENT PROOF ───────────────────────────────────────────────────────────
-// Stores Cloudinary URLs for each proof photo uploaded by a tenant.
-// One RentPayment can have multiple proofs (e.g. receipt + bank screenshot).
 model PaymentProof {
   id              String    @id @default(cuid())
-  imageUrl        String    // Full Cloudinary CDN URL
-  publicId        String    // Cloudinary public ID — needed for deletion
-  isReadByTenant  Boolean   @default(false) // Tracks if tenant saw landlord's decision
+  imageUrl        String
+  publicId        String
+  isReadByTenant  Boolean   @default(false)
   createdAt       DateTime  @default(now())
 
   paymentId       String
   payment         RentPayment @relation(fields: [paymentId], references: [id])
 
-  uploadedById    String    // The tenant who uploaded this proof
+  uploadedById    String
   uploadedBy      User      @relation("UploadedProofs", fields: [uploadedById], references: [id])
 }
 
+// ─── CONDITION REPORT ────────────────────────────────────────────────────────
+model ConditionReport {
+  id               String      @id @default(cuid())
+  type             ReportType
+  notes            String?     @db.Text
+  acknowledgedAt   DateTime?
+  createdAt        DateTime    @default(now())
+  updatedAt        DateTime    @updatedAt
+
+  tenancyId        String
+  tenancy          Tenancy     @relation(fields: [tenancyId], references: [id])
+
+  createdById      String
+  createdBy        User        @relation("CreatedReports", fields: [createdById], references: [id])
+
+  acknowledgedById String?
+  acknowledgedBy   User?       @relation("AcknowledgedReports", fields: [acknowledgedById], references: [id])
+
+  photos           ConditionPhoto[]
+}
+
+enum ReportType {
+  MOVE_IN
+  MOVE_OUT
+  INSPECTION
+}
+
+// ─── CONDITION PHOTO ─────────────────────────────────────────────────────────
+model ConditionPhoto {
+  id           String    @id @default(cuid())
+  imageUrl     String
+  publicId     String
+  room         String    // Room/area label for this photo (e.g. "Kitchen")
+  caption      String?   @db.Text
+  createdAt    DateTime  @default(now())
+
+  reportId     String
+  report       ConditionReport @relation(fields: [reportId], references: [id])
+
+  uploadedById String
+  uploadedBy   User      @relation("UploadedConditionPhotos", fields: [uploadedById], references: [id])
+}
+
 // ─── MESSAGE ─────────────────────────────────────────────────────────────────
-// In-platform messaging between landlord and tenant, scoped to a tenancy.
 model Message {
   id          String    @id @default(cuid())
   content     String    @db.Text

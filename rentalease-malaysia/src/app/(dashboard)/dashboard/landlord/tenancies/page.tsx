@@ -5,6 +5,7 @@ import { prisma } from '@/lib/prisma';
 import Link from 'next/link';
 
 const STATUS_STYLES: Record<string, string> = {
+  INVITED: 'bg-blue-100 text-blue-700',
   PENDING: 'bg-amber-100 text-amber-700',
   ACTIVE: 'bg-green-100 text-green-700',
   EXPIRED: 'bg-gray-100 text-gray-500',
@@ -15,20 +16,19 @@ export default async function LandlordTenanciesPage() {
   const session = await getServerSession(authOptions);
   if (!session || session.user.role !== 'LANDLORD') redirect('/login');
 
+  // Authorization chain: Tenancy → Room → Property → landlordId
   const tenancies = await prisma.tenancy.findMany({
     where: {
-      property: { landlordId: session.user.id },
+      room: { property: { landlordId: session.user.id } },
     },
     include: {
-      property: {
-        select: { address: true, city: true, state: true },
+      room: {
+        include: {
+          property: { select: { address: true, city: true, state: true } },
+        },
       },
-      tenant: {
-        select: { name: true, email: true },
-      },
-      agreement: {
-        select: { status: true },
-      },
+      tenant: { select: { name: true, email: true } },
+      agreement: { select: { status: true } },
     },
     orderBy: { createdAt: 'desc' },
   });
@@ -45,7 +45,7 @@ export default async function LandlordTenanciesPage() {
           </p>
         </div>
         <Link
-          href="/dashboard/landlord/tenancies/new"
+          href="/dashboard/landlord/properties"
           className="bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold px-5 py-2.5 rounded-lg transition-colors"
         >
           + New Tenancy
@@ -59,7 +59,8 @@ export default async function LandlordTenanciesPage() {
             No tenancies yet
           </p>
           <p className="text-gray-400 text-sm mt-1 mb-6">
-            Add a tenant to one of your properties to get started.
+            Go to a property, add rooms, then create a tenancy from a vacant
+            room.
           </p>
           <Link
             href="/dashboard/landlord/properties"
@@ -89,12 +90,16 @@ export default async function LandlordTenanciesPage() {
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex-1 min-w-0">
                     <p className="font-semibold text-gray-900 text-sm truncate">
-                      {tenancy.property.address}
+                      {tenancy.room.property.address}
                     </p>
                     <p className="text-gray-400 text-xs mt-0.5">
-                      {tenancy.property.city}, {tenancy.property.state}
+                      {tenancy.room.property.city},{' '}
+                      {tenancy.room.property.state}
+                      {' · '}
+                      <span className="text-gray-500 font-medium">
+                        {tenancy.room.label}
+                      </span>
                     </p>
-
                     <div className="flex items-center gap-2 mt-3">
                       <div className="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center text-xs font-bold text-blue-600">
                         {tenancy.tenant.name.charAt(0).toUpperCase()}
@@ -108,7 +113,6 @@ export default async function LandlordTenanciesPage() {
                         </p>
                       </div>
                     </div>
-
                     <div className="flex items-center gap-4 mt-3 text-xs text-gray-500">
                       <span>
                         📅 {start} → {end}
@@ -118,18 +122,13 @@ export default async function LandlordTenanciesPage() {
                       </span>
                     </div>
                   </div>
-
                   <div className="flex flex-col items-end gap-3 shrink-0">
                     <span
-                      className={`text-xs font-semibold px-2.5 py-1 rounded-full ${
-                        STATUS_STYLES[tenancy.status] ??
-                        'bg-gray-100 text-gray-500'
-                      }`}
+                      className={`text-xs font-semibold px-2.5 py-1 rounded-full ${STATUS_STYLES[tenancy.status] ?? 'bg-gray-100 text-gray-500'}`}
                     >
                       {tenancy.status.charAt(0) +
                         tenancy.status.slice(1).toLowerCase()}
                     </span>
-
                     {tenancy.agreement ? (
                       <span className="text-xs text-gray-400">
                         Agreement:{' '}
@@ -143,7 +142,6 @@ export default async function LandlordTenanciesPage() {
                         No agreement yet
                       </span>
                     )}
-
                     <Link
                       href={`/dashboard/landlord/tenancies/${tenancy.id}`}
                       className="text-sm text-blue-600 hover:text-blue-700 font-medium"
