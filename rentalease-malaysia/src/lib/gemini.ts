@@ -44,7 +44,7 @@ export async function generateTenancyAgreement(
   tenancy: TenancyForAgreement,
 ): Promise<GeneratedAgreement> {
   const model = genAI.getGenerativeModel({
-    model: 'gemini-2.5-flash',
+    model: 'gemini-2.0-flash',
     generationConfig: {
       responseMimeType: 'application/json',
     },

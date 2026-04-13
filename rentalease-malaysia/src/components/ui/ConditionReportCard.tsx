@@ -32,6 +32,50 @@ const TYPE_LABELS: Record<string, { label: string; icon: string }> = {
   INSPECTION: { label: 'Inspection', icon: '🔍' },
 };
 
+function DeletePhotoButton({
+  reportId,
+  photoId,
+}: {
+  reportId: string;
+  photoId: string;
+}) {
+  const router = useRouter();
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  const handleDelete = async (e: React.MouseEvent) => {
+    e.preventDefault(); // prevent the parent <a> from opening the image
+    e.stopPropagation();
+
+    if (!confirm('Delete this photo? This cannot be undone.')) return;
+
+    setIsDeleting(true);
+    try {
+      const res = await fetch(
+        `/api/condition-reports/${reportId}/photos/${photoId}`,
+        { method: 'DELETE' },
+      );
+      if (res.ok) {
+        router.refresh();
+      }
+    } catch {
+      // silently fail — user can retry
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  return (
+    <button
+      onClick={handleDelete}
+      disabled={isDeleting}
+      className="absolute top-1 left-1 bg-red-500 hover:bg-red-600 disabled:opacity-50 text-white text-xs w-5 h-5 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-10"
+      title="Delete photo"
+    >
+      {isDeleting ? '…' : '×'}
+    </button>
+  );
+}
+
 export default function ConditionReportCard({
   reportId,
   type,
@@ -154,36 +198,48 @@ export default function ConditionReportCard({
                   {room}
                 </p>
                 <div className="flex flex-wrap gap-3">
-                  {photosByRoom[room].map((photo) => (
-                    <div key={photo.id} className="group">
-                      <a
-                        href={photo.imageUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="relative block w-28 h-28 rounded-lg overflow-hidden border border-gray-200 hover:opacity-90 transition-opacity"
-                        title={photo.caption ?? `${room} photo`}
-                      >
-                        <Image
-                          src={photo.imageUrl}
-                          alt={photo.caption ?? `${room} condition`}
-                          fill
-                          className="object-cover"
-                          sizes="112px"
-                        />
-                        {/* Show who uploaded this photo — useful when both parties contribute */}
-                        {photo.uploadedById !== createdById && (
-                          <div className="absolute top-1 right-1 bg-blue-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">
-                            Other party
-                          </div>
+                  {photosByRoom[room].map((photo) => {
+                    // Only the uploader can delete, and only before acknowledgement
+                    const canDelete =
+                      photo.uploadedById === currentUserId && !isAcknowledged;
+
+                    return (
+                      <div key={photo.id} className="group relative">
+                        <a
+                          href={photo.imageUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="relative block w-28 h-28 rounded-lg overflow-hidden border border-gray-200 hover:opacity-90 transition-opacity"
+                          title={photo.caption ?? `${room} photo`}
+                        >
+                          <Image
+                            src={photo.imageUrl}
+                            alt={photo.caption ?? `${room} condition`}
+                            fill
+                            className="object-cover"
+                            sizes="112px"
+                          />
+                          {/* Show who uploaded this photo — useful when both parties contribute */}
+                          {photo.uploadedById !== createdById && (
+                            <div className="absolute top-1 right-1 bg-blue-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">
+                              Other party
+                            </div>
+                          )}
+                        </a>
+                        {canDelete && (
+                          <DeletePhotoButton
+                            reportId={reportId}
+                            photoId={photo.id}
+                          />
                         )}
-                      </a>
-                      {photo.caption && (
-                        <p className="text-xs text-gray-500 mt-1 max-w-[112px] truncate">
-                          {photo.caption}
-                        </p>
-                      )}
-                    </div>
-                  ))}
+                        {photo.caption && (
+                          <p className="text-xs text-gray-500 mt-1 max-w-[112px] truncate">
+                            {photo.caption}
+                          </p>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             ))}
