@@ -160,11 +160,17 @@ model Agreement {
   id                   String          @id @default(cuid())
   rawContent           String          @db.Text
   plainLanguageSummary String          @db.Text
-  redFlags             String?         @db.Text   // JSON string of RedFlag[]
-  negotiationNotes     String?         @db.Text   // Tenant's requested changes
-  negotiationRound     Int             @default(0) // How many revision rounds done
+  redFlags             String?         @db.Text
+  negotiationNotes     String?         @db.Text
+  negotiationRound     Int             @default(0)
   status               AgreementStatus @default(DRAFT)
   fileUrl              String?
+
+  contentHash      String?   // SHA-256 hex digest of rawContent at signing time
+  signedAt         DateTime? // exact server-side timestamp of acceptance
+  signedByIp       String?   // client IP — extracted from request headers
+  signedAcknowledged Boolean @default(false) // true only after explicit modal consent
+
   createdAt            DateTime        @default(now())
   updatedAt            DateTime        @updatedAt
 

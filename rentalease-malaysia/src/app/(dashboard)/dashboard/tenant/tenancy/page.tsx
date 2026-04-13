@@ -214,7 +214,6 @@ export default async function TenantTenancyPage() {
             {/* Read-only viewer so the tenant can still reference the current draft */}
             <AgreementViewer
               agreementId={tenancy.agreement.id}
-              tenancyId={tenancy.id}
               status={tenancy.agreement.status}
               rawContent={tenancy.agreement.rawContent}
               plainLanguageSummary={tenancy.agreement.plainLanguageSummary}
@@ -240,7 +239,6 @@ export default async function TenantTenancyPage() {
             </div>
             <AgreementViewer
               agreementId={tenancy.agreement.id}
-              tenancyId={tenancy.id}
               status={tenancy.agreement.status}
               rawContent={tenancy.agreement.rawContent}
               plainLanguageSummary={tenancy.agreement.plainLanguageSummary}
@@ -257,7 +255,6 @@ export default async function TenantTenancyPage() {
           <div className="space-y-5">
             <AgreementViewer
               agreementId={tenancy.agreement.id}
-              tenancyId={tenancy.id}
               status={tenancy.agreement.status}
               rawContent={tenancy.agreement.rawContent}
               plainLanguageSummary={tenancy.agreement.plainLanguageSummary}

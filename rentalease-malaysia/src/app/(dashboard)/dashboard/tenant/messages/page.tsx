@@ -8,16 +8,19 @@ export default async function TenantMessagesPage() {
   const session = await getServerSession(authOptions);
   if (!session || session.user.role !== 'TENANT') redirect('/login');
 
-  // Find the tenant's most recent active or pending tenancy
   const tenancy = await prisma.tenancy.findFirst({
     where: {
       tenantId: session.user.id,
       status: { in: ['PENDING', 'ACTIVE'] },
     },
     include: {
-      property: {
+      room: {
         include: {
-          landlord: { select: { name: true } },
+          property: {
+            include: {
+              landlord: { select: { name: true } },
+            },
+          },
         },
       },
     },
@@ -47,17 +50,18 @@ export default async function TenantMessagesPage() {
       ) : (
         <div className="max-w-2xl">
           <div className="mb-3 px-1">
+            {/* Phase 10 fix: address is now at tenancy.room.property.address */}
             <p className="text-sm text-gray-600">
-              <span className="font-medium">{tenancy.property.address}</span>
-              {' · '}Landlord: {tenancy.property.landlord.name}
+              <span className="font-medium">
+                {tenancy.room.property.address}
+              </span>
+              {' · '}Landlord: {tenancy.room.property.landlord.name}
             </p>
           </div>
-          {/* MessageThread is a client component — it handles all
-              the interactive state, polling, and sending logic */}
           <MessageThread
             tenancyId={tenancy.id}
             currentUserId={session.user.id}
-            otherPartyName={tenancy.property.landlord.name}
+            otherPartyName={tenancy.room.property.landlord.name}
           />
         </div>
       )}

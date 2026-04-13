@@ -3,10 +3,17 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { generateRentSchedule } from '@/lib/payments';
+import { createHash } from 'crypto';
 import { z } from 'zod';
 
 const bodySchema = z.discriminatedUnion('action', [
-  z.object({ action: z.literal('accept') }),
+  z.object({
+    action: z.literal('accept'),
+    // The client must send acknowledged: true — this comes from the
+    // checkbox the tenant ticks in the signing modal UI.
+    // If the API receives accept without acknowledged=true, it rejects.
+    acknowledged: z.literal(true),
+  }),
   z.object({
     action: z.literal('request_changes'),
     notes: z
@@ -65,10 +72,38 @@ export async function POST(
     const data = bodySchema.parse(body);
 
     if (data.action === 'accept') {
+      // Compute SHA-256 hash of the agreement content at signing time.
+      // This hash is the fingerprint — if anyone later claims the document
+      // was altered after signing, you can verify by hashing the stored
+      // rawContent and comparing it to this value.
+      const contentHash = createHash('sha256')
+        .update(agreement.rawContent)
+        .digest('hex');
+
+      // Extract client IP from standard proxy headers.
+      // Vercel and most reverse proxies set x-forwarded-for.
+      // We take the first IP in the chain (the actual client, not an intermediary).
+      const forwardedFor = request.headers.get('x-forwarded-for');
+      const realIp = request.headers.get('x-real-ip');
+      const clientIp = forwardedFor
+        ? forwardedFor.split(',')[0].trim()
+        : (realIp ?? 'unknown');
+
+      // Atomic transaction: sign the agreement and activate the tenancy together.
+      // Either both succeed or neither does — prevents a signed agreement
+      // without an active tenancy or vice versa.
       await prisma.$transaction([
         prisma.agreement.update({
           where: { id },
-          data: { status: 'SIGNED', negotiationNotes: null },
+          data: {
+            status: 'SIGNED',
+            negotiationNotes: null,
+            // audit trail fields
+            contentHash,
+            signedAt: new Date(),
+            signedByIp: clientIp,
+            signedAcknowledged: true,
+          },
         }),
         prisma.tenancy.update({
           where: { id: agreement.tenancy.id },
@@ -76,6 +111,8 @@ export async function POST(
         }),
       ]);
 
+      // Generate the rent schedule outside the transaction — it's additive
+      // and can be retried if it fails without rolling back the signed status.
       await generateRentSchedule(
         agreement.tenancy.id,
         agreement.tenancy.startDate,

@@ -31,7 +31,11 @@ export default async function TenantPaymentsPage() {
       status: 'ACTIVE',
     },
     include: {
-      property: { select: { address: true, city: true } },
+      room: {
+        include: {
+          property: { select: { address: true, city: true } },
+        },
+      },
       rentPayments: {
         orderBy: { dueDate: 'asc' },
         include: {

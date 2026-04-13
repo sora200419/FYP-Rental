@@ -1,3 +1,4 @@
+// src/app/(dashboard)/dashboard/landlord/tenancies/[id]/conditions/page.tsx
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { redirect, notFound } from 'next/navigation';
@@ -16,22 +17,24 @@ export default async function LandlordConditionsPage({
   if (!session || session.user.role !== 'LANDLORD') redirect('/login');
 
   const { id: tenancyId } = await params;
-
-  // Verify this tenancy belongs to the current landlord
   const tenancy = await prisma.tenancy.findFirst({
     where: {
       id: tenancyId,
-      property: { landlordId: session.user.id },
+      room: { property: { landlordId: session.user.id } },
     },
     include: {
-      property: { select: { address: true, city: true } },
+      room: {
+        include: {
+          // We need the property for address/city display in the breadcrumb
+          property: { select: { address: true, city: true } },
+        },
+      },
       tenant: { select: { name: true } },
     },
   });
 
   if (!tenancy) notFound();
 
-  // Fetch all condition reports for this tenancy
   const reports = await prisma.conditionReport.findMany({
     where: { tenancyId },
     include: {
@@ -53,7 +56,7 @@ export default async function LandlordConditionsPage({
 
   return (
     <div className="max-w-4xl">
-      {/* Breadcrumb */}
+      {/* Breadcrumb — address now lives at tenancy.room.property.address */}
       <div className="flex items-center gap-2 text-sm text-gray-400 mb-6">
         <Link
           href="/dashboard/landlord/tenancies"
@@ -66,7 +69,7 @@ export default async function LandlordConditionsPage({
           href={`/dashboard/landlord/tenancies/${tenancyId}`}
           className="hover:text-blue-600 transition-colors"
         >
-          {tenancy.property.address}
+          {tenancy.room.property.address}
         </Link>
         <span>/</span>
         <span className="text-gray-700 font-medium">Condition Reports</span>
@@ -79,14 +82,13 @@ export default async function LandlordConditionsPage({
             Property Condition
           </h1>
           <p className="text-gray-500 text-sm mt-1">
-            {tenancy.property.address}, {tenancy.property.city} · Tenant:{' '}
-            {tenancy.tenant.name}
+            {tenancy.room.property.address}, {tenancy.room.property.city}{' '}
+            &middot; Tenant: {tenancy.tenant.name}
           </p>
         </div>
         <CreateConditionReport tenancyId={tenancyId} />
       </div>
 
-      {/* Info banner */}
       <div className="bg-blue-50 border border-blue-200 rounded-xl px-5 py-4 mb-6">
         <p className="text-blue-800 text-sm font-medium">
           📸 Document property condition for evidence
@@ -98,7 +100,6 @@ export default async function LandlordConditionsPage({
         </p>
       </div>
 
-      {/* Reports list */}
       {reports.length === 0 ? (
         <div className="text-center py-20 bg-white rounded-xl border border-gray-200">
           <p className="text-4xl mb-4">📷</p>
@@ -113,9 +114,7 @@ export default async function LandlordConditionsPage({
       ) : (
         <div className="space-y-6">
           {reports.map((report) => {
-            // Only show uploader if the report hasn't been acknowledged yet
             const canUpload = !report.acknowledgedAt;
-
             return (
               <div key={report.id} className="space-y-3">
                 <ConditionReportCard

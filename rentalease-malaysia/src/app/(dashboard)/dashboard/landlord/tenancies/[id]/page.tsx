@@ -4,6 +4,7 @@ import { redirect, notFound } from 'next/navigation';
 import { prisma } from '@/lib/prisma';
 import Link from 'next/link';
 import GenerateAgreementButton from '@/components/ui/GenerateAgreementButton';
+import EditTenancyTerms from './EditTenancyTerms';
 
 const STATUS_STYLES: Record<string, string> = {
   INVITED: 'bg-blue-100 text-blue-700',
@@ -201,6 +202,17 @@ export default async function TenancyDetailPage({
               </p>
             </div>
           </div>
+          {/* Edit terms — only available before agreement is generated */}
+          {(tenancy.status === 'INVITED' || tenancy.status === 'PENDING') &&
+            !tenancy.agreement && (
+              <EditTenancyTerms
+                tenancyId={tenancy.id}
+                currentStartDate={tenancy.startDate.toISOString()}
+                currentEndDate={tenancy.endDate.toISOString()}
+                currentMonthlyRent={Number(tenancy.monthlyRent)}
+                currentDepositAmount={Number(tenancy.depositAmount)}
+              />
+            )}
         </div>
 
         {/* Property condition card */}

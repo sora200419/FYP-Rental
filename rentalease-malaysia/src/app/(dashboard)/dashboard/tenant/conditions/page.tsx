@@ -10,16 +10,19 @@ export default async function TenantConditionsPage() {
   const session = await getServerSession(authOptions);
   if (!session || session.user.role !== 'TENANT') redirect('/login');
 
-  // Find the tenant's most recent active or pending tenancy
   const tenancy = await prisma.tenancy.findFirst({
     where: {
       tenantId: session.user.id,
       status: { in: ['PENDING', 'ACTIVE'] },
     },
     include: {
-      property: {
+      room: {
         include: {
-          landlord: { select: { name: true } },
+          property: {
+            include: {
+              landlord: { select: { name: true } },
+            },
+          },
         },
       },
     },
@@ -51,7 +54,6 @@ export default async function TenantConditionsPage() {
     );
   }
 
-  // Fetch all condition reports for this tenancy
   const reports = await prisma.conditionReport.findMany({
     where: { tenancyId: tenancy.id },
     include: {
@@ -71,22 +73,21 @@ export default async function TenantConditionsPage() {
     orderBy: { createdAt: 'desc' },
   });
 
-  // Check if there are any reports pending the tenant's acknowledgement
   const pendingAck = reports.filter(
     (r) => !r.acknowledgedAt && r.createdBy.id !== session.user.id,
   ).length;
 
   return (
     <div className="max-w-4xl">
-      {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">
             Property Condition
           </h1>
+          {/* Phase 10 fix: address is now at tenancy.room.property.address */}
           <p className="text-gray-500 text-sm mt-1">
-            {tenancy.property.address}, {tenancy.property.city} · Landlord:{' '}
-            {tenancy.property.landlord.name}
+            {tenancy.room.property.address}, {tenancy.room.property.city}{' '}
+            &middot; Landlord: {tenancy.room.property.landlord.name}
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -99,7 +100,6 @@ export default async function TenantConditionsPage() {
         </div>
       </div>
 
-      {/* Info banner */}
       <div className="bg-blue-50 border border-blue-200 rounded-xl px-5 py-4 mb-6">
         <p className="text-blue-800 text-sm font-medium">
           📸 Protect yourself with photo evidence
@@ -111,7 +111,6 @@ export default async function TenantConditionsPage() {
         </p>
       </div>
 
-      {/* Reports */}
       {reports.length === 0 ? (
         <div className="text-center py-20 bg-white rounded-xl border border-gray-200">
           <p className="text-4xl mb-4">📷</p>
@@ -127,7 +126,6 @@ export default async function TenantConditionsPage() {
         <div className="space-y-6">
           {reports.map((report) => {
             const canUpload = !report.acknowledgedAt;
-
             return (
               <div key={report.id} className="space-y-3">
                 <ConditionReportCard

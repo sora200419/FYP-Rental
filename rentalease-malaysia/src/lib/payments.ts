@@ -35,29 +35,21 @@ export async function generateRentSchedule(
 
 // After a landlord approves a payment, find the next PENDING payment
 // for the same tenancy and ensure it's visible and correctly staged.
-// This is the "auto-update next month's record" behaviour.
 export async function ensureNextPaymentPending(
   tenancyId: string,
   currentDueDate: Date,
 ): Promise<void> {
-  // Find the immediately following payment by due date
   const nextPayment = await prisma.rentPayment.findFirst({
     where: {
       tenancyId,
       dueDate: { gt: currentDueDate },
-      // Only update if it hasn't already been uploaded or paid
-      status: { in: ['PENDING', 'LATE'] },
+      // LATE is no longer written by the application — all legacy LATE rows
+      // were migrated to PENDING in the Phase 10 migration. Only query PENDING.
+      status: 'PENDING',
     },
     orderBy: { dueDate: 'asc' },
   });
 
-  // If the next payment exists and was auto-marked LATE (because the date
-  // passed before the previous payment was verified), reset it to PENDING
-  // now that the landlord has confirmed the previous month is settled.
-  if (nextPayment && nextPayment.status === 'LATE') {
-    await prisma.rentPayment.update({
-      where: { id: nextPayment.id },
-      data: { status: 'PENDING' },
-    });
-  }
+  // Nothing to do if the next payment is already in the right state
+  if (!nextPayment) return;
 }

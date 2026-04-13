@@ -70,7 +70,6 @@ export default async function AgreementPage({
 
       <AgreementViewer
         agreementId={tenancy.agreement.id}
-        tenancyId={id}
         status={tenancy.agreement.status}
         rawContent={tenancy.agreement.rawContent}
         plainLanguageSummary={tenancy.agreement.plainLanguageSummary}

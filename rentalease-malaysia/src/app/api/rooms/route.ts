@@ -1,3 +1,4 @@
+// src/app/api/rooms/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
@@ -22,10 +23,54 @@ const roomSchema = z.object({
   notes: z.string().max(1000).nullable().optional(),
 });
 
+// GET /api/rooms?propertyId=xxx
+// Returns all rooms for a property the landlord owns.
+// Used by AddRoomForm and the create-tenancy flow to list available rooms.
 export async function GET(request: NextRequest) {
-  // ... unchanged from before
+  const session = await getServerSession(authOptions);
+  if (!session)
+    return NextResponse.json({ error: 'Unauthorised' }, { status: 401 });
+  if (session.user.role !== 'LANDLORD')
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+
+  const propertyId = request.nextUrl.searchParams.get('propertyId');
+  if (!propertyId)
+    return NextResponse.json(
+      { error: 'propertyId query param is required' },
+      { status: 400 },
+    );
+
+  // Verify the property belongs to this landlord before listing its rooms
+  const property = await prisma.property.findFirst({
+    where: { id: propertyId, landlordId: session.user.id },
+  });
+  if (!property)
+    return NextResponse.json(
+      { error: 'Property not found or access denied' },
+      { status: 404 },
+    );
+
+  const rooms = await prisma.room.findMany({
+    where: { propertyId },
+    include: {
+      // Include the active tenancy (if any) so the UI can show occupancy per room
+      tenancies: {
+        where: { status: { in: ['INVITED', 'PENDING', 'ACTIVE'] } },
+        include: {
+          tenant: { select: { name: true, email: true } },
+        },
+        take: 1,
+        orderBy: { createdAt: 'desc' },
+      },
+    },
+    orderBy: { createdAt: 'asc' },
+  });
+
+  return NextResponse.json({ rooms });
 }
 
+// POST /api/rooms
+// Creates a new room under a property the landlord owns.
 export async function POST(request: NextRequest) {
   const session = await getServerSession(authOptions);
   if (!session)
