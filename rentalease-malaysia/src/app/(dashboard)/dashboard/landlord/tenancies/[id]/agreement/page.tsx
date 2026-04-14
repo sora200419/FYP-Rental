@@ -4,6 +4,7 @@ import { redirect, notFound } from 'next/navigation';
 import { prisma } from '@/lib/prisma';
 import Link from 'next/link';
 import AgreementViewer from '@/components/ui/AgreementViewer';
+import AgreementEditor from '@/components/ui/AgreementEditor';
 
 export default async function AgreementPage({
   params,
@@ -15,7 +16,6 @@ export default async function AgreementPage({
 
   const { id } = await params;
 
-  // Authorization chain: Tenancy → Room → Property → landlordId
   const tenancy = await prisma.tenancy.findFirst({
     where: {
       id,
@@ -48,6 +48,8 @@ export default async function AgreementPage({
     }
   }
 
+  const isSigned = tenancy.agreement.status === 'SIGNED';
+
   return (
     <div className="max-w-4xl">
       <div className="flex items-center gap-2 text-sm text-gray-400 mb-6">
@@ -68,6 +70,7 @@ export default async function AgreementPage({
         <span className="text-gray-700 font-medium">Agreement</span>
       </div>
 
+      {/* Viewer — always shown */}
       <AgreementViewer
         agreementId={tenancy.agreement.id}
         status={tenancy.agreement.status}
@@ -77,6 +80,36 @@ export default async function AgreementPage({
         tenantName={tenancy.tenant.name}
         propertyAddress={`${tenancy.room.property.address}, ${tenancy.room.property.city} — ${tenancy.room.label}`}
       />
+
+      {/* Editor — only for landlord, only before signing */}
+      {!isSigned && (
+        <div className="mt-8 border-t border-gray-200 pt-8">
+          <h2 className="text-lg font-bold text-gray-900 mb-1">
+            Edit Agreement
+          </h2>
+          <p className="text-sm text-gray-500 mb-5">
+            Edit the agreement text directly or use AI Assist to apply a
+            specific change. After saving, re-finalize to send the updated
+            version to your tenant.
+          </p>
+          <AgreementEditor
+            agreementId={tenancy.agreement.id}
+            initialContent={tenancy.agreement.rawContent}
+            negotiationNotes={tenancy.agreement.negotiationNotes}
+          />
+        </div>
+      )}
+
+      {/* If signed, explain why editing is locked */}
+      {isSigned && (
+        <div className="mt-6 bg-gray-50 border border-gray-200 rounded-xl px-5 py-4">
+          <p className="text-sm text-gray-500">
+            🔒 This agreement has been signed by the tenant and cannot be
+            edited. If both parties agree to changes, a new tenancy agreement
+            would need to be created.
+          </p>
+        </div>
+      )}
     </div>
   );
 }
