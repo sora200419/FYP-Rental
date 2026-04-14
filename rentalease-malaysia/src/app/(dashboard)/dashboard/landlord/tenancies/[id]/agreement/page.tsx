@@ -84,6 +84,7 @@ export default async function AgreementPage({
         contentHash={tenancy.agreement.contentHash}
         signedAt={tenancy.agreement.signedAt}
         signedByIp={tenancy.agreement.signedByIp}
+        txHash={tenancy.agreement.txHash}
       />
 
       {/* Editor — only for landlord, only before signing */}

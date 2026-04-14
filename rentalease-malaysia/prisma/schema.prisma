@@ -171,6 +171,12 @@ model Agreement {
   signedByIp       String?   // client IP — extracted from request headers
   signedAcknowledged Boolean @default(false) // true only after explicit modal consent
 
+  // Phase 14: Ethereum Sepolia testnet transaction hash.
+  // After signing, the contentHash is broadcast as transaction data to Sepolia.
+  // This txHash is the public, immutable on-chain proof that the document existed.
+  // Null until the blockchain transaction is successfully broadcast.
+  txHash             String?
+
   createdAt            DateTime        @default(now())
   updatedAt            DateTime        @updatedAt
 

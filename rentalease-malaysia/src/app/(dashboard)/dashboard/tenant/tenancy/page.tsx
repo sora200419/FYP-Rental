@@ -244,6 +244,7 @@ export default async function TenantTenancyPage() {
               contentHash={tenancy.agreement.contentHash}
               signedAt={tenancy.agreement.signedAt}
               signedByIp={tenancy.agreement.signedByIp}
+              txHash={tenancy.agreement.txHash}
             />
           </>
         )}

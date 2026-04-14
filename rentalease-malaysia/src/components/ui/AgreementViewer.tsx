@@ -12,31 +12,19 @@ interface RedFlag {
 
 interface Props {
   agreementId: string;
-
-  // tenancyId has been intentionally removed in the AgreementViewer cleanup.
-  // The component only needs agreementId — for the finalize PATCH call and
-  // the download link. Parent pages no longer need to pass tenancyId here.
-
   status: string;
   rawContent: string;
   plainLanguageSummary: string;
   redFlags: RedFlag[];
   tenantName: string;
   propertyAddress: string;
-
-  // readOnly = true hides the "Mark as Finalized" button.
-  // Used on the tenant-side viewer so tenants can't accidentally finalize.
   readOnly?: boolean;
-
-  // Phase 11: signing audit trail fields — passed from the parent page
-  // only when the agreement has already been SIGNED.
-  // All three are optional because they are null/undefined until signing occurs.
   contentHash?: string | null;
   signedAt?: Date | string | null;
   signedByIp?: string | null;
+  // Phase 14: Sepolia transaction hash — null until blockchain anchoring completes
+  txHash?: string | null;
 }
-
-// ─── Constants ────────────────────────────────────────────────────────────────
 
 const SEVERITY_STYLES: Record<string, string> = {
   HIGH: 'bg-red-100   text-red-700   border-red-200',
@@ -45,8 +33,6 @@ const SEVERITY_STYLES: Record<string, string> = {
 };
 
 type Tab = 'agreement' | 'summary' | 'redflags';
-
-// ─── Component ────────────────────────────────────────────────────────────────
 
 export default function AgreementViewer({
   agreementId,
@@ -60,22 +46,17 @@ export default function AgreementViewer({
   contentHash,
   signedAt,
   signedByIp,
+  txHash,
 }: Props) {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<Tab>('agreement');
   const [isFinalizing, setIsFinalizing] = useState(false);
   const [finalizeError, setFinalizeError] = useState<string | null>(null);
 
-  // Derived booleans that drive what UI is shown
   const highCount = redFlags.filter((f) => f.severity === 'HIGH').length;
   const isDraft = status === 'DRAFT';
   const isSigned = status === 'SIGNED';
-
-  // The finalize button only appears for the landlord (readOnly=false)
-  // and only when the agreement is still a draft awaiting confirmation.
   const showFinalizeButton = isDraft && !readOnly;
-
-  // ── Handlers ────────────────────────────────────────────────────────────────
 
   const handleFinalize = async () => {
     setIsFinalizing(true);
@@ -89,7 +70,6 @@ export default function AgreementViewer({
         setFinalizeError(result.error || 'Failed to finalize');
         return;
       }
-      // Trigger a server-side re-render so the status badge updates immediately
       router.refresh();
     } catch {
       setFinalizeError('Network error. Please try again.');
@@ -98,19 +78,15 @@ export default function AgreementViewer({
     }
   };
 
-  // ── Tab configuration ────────────────────────────────────────────────────────
-
   const tabs: { key: Tab; label: string; badge?: number }[] = [
     { key: 'agreement', label: '📄 Full Agreement' },
     { key: 'summary', label: '💬 Plain Language' },
     { key: 'redflags', label: '⚠️ Red Flags', badge: redFlags.length },
   ];
 
-  // ── Render ───────────────────────────────────────────────────────────────────
-
   return (
     <div>
-      {/* ── Header row: title, status badge, download, finalize ─────────────── */}
+      {/* ── Header row ──────────────────────────────────────────────────── */}
       <div className="flex items-start justify-between mb-6 gap-4">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">
@@ -122,7 +98,6 @@ export default function AgreementViewer({
         </div>
 
         <div className="flex items-center gap-3 shrink-0">
-          {/* Status badge changes colour based on current agreement state */}
           <span
             className={`text-xs font-semibold px-3 py-1.5 rounded-full ${
               status === 'FINALIZED'
@@ -131,13 +106,12 @@ export default function AgreementViewer({
                   ? 'bg-blue-100 text-blue-700'
                   : status === 'NEGOTIATING'
                     ? 'bg-purple-100 text-purple-700'
-                    : 'bg-amber-100 text-amber-700' // DRAFT
+                    : 'bg-amber-100 text-amber-700'
             }`}
           >
             {status.charAt(0) + status.slice(1).toLowerCase()}
           </span>
 
-          {/* Download link — available to both landlord and tenant at all stages */}
           <a
             href={`/api/agreements/${agreementId}/pdf`}
             download
@@ -146,7 +120,6 @@ export default function AgreementViewer({
             ⬇ Download
           </a>
 
-          {/* Finalize button is landlord-only and only when status is DRAFT */}
           {showFinalizeButton && (
             <button
               onClick={handleFinalize}
@@ -159,7 +132,6 @@ export default function AgreementViewer({
         </div>
       </div>
 
-      {/* ── High-severity warning (shown to landlord before finalizing) ─────── */}
       {highCount > 0 && isDraft && !readOnly && (
         <div className="bg-red-50 border border-red-200 rounded-xl px-5 py-4 mb-5 flex items-start gap-3">
           <span className="text-red-500 text-xl mt-0.5">⚠️</span>
@@ -175,14 +147,13 @@ export default function AgreementViewer({
         </div>
       )}
 
-      {/* Inline error for the finalize action */}
       {finalizeError && (
         <div className="bg-red-50 border border-red-200 text-red-600 text-sm rounded-lg px-4 py-3 mb-5">
           {finalizeError}
         </div>
       )}
 
-      {/* ── Tab navigation ──────────────────────────────────────────────────── */}
+      {/* ── Tab navigation ──────────────────────────────────────────────── */}
       <div className="flex gap-1 bg-gray-100 p-1 rounded-xl mb-5">
         {tabs.map((tab) => (
           <button
@@ -195,7 +166,6 @@ export default function AgreementViewer({
             }`}
           >
             {tab.label}
-            {/* Badge on the Red Flags tab shows how many flags were found */}
             {tab.badge !== undefined && tab.badge > 0 && (
               <span className="bg-red-500 text-white text-xs font-bold px-1.5 py-0.5 rounded-full leading-none">
                 {tab.badge}
@@ -205,23 +175,20 @@ export default function AgreementViewer({
         ))}
       </div>
 
-      {/* ── Tab content panel ───────────────────────────────────────────────── */}
+      {/* ── Tab content ─────────────────────────────────────────────────── */}
       <div className="bg-white rounded-xl border border-gray-200">
-        {/* Full agreement text tab */}
         {activeTab === 'agreement' && (
           <div className="p-6 md:p-8">
             <p className="text-xs text-gray-400 mb-5 pb-4 border-b border-gray-100">
               AI-generated agreement text based on the tenancy terms. Review
               carefully before {readOnly ? 'responding.' : 'finalizing.'}
             </p>
-            {/* pre-wrap preserves the paragraph structure Gemini generates */}
             <pre className="whitespace-pre-wrap font-sans text-sm text-gray-800 leading-relaxed">
               {rawContent}
             </pre>
           </div>
         )}
 
-        {/* Plain-language summary tab */}
         {activeTab === 'summary' && (
           <div className="p-6 md:p-8">
             <p className="text-xs text-gray-400 mb-5 pb-4 border-b border-gray-100">
@@ -234,7 +201,6 @@ export default function AgreementViewer({
           </div>
         )}
 
-        {/* Red flags tab */}
         {activeTab === 'redflags' && (
           <div className="p-6 md:p-8">
             <p className="text-xs text-gray-400 mb-5 pb-4 border-b border-gray-100">
@@ -279,65 +245,119 @@ export default function AgreementViewer({
         )}
       </div>
 
-      {/* ── Phase 11: Signing audit trail panel ─────────────────────────────── */}
-      {/*                                                                        */}
-      {/* This section appears only when:                                        */}
-      {/*   (a) the agreement status is SIGNED, AND                              */}
-      {/*   (b) the contentHash was actually recorded (non-null).                */}
-      {/*                                                                        */}
-      {/* The panel surfaces the cryptographic fingerprint of the document,      */}
-      {/* the server-side timestamp, and the client IP to both parties — giving  */}
-      {/* them a verifiable record that stands up under ECA 2006.                */}
+      {/* ── Signing Audit Record (Phase 11 + Phase 14) ──────────────────── */}
+      {/*                                                                     */}
+      {/* This panel combines the database-level audit trail (SHA-256 hash,   */}
+      {/* timestamp, IP address) with the blockchain-level anchor (Sepolia     */}
+      {/* txHash). Together these satisfy the Electronic Commerce Act 2006     */}
+      {/* requirements for a reliable electronic record.                       */}
       {isSigned && contentHash && (
-        <div className="mt-4 bg-gray-50 border border-gray-200 rounded-xl px-5 py-4">
-          <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">
+        <div className="mt-4 bg-gray-50 border border-gray-200 rounded-xl px-5 py-5">
+          <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4">
             Signing Audit Record
           </p>
 
-          <div className="space-y-2 text-xs text-gray-500">
-            {/* Signed timestamp — formatted in Malaysian locale for clarity */}
+          <div className="space-y-3 text-xs text-gray-500">
             {signedAt && (
-              <p>
-                <span className="font-medium text-gray-600">Signed at: </span>
-                {new Date(signedAt).toLocaleString('en-MY', {
-                  day: 'numeric',
-                  month: 'long',
-                  year: 'numeric',
-                  hour: '2-digit',
-                  minute: '2-digit',
-                  second: '2-digit',
-                })}
-              </p>
+              <div className="flex items-start gap-3">
+                <span className="text-gray-400 shrink-0 mt-0.5">🕐</span>
+                <div>
+                  <p className="font-medium text-gray-600 mb-0.5">Signed at</p>
+                  <p>
+                    {new Date(signedAt).toLocaleString('en-MY', {
+                      day: 'numeric',
+                      month: 'long',
+                      year: 'numeric',
+                      hour: '2-digit',
+                      minute: '2-digit',
+                      second: '2-digit',
+                    })}
+                  </p>
+                </div>
+              </div>
             )}
 
-            {/* Client IP at time of signing */}
             {signedByIp && (
-              <p>
-                <span className="font-medium text-gray-600">
-                  Signed from IP:{' '}
-                </span>
-                {signedByIp}
-              </p>
+              <div className="flex items-start gap-3">
+                <span className="text-gray-400 shrink-0 mt-0.5">🌐</span>
+                <div>
+                  <p className="font-medium text-gray-600 mb-0.5">
+                    Signed from IP
+                  </p>
+                  <p>{signedByIp}</p>
+                </div>
+              </div>
             )}
 
-            {/* SHA-256 hash of rawContent at the moment of signing.           */}
-            {/* font-mono makes the hex string legible and copy-pasteable.     */}
-            {/* break-all prevents the long hex from overflowing its container.*/}
-            <p className="font-mono break-all">
-              <span className="font-medium text-gray-600 font-sans">
-                Document SHA-256:{' '}
-              </span>
-              {contentHash}
-            </p>
+            {/* SHA-256 hash — the document fingerprint */}
+            <div className="flex items-start gap-3">
+              <span className="text-gray-400 shrink-0 mt-0.5">🔒</span>
+              <div className="min-w-0">
+                <p className="font-medium text-gray-600 mb-0.5">
+                  Document SHA-256 fingerprint
+                </p>
+                <p className="font-mono break-all text-gray-500">
+                  {contentHash}
+                </p>
+                <p className="text-gray-400 mt-1">
+                  This hash uniquely identifies the agreement text at the moment
+                  of signing. If the document content is ever altered, this hash
+                  will no longer match.
+                </p>
+              </div>
+            </div>
+
+            {/* Blockchain anchor — the on-chain proof */}
+            <div className="flex items-start gap-3">
+              <span className="text-gray-400 shrink-0 mt-0.5">⛓️</span>
+              <div className="min-w-0">
+                <p className="font-medium text-gray-600 mb-0.5">
+                  Blockchain anchor (Ethereum Sepolia testnet)
+                </p>
+
+                {txHash ? (
+                  <>
+                    {/* The txHash links directly to Sepolia Etherscan so either
+                        party can independently verify the on-chain record */}
+                    <a
+                      href={`https://sepolia.etherscan.io/tx/${txHash}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="font-mono break-all text-blue-600 hover:text-blue-800 hover:underline"
+                    >
+                      {txHash}
+                    </a>
+                    <p className="text-gray-400 mt-1">
+                      The document fingerprint above has been permanently
+                      recorded on the Ethereum Sepolia blockchain. Click the
+                      transaction hash to verify independently on Etherscan.
+                    </p>
+                  </>
+                ) : (
+                  // Shown briefly after signing while the blockchain tx is broadcast
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 border-2 border-gray-400 border-t-transparent rounded-full animate-spin" />
+                    <p className="text-gray-400">
+                      Blockchain anchoring in progress — this may take a few
+                      moments. Refresh the page to check.
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
 
-          {/* Legal context note explaining what this record means */}
-          <p className="text-xs text-gray-400 mt-3 leading-relaxed">
-            This record was generated under the Malaysian Electronic Commerce
-            Act 2006. The SHA-256 hash above is a cryptographic fingerprint of
-            the agreement content at the time of signing — if the document is
-            ever altered, the hash will no longer match.
-          </p>
+          {/* Legal context note */}
+          <div className="mt-4 pt-4 border-t border-gray-200">
+            <p className="text-xs text-gray-400 leading-relaxed">
+              This audit record was generated under the Malaysian Electronic
+              Commerce Act 2006 (ECA 2006). The SHA-256 fingerprint provides
+              document integrity verification. The blockchain anchor provides an
+              independent, tamper-proof timestamp on the Ethereum public ledger.
+              Together, these constitute a reliable electronic record of
+              agreement acceptance.
+            </p>
+          </div>
         </div>
       )}
     </div>
