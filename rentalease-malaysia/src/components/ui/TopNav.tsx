@@ -61,8 +61,14 @@ export default function TopNav({ user }: { user: NavUser }) {
     return pathname.startsWith(href);
   };
 
-  // Poll the unread message count every 30 seconds.
-  // This powers the badge dot on the Messages nav link.
+  // Derive the user's initials for the avatar button in the top-right corner
+  const initials = (user.name ?? 'U')
+    .split(' ')
+    .map((w) => w[0])
+    .join('')
+    .slice(0, 2)
+    .toUpperCase();
+
   useEffect(() => {
     const fetchUnread = async () => {
       try {
@@ -76,9 +82,9 @@ export default function TopNav({ user }: { user: NavUser }) {
       }
     };
 
-    fetchUnread(); // run immediately on mount
+    fetchUnread();
     const interval = setInterval(fetchUnread, 30_000);
-    return () => clearInterval(interval); // cleanup on unmount
+    return () => clearInterval(interval);
   }, []);
 
   return (
@@ -115,8 +121,21 @@ export default function TopNav({ user }: { user: NavUser }) {
             ))}
           </div>
 
-          {/* User Menu */}
-          <div className="hidden md:flex items-center gap-4">
+          {/* User Menu — avatar links to profile, sign out button alongside */}
+          <div className="hidden md:flex items-center gap-3">
+            {/* Avatar button — clicking navigates to the profile page.
+                The initials give a personal touch without needing an image upload feature. */}
+            <Link
+              href="/dashboard/profile"
+              className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold transition-colors ${
+                pathname === '/dashboard/profile'
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-blue-100 text-blue-600 hover:bg-blue-200'
+              }`}
+              title={`${user.name ?? 'Profile'} — click to edit profile`}
+            >
+              {initials}
+            </Link>
             <div className="text-right">
               <p className="text-sm font-medium text-gray-900 leading-none">
                 {user.name}
@@ -197,6 +216,18 @@ export default function TopNav({ user }: { user: NavUser }) {
                 )}
               </Link>
             ))}
+            {/* Profile link in mobile menu */}
+            <Link
+              href="/dashboard/profile"
+              onClick={() => setMenuOpen(false)}
+              className={`flex items-center px-4 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+                pathname === '/dashboard/profile'
+                  ? 'bg-blue-50 text-blue-600'
+                  : 'text-gray-600 hover:bg-gray-100'
+              }`}
+            >
+              👤 My Profile
+            </Link>
             <div className="pt-3 px-4 border-t border-gray-100 mt-2 flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-900">{user.name}</p>

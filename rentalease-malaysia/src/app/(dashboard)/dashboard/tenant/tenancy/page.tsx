@@ -1,3 +1,4 @@
+// src/app/(dashboard)/dashboard/tenant/tenancy/page.tsx
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { redirect } from 'next/navigation';
@@ -9,8 +10,6 @@ export default async function TenantTenancyPage() {
   const session = await getServerSession(authOptions);
   if (!session || session.user.role !== 'TENANT') redirect('/login');
 
-  // After Phase 10, the property is no longer directly on the Tenancy.
-  // We go through room → property to get the address, city, type, and landlord details.
   const tenancy = await prisma.tenancy.findFirst({
     where: {
       tenantId: session.user.id,
@@ -22,13 +21,12 @@ export default async function TenantTenancyPage() {
         include: {
           property: {
             include: {
-              // Landlord contact info — shown in the Tenancy Details card
               landlord: { select: { name: true, email: true, phone: true } },
             },
           },
         },
       },
-      agreement: true, // full agreement — all fields needed for AgreementViewer
+      agreement: true, // full include — contentHash, signedAt, signedByIp all present
     },
   });
 
@@ -80,10 +78,8 @@ export default async function TenantTenancyPage() {
     );
   }
 
-  // Convenience aliases — these are used many times below
   const property = tenancy.room.property;
   const landlord = property.landlord;
-  // The full address shown in UI and passed to AgreementViewer
   const fullAddress = `${property.address}, ${property.city} — ${tenancy.room.label}`;
 
   return (
@@ -153,7 +149,6 @@ export default async function TenantTenancyPage() {
             </div>
           </div>
 
-          {/* Landlord contact — accessed via room.property.landlord */}
           <div className="border-t border-gray-100 pt-4">
             <p className="text-xs text-gray-400 mb-2">Landlord</p>
             <p className="text-sm font-medium text-gray-800">{landlord.name}</p>
@@ -178,7 +173,7 @@ export default async function TenantTenancyPage() {
           </div>
         )}
 
-        {/* ── Case 3: DRAFT — landlord still reviewing ──────────────────────── */}
+        {/* ── Case 3: DRAFT ──────────────────────────────────────────────────── */}
         {tenancy.agreement?.status === 'DRAFT' && (
           <div className="bg-amber-50 border border-amber-200 rounded-xl px-5 py-4">
             <p className="text-amber-800 font-semibold text-sm">
@@ -191,7 +186,7 @@ export default async function TenantTenancyPage() {
           </div>
         )}
 
-        {/* ── Case 4: NEGOTIATING — tenant requested changes, waiting for landlord */}
+        {/* ── Case 4: NEGOTIATING ────────────────────────────────────────────── */}
         {tenancy.agreement?.status === 'NEGOTIATING' && (
           <>
             <div className="bg-blue-50 border border-blue-200 rounded-xl px-5 py-4">
@@ -211,7 +206,6 @@ export default async function TenantTenancyPage() {
                 </div>
               )}
             </div>
-            {/* Read-only viewer so the tenant can still reference the current draft */}
             <AgreementViewer
               agreementId={tenancy.agreement.id}
               status={tenancy.agreement.status}
@@ -225,7 +219,7 @@ export default async function TenantTenancyPage() {
           </>
         )}
 
-        {/* ── Case 5: SIGNED — show confirmation and read-only viewer ──────── */}
+        {/* ── Case 5: SIGNED — now with audit trail props ───────────────────── */}
         {tenancy.agreement?.status === 'SIGNED' && (
           <>
             <div className="bg-green-50 border border-green-200 rounded-xl px-5 py-4">
@@ -246,11 +240,15 @@ export default async function TenantTenancyPage() {
               tenantName={session.user.name ?? 'Tenant'}
               propertyAddress={fullAddress}
               readOnly
+              // Phase 11: signing audit trail — the panel renders once these are non-null
+              contentHash={tenancy.agreement.contentHash}
+              signedAt={tenancy.agreement.signedAt}
+              signedByIp={tenancy.agreement.signedByIp}
             />
           </>
         )}
 
-        {/* ── Case 6: FINALIZED — tenant can review, accept, or request changes */}
+        {/* ── Case 6: FINALIZED ─────────────────────────────────────────────── */}
         {tenancy.agreement?.status === 'FINALIZED' && (
           <div className="space-y-5">
             <AgreementViewer
@@ -261,9 +259,8 @@ export default async function TenantTenancyPage() {
               redFlags={redFlags}
               tenantName={session.user.name ?? 'Tenant'}
               propertyAddress={fullAddress}
-              readOnly // hides the landlord-only "Mark as Finalised" button
+              readOnly
             />
-            {/* The interactive accept/request-changes component */}
             <TenantAgreementActions agreementId={tenancy.agreement.id} />
           </div>
         )}

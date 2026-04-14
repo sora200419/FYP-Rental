@@ -1,3 +1,4 @@
+// src/app/(dashboard)/dashboard/landlord/tenancies/[id]/agreement/page.tsx
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { redirect, notFound } from 'next/navigation';
@@ -28,7 +29,7 @@ export default async function AgreementPage({
         },
       },
       tenant: { select: { name: true } },
-      agreement: true,
+      agreement: true, // full include — contentHash, signedAt, signedByIp all present
     },
   });
 
@@ -79,6 +80,10 @@ export default async function AgreementPage({
         redFlags={redFlags}
         tenantName={tenancy.tenant.name}
         propertyAddress={`${tenancy.room.property.address}, ${tenancy.room.property.city} — ${tenancy.room.label}`}
+        // Phase 11: pass signing audit trail fields so the panel renders
+        contentHash={tenancy.agreement.contentHash}
+        signedAt={tenancy.agreement.signedAt}
+        signedByIp={tenancy.agreement.signedByIp}
       />
 
       {/* Editor — only for landlord, only before signing */}

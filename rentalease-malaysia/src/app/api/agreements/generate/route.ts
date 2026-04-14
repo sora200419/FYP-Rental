@@ -1,3 +1,4 @@
+// src/app/api/agreements/generate/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
@@ -34,7 +35,13 @@ export async function POST(request: NextRequest) {
           },
         },
         tenant: {
-          select: { name: true, email: true, phone: true },
+          // Phase 13: also select icNumber for injection into agreement
+          select: {
+            name: true,
+            email: true,
+            phone: true,
+            icNumber: true,
+          },
         },
       },
     });
@@ -45,7 +52,6 @@ export async function POST(request: NextRequest) {
         { status: 404 },
       );
 
-    // Guard: tenant must have accepted the invitation first
     if (tenancy.status === 'INVITED')
       return NextResponse.json(
         {
@@ -84,9 +90,20 @@ export async function POST(request: NextRequest) {
         postcode: tenancy.room.property.postcode,
         type: tenancy.room.property.type,
       },
+      // Phase 13: pass all rich room fields so Gemini generates accurate clauses
       room: {
         label: tenancy.room.label,
         bathrooms: tenancy.room.bathrooms,
+        roomType: tenancy.room.roomType,
+        bathroomType: tenancy.room.bathroomType,
+        furnishing: tenancy.room.furnishing,
+        maxOccupants: tenancy.room.maxOccupants,
+        wifiIncluded: tenancy.room.wifiIncluded,
+        waterIncluded: tenancy.room.waterIncluded,
+        electricIncluded: tenancy.room.electricIncluded,
+        genderPreference: tenancy.room.genderPreference,
+        sizeSqFt: tenancy.room.sizeSqFt,
+        notes: tenancy.room.notes,
       },
       tenant: tenancy.tenant,
       landlord,
