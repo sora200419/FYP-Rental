@@ -1,107 +1,103 @@
-import { NextRequest, NextResponse } from 'next/server';
+// src/app/api/payments/[id]/proof/route.ts
+import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
-import { uploadPaymentProof } from '@/lib/cloudinary';
+import { createNotification } from '@/lib/notifications';
+import { v2 as cloudinary } from 'cloudinary';
+
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+});
 
 export async function POST(
-  request: NextRequest,
+  request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
   const session = await getServerSession(authOptions);
-  if (!session)
-    return NextResponse.json({ error: 'Unauthorised' }, { status: 401 });
-  if (session.user.role !== 'TENANT')
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  if (!session?.user?.id || session.user.role !== 'TENANT') {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
 
   const { id: paymentId } = await params;
 
-  // Verify this payment belongs to a tenancy where this user is the tenant
-  const payment = await prisma.rentPayment.findFirst({
-    where: {
-      id: paymentId,
-      tenancy: { tenantId: session.user.id },
+  // Verify the payment belongs to this tenant's tenancy
+  const payment = await prisma.rentPayment.findUnique({
+    where: { id: paymentId },
+    include: {
+      tenancy: {
+        include: {
+          room: {
+            include: {
+              property: {
+                select: { landlordId: true, address: true },
+              },
+            },
+          },
+          tenant: { select: { id: true, name: true } },
+        },
+      },
     },
   });
 
-  if (!payment) {
-    return NextResponse.json(
-      { error: 'Payment not found or access denied' },
-      { status: 404 },
-    );
+  if (!payment || payment.tenancy.tenantId !== session.user.id) {
+    return NextResponse.json({ error: 'Payment not found' }, { status: 404 });
   }
 
-  // Only allow uploads when the payment is PENDING or LATE.
-  // UNDER_REVIEW means they already uploaded — they can add more photos to the same payment.
-  // PAID means the landlord already approved — no more uploads needed.
   if (payment.status === 'PAID' || payment.status === 'WAIVED') {
     return NextResponse.json(
-      { error: 'This payment has already been verified.' },
+      { error: 'This payment is already settled' },
       { status: 409 },
     );
   }
 
-  try {
-    // Parse the multipart form data — Next.js App Router handles this natively
-    const formData = await request.formData();
-    const file = formData.get('file') as File | null;
+  // Parse the multipart form data to get the image file
+  const formData = await request.formData();
+  const file = formData.get('file') as File | null;
 
-    if (!file) {
-      return NextResponse.json({ error: 'No file provided' }, { status: 400 });
-    }
-
-    // Validate file type — only allow images
-    if (!file.type.startsWith('image/')) {
-      return NextResponse.json(
-        { error: 'Only image files are accepted (JPG, PNG, HEIC, etc.)' },
-        { status: 400 },
-      );
-    }
-
-    // Validate file size — cap at 10MB to prevent abuse
-    if (file.size > 10 * 1024 * 1024) {
-      return NextResponse.json(
-        { error: 'File too large. Maximum size is 10MB.' },
-        { status: 400 },
-      );
-    }
-
-    // Convert the Web API File object to a Node.js Buffer for Cloudinary
-    const arrayBuffer = await file.arrayBuffer();
-    const buffer = Buffer.from(arrayBuffer);
-
-    // Upload to Cloudinary — this is the network call that takes 1–3 seconds
-    const { url, publicId } = await uploadPaymentProof(buffer, file.name);
-
-    // Save the proof record and transition the payment status in a transaction
-    await prisma.$transaction([
-      prisma.paymentProof.create({
-        data: {
-          imageUrl: url,
-          publicId,
-          paymentId,
-          uploadedById: session.user.id,
-        },
-      }),
-      prisma.rentPayment.update({
-        where: { id: paymentId },
-        data: {
-          status: 'UNDER_REVIEW',
-          // Clear any previous rejection reason when tenant re-uploads
-          rejectionReason: null,
-        },
-      }),
-    ]);
-
-    return NextResponse.json(
-      { message: 'Payment proof uploaded successfully.', url },
-      { status: 201 },
-    );
-  } catch (error) {
-    console.error('Proof upload error:', error);
-    return NextResponse.json(
-      { error: 'Upload failed. Please try again.' },
-      { status: 500 },
-    );
+  if (!file) {
+    return NextResponse.json({ error: 'No file provided' }, { status: 400 });
   }
+
+  // Convert the File to a base64 data URI for Cloudinary upload
+  const arrayBuffer = await file.arrayBuffer();
+  const base64 = Buffer.from(arrayBuffer).toString('base64');
+  const dataUri = `data:${file.type};base64,${base64}`;
+
+  const uploadResult = await cloudinary.uploader.upload(dataUri, {
+    folder: 'rentalease/payment-proofs',
+    resource_type: 'auto',
+  });
+
+  // Create the proof record and update payment status in a transaction
+  await prisma.$transaction([
+    prisma.paymentProof.create({
+      data: {
+        paymentId,
+        imageUrl: uploadResult.secure_url,
+        publicId: uploadResult.public_id,
+        uploadedById: session.user.id,
+      },
+    }),
+    prisma.rentPayment.update({
+      where: { id: paymentId },
+      data: {
+        status: 'UNDER_REVIEW',
+        rejectionReason: null, // clear any previous rejection
+      },
+    }),
+  ]);
+
+  // Notify landlord to verify
+  await createNotification(
+    payment.tenancy.room.property.landlordId,
+    'PAYMENT_PROOF_UPLOADED',
+    'Payment proof uploaded',
+    `${payment.tenancy.tenant.name} uploaded a payment proof for ${payment.tenancy.room.property.address}. Please verify it.`,
+    `/dashboard/landlord/payments/${paymentId}`,
+  );
+
+  return NextResponse.json({ ok: true, imageUrl: uploadResult.secure_url });
 }

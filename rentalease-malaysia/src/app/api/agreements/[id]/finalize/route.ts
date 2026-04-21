@@ -1,38 +1,33 @@
-import { NextRequest, NextResponse } from 'next/server';
+// src/app/api/agreements/[id]/finalize/route.ts
+import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
-import { sendSystemMessage } from '@/lib/messages';
+import { createNotification } from '@/lib/notifications';
 
 export async function PATCH(
-  request: NextRequest,
+  _request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
   const session = await getServerSession(authOptions);
-
-  if (!session)
-    return NextResponse.json({ error: 'Unauthorised' }, { status: 401 });
-  if (session.user.role !== 'LANDLORD')
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  if (!session?.user?.id || session.user.role !== 'LANDLORD') {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
 
   const { id } = await params;
 
-  // Authorization chain: Agreement → Tenancy → Room → Property → landlordId
-  const agreement = await prisma.agreement.findFirst({
-    where: {
-      id,
-      tenancy: {
-        room: { property: { landlordId: session.user.id } },
-      },
-    },
+  // Verify the agreement exists and the landlord owns it
+  const agreement = await prisma.agreement.findUnique({
+    where: { id },
     include: {
       tenancy: {
-        select: {
-          id: true,
-          tenantId: true,
+        include: {
+          tenant: { select: { id: true, name: true } },
           room: {
-            select: {
-              property: { select: { landlordId: true } },
+            include: {
+              property: {
+                select: { landlordId: true, address: true },
+              },
             },
           },
         },
@@ -40,34 +35,34 @@ export async function PATCH(
     },
   });
 
-  if (!agreement)
-    return NextResponse.json(
-      { error: 'Agreement not found or access denied' },
-      { status: 404 },
-    );
-
-  if (agreement.status !== 'DRAFT')
-    return NextResponse.json(
-      { error: 'Only DRAFT agreements can be finalized' },
-      { status: 409 },
-    );
-
-  const updated = await prisma.agreement.update({
-    where: { id },
-    data: { status: 'FINALIZED' },
-    select: { id: true, status: true },
-  });
-
-  try {
-    await sendSystemMessage(
-      agreement.tenancy.id,
-      agreement.tenancy.room.property.landlordId,
-      agreement.tenancy.tenantId,
-      '📄 Your tenancy agreement is ready for review. Please visit the "My Tenancy" page to read the full agreement, review the plain-language summary and red-flag analysis, then either accept it or request changes.',
-    );
-  } catch (msgError) {
-    console.error('Auto-message failed after finalize:', msgError);
+  if (!agreement) {
+    return NextResponse.json({ error: 'Agreement not found' }, { status: 404 });
   }
 
-  return NextResponse.json({ agreement: updated });
+  if (agreement.tenancy.room.property.landlordId !== session.user.id) {
+    return NextResponse.json({ error: 'Access denied' }, { status: 403 });
+  }
+
+  if (!['DRAFT', 'NEGOTIATING'].includes(agreement.status)) {
+    return NextResponse.json(
+      { error: 'Agreement cannot be finalized from its current status' },
+      { status: 409 },
+    );
+  }
+
+  await prisma.agreement.update({
+    where: { id },
+    data: { status: 'FINALIZED' },
+  });
+
+  // Notify tenant to review and sign
+  await createNotification(
+    agreement.tenancy.tenant.id,
+    'AGREEMENT_READY',
+    'Your agreement is ready to review',
+    `Your tenancy agreement for ${agreement.tenancy.room.property.address} has been finalized and is ready for your review and signature.`,
+    `/dashboard/tenant/agreements/${agreement.id}`,
+  );
+
+  return NextResponse.json({ ok: true });
 }

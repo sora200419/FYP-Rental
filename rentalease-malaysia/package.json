@@ -12,6 +12,7 @@
     "@google/generative-ai": "^0.24.1",
     "@hookform/resolvers": "^5.2.2",
     "@prisma/client": "^5.22.0",
+    "@react-pdf/renderer": "^4.5.1",
     "bcryptjs": "^3.0.3",
     "cloudinary": "^2.9.0",
     "ethers": "^6.16.0",

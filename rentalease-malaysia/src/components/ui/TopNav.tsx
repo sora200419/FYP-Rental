@@ -1,247 +1,313 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { usePathname } from 'next/navigation';
-import { signOut } from 'next-auth/react';
+import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
+import { useRouter, usePathname } from 'next/navigation';
+import { signOut, useSession } from 'next-auth/react';
+import { NotificationBell } from './NotificationBell';
+import { NotificationDropdown } from './NotificationDropdown';
 
-interface NavUser {
-  name?: string | null;
-  email?: string | null;
-  role: string;
-}
-
-interface NavLink {
-  label: string;
-  href: string;
-}
-
-function getNavLinks(role: string): NavLink[] {
-  if (role === 'LANDLORD') {
-    return [
-      { label: 'Dashboard', href: '/dashboard/landlord' },
-      { label: 'Properties', href: '/dashboard/landlord/properties' },
-      { label: 'Tenancies', href: '/dashboard/landlord/tenancies' },
-      { label: 'Payments', href: '/dashboard/landlord/payments' },
-      { label: 'Messages', href: '/dashboard/landlord/messages' },
-    ];
-  }
-  if (role === 'TENANT') {
-    return [
-      { label: 'Dashboard', href: '/dashboard/tenant' },
-      { label: 'My Tenancy', href: '/dashboard/tenant/tenancy' },
-      { label: 'Payments', href: '/dashboard/tenant/payments' },
-      { label: 'Conditions', href: '/dashboard/tenant/conditions' },
-      { label: 'Messages', href: '/dashboard/tenant/messages' },
-    ];
-  }
-  if (role === 'ADMIN') {
-    return [
-      { label: 'Dashboard', href: '/dashboard/admin' },
-      { label: 'Users', href: '/dashboard/admin/users' },
-    ];
-  }
-  return [];
-}
-
-export default function TopNav({ user }: { user: NavUser }) {
+export default function TopNav() {
+  const { data: session } = useSession();
+  const router = useRouter();
   const pathname = usePathname();
-  const [menuOpen, setMenuOpen] = useState(false);
-  const [unreadCount, setUnreadCount] = useState(0);
-  const links = getNavLinks(user.role);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
 
-  const isActive = (href: string) => {
-    if (
-      href === '/dashboard/landlord' ||
-      href === '/dashboard/tenant' ||
-      href === '/dashboard/admin'
-    ) {
-      return pathname === href;
-    }
-    return pathname.startsWith(href);
-  };
+  // ── Unified unread counts ─────────────────────────────────────────────────
+  // One endpoint returns both message and notification counts, keeping the
+  // polling simple and the network footprint minimal (one request per tick).
+  const [unreadCounts, setUnreadCounts] = useState({
+    messageCount: 0,
+    notificationCount: 0,
+  });
+  const [notificationOpen, setNotificationOpen] = useState(false);
 
-  // Derive the user's initials for the avatar button in the top-right corner
-  const initials = (user.name ?? 'U')
-    .split(' ')
-    .map((w) => w[0])
-    .join('')
-    .slice(0, 2)
-    .toUpperCase();
-
-  useEffect(() => {
-    const fetchUnread = async () => {
-      try {
-        const res = await fetch('/api/messages/unread');
-        if (res.ok) {
-          const data = await res.json();
-          setUnreadCount(data.count ?? 0);
-        }
-      } catch {
-        // Silently fail — the badge is non-critical UI
-      }
-    };
-
-    fetchUnread();
-    const interval = setInterval(fetchUnread, 30_000);
-    return () => clearInterval(interval);
+  const fetchUnreadCounts = useCallback(() => {
+    fetch('/api/unread-counts')
+      .then((r) => r.json())
+      .then((data) =>
+        setUnreadCounts({
+          messageCount: data.messageCount || 0,
+          notificationCount: data.notificationCount || 0,
+        }),
+      )
+      .catch(() => {
+        // Silent fail — next tick will retry
+      });
   }, []);
 
+  useEffect(() => {
+    if (!session?.user) return;
+    fetchUnreadCounts();
+    const interval = setInterval(fetchUnreadCounts, 30000);
+    return () => clearInterval(interval);
+  }, [session?.user, fetchUnreadCounts]);
+
+  const role = session?.user?.role;
+
+  const landlordLinks = [
+    { href: '/dashboard/landlord', label: 'Dashboard' },
+    { href: '/dashboard/landlord/properties', label: 'Properties' },
+    { href: '/dashboard/landlord/tenancies', label: 'Tenancies' },
+    { href: '/dashboard/landlord/messages', label: 'Messages' },
+  ];
+
+  const tenantLinks = [
+    { href: '/dashboard/tenant', label: 'Dashboard' },
+    { href: '/dashboard/tenant/tenancies', label: 'My Tenancies' },
+    { href: '/dashboard/tenant/messages', label: 'Messages' },
+  ];
+
+  const navLinks = role === 'LANDLORD' ? landlordLinks : tenantLinks;
+
+  const handleSignOut = async () => {
+    await signOut({ redirect: false });
+    router.push('/login');
+  };
+
+  if (!session?.user) return null;
+
   return (
-    <nav className="bg-white border-b border-gray-200 sticky top-0 z-50">
+    <nav className="bg-white border-b border-gray-200 sticky top-0 z-30">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
-          {/* Brand */}
-          <Link
-            href={`/dashboard/${user.role.toLowerCase()}`}
-            className="text-xl font-bold text-blue-600 tracking-tight"
-          >
-            RentalEase
-          </Link>
+          {/* Logo */}
+          <div className="flex items-center gap-8">
+            <Link
+              href={
+                role === 'LANDLORD'
+                  ? '/dashboard/landlord'
+                  : '/dashboard/tenant'
+              }
+              className="text-xl font-bold text-blue-600 flex-shrink-0"
+            >
+              RentalEase
+            </Link>
 
-          {/* Desktop Nav Links */}
-          <div className="hidden md:flex items-center gap-1">
-            {links.map((link) => (
-              <Link
-                key={link.href}
-                href={link.href}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-1.5 ${
-                  isActive(link.href)
-                    ? 'bg-blue-50 text-blue-600'
-                    : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
-                }`}
-              >
-                {link.label}
-                {link.label === 'Messages' && unreadCount > 0 && (
-                  <span className="bg-blue-600 text-white text-xs font-bold w-4 h-4 rounded-full flex items-center justify-center leading-none">
-                    {unreadCount > 9 ? '9+' : unreadCount}
-                  </span>
-                )}
-              </Link>
-            ))}
+            {/* Desktop nav links */}
+            <div className="hidden md:flex items-center gap-1">
+              {navLinks.map((link) => {
+                const active = pathname === link.href;
+                return (
+                  <Link
+                    key={link.href}
+                    href={link.href}
+                    className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                      active
+                        ? 'bg-blue-50 text-blue-700'
+                        : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+                    }`}
+                  >
+                    {link.label}
+                  </Link>
+                );
+              })}
+            </div>
           </div>
 
-          {/* User Menu — avatar links to profile, sign out button alongside */}
-          <div className="hidden md:flex items-center gap-3">
-            {/* Avatar button — clicking navigates to the profile page.
-                The initials give a personal touch without needing an image upload feature. */}
+          {/* Right side — messages badge, notification bell, user menu */}
+          <div className="flex items-center gap-2">
+            {/* Messages link with unread badge */}
             <Link
-              href="/dashboard/profile"
-              className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold transition-colors ${
-                pathname === '/dashboard/profile'
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-blue-100 text-blue-600 hover:bg-blue-200'
-              }`}
-              title={`${user.name ?? 'Profile'} — click to edit profile`}
+              href={
+                role === 'LANDLORD'
+                  ? '/dashboard/landlord/messages'
+                  : '/dashboard/tenant/messages'
+              }
+              className="relative p-2 rounded-full hover:bg-gray-100 transition-colors"
+              aria-label={
+                unreadCounts.messageCount > 0
+                  ? `Messages (${unreadCounts.messageCount} unread)`
+                  : 'Messages'
+              }
             >
-              {initials}
+              {/* Message envelope icon */}
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="w-6 h-6 text-gray-600"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={2}
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
+                />
+              </svg>
+              {unreadCounts.messageCount > 0 && (
+                <span className="absolute top-0 right-0 inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 text-[10px] font-bold text-white bg-red-500 rounded-full">
+                  {unreadCounts.messageCount > 9
+                    ? '9+'
+                    : unreadCounts.messageCount}
+                </span>
+              )}
             </Link>
-            <div className="text-right">
-              <p className="text-sm font-medium text-gray-900 leading-none">
-                {user.name}
-              </p>
-              <p className="text-xs text-gray-400 mt-0.5 capitalize">
-                {user.role.toLowerCase()}
-              </p>
+
+            {/* Notification bell — Phase B addition */}
+            <div className="relative">
+              <NotificationBell
+                count={unreadCounts.notificationCount}
+                onClick={() => setNotificationOpen((v) => !v)}
+              />
+              <NotificationDropdown
+                open={notificationOpen}
+                onClose={() => setNotificationOpen(false)}
+                onCountChanged={fetchUnreadCounts}
+              />
             </div>
+
+            {/* User menu */}
+            <div className="relative">
+              <button
+                onClick={() => setUserMenuOpen((v) => !v)}
+                className="flex items-center gap-2 pl-2 pr-3 py-1.5 rounded-lg hover:bg-gray-100 transition-colors"
+              >
+                <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white text-sm font-semibold flex-shrink-0">
+                  {session.user.name?.[0]?.toUpperCase() ?? '?'}
+                </div>
+                <div className="hidden sm:block text-left">
+                  <p className="text-sm font-medium text-gray-900 leading-tight">
+                    {session.user.name}
+                  </p>
+                  <p className="text-xs text-gray-500 leading-tight capitalize">
+                    {role?.toLowerCase()}
+                  </p>
+                </div>
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="w-4 h-4 text-gray-400"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M19 9l-7 7-7-7"
+                  />
+                </svg>
+              </button>
+
+              {userMenuOpen && (
+                <>
+                  {/* Backdrop */}
+                  <div
+                    className="fixed inset-0 z-10"
+                    onClick={() => setUserMenuOpen(false)}
+                  />
+                  <div className="absolute right-0 top-full mt-1 w-52 bg-white rounded-xl shadow-lg border border-gray-200 z-20 py-1">
+                    <div className="px-4 py-2 border-b border-gray-100">
+                      <p className="text-sm font-semibold text-gray-900 truncate">
+                        {session.user.name}
+                      </p>
+                      <p className="text-xs text-gray-500 truncate">
+                        {session.user.email}
+                      </p>
+                    </div>
+                    <Link
+                      href={
+                        role === 'LANDLORD'
+                          ? '/dashboard/landlord/profile'
+                          : '/dashboard/tenant/profile'
+                      }
+                      className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                      onClick={() => setUserMenuOpen(false)}
+                    >
+                      <svg
+                        className="w-4 h-4"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                        />
+                      </svg>
+                      Profile
+                    </Link>
+                    <button
+                      onClick={handleSignOut}
+                      className="w-full flex items-center gap-2 px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors"
+                    >
+                      <svg
+                        className="w-4 h-4"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
+                        />
+                      </svg>
+                      Sign out
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+
+            {/* Mobile hamburger */}
             <button
-              onClick={() => signOut({ callbackUrl: '/login' })}
-              className="text-sm text-gray-500 hover:text-red-600 transition-colors font-medium"
+              className="md:hidden p-2 rounded-lg text-gray-600 hover:bg-gray-100"
+              onClick={() => setMobileMenuOpen((v) => !v)}
+              aria-label="Toggle menu"
             >
-              Sign out
+              <svg
+                className="w-5 h-5"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                {mobileMenuOpen ? (
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M6 18L18 6M6 6l12 12"
+                  />
+                ) : (
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M4 6h16M4 12h16M4 18h16"
+                  />
+                )}
+              </svg>
             </button>
           </div>
-
-          {/* Mobile menu button */}
-          <button
-            className="md:hidden p-2 rounded-lg text-gray-500 hover:bg-gray-100"
-            onClick={() => setMenuOpen((prev) => !prev)}
-            aria-label="Toggle menu"
-          >
-            {menuOpen ? (
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="20"
-                height="20"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                strokeWidth="2"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M6 18L18 6M6 6l12 12"
-                />
-              </svg>
-            ) : (
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="20"
-                height="20"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                strokeWidth="2"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M4 6h16M4 12h16M4 18h16"
-                />
-              </svg>
-            )}
-          </button>
         </div>
 
-        {/* Mobile dropdown menu */}
-        {menuOpen && (
-          <div className="md:hidden pb-4 pt-2 space-y-1 border-t border-gray-100">
-            {links.map((link) => (
-              <Link
-                key={link.href}
-                href={link.href}
-                onClick={() => setMenuOpen(false)}
-                className={`flex items-center justify-between px-4 py-2.5 rounded-lg text-sm font-medium transition-colors ${
-                  isActive(link.href)
-                    ? 'bg-blue-50 text-blue-600'
-                    : 'text-gray-600 hover:bg-gray-100'
-                }`}
-              >
-                {link.label}
-                {link.label === 'Messages' && unreadCount > 0 && (
-                  <span className="bg-blue-600 text-white text-xs font-bold w-4 h-4 rounded-full flex items-center justify-center leading-none">
-                    {unreadCount > 9 ? '9+' : unreadCount}
-                  </span>
-                )}
-              </Link>
-            ))}
-            {/* Profile link in mobile menu */}
-            <Link
-              href="/dashboard/profile"
-              onClick={() => setMenuOpen(false)}
-              className={`flex items-center px-4 py-2.5 rounded-lg text-sm font-medium transition-colors ${
-                pathname === '/dashboard/profile'
-                  ? 'bg-blue-50 text-blue-600'
-                  : 'text-gray-600 hover:bg-gray-100'
-              }`}
-            >
-              👤 My Profile
-            </Link>
-            <div className="pt-3 px-4 border-t border-gray-100 mt-2 flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-900">{user.name}</p>
-                <p className="text-xs text-gray-400 capitalize">
-                  {user.role.toLowerCase()}
-                </p>
-              </div>
-              <button
-                onClick={() => signOut({ callbackUrl: '/login' })}
-                className="text-sm text-red-500 font-medium"
-              >
-                Sign out
-              </button>
-            </div>
+        {/* Mobile nav links */}
+        {mobileMenuOpen && (
+          <div className="md:hidden border-t border-gray-100 py-2">
+            {navLinks.map((link) => {
+              const active = pathname === link.href;
+              return (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  onClick={() => setMobileMenuOpen(false)}
+                  className={`block px-4 py-2.5 text-sm font-medium rounded-lg mx-1 transition-colors ${
+                    active
+                      ? 'bg-blue-50 text-blue-700'
+                      : 'text-gray-600 hover:bg-gray-50'
+                  }`}
+                >
+                  {link.label}
+                </Link>
+              );
+            })}
           </div>
         )}
       </div>

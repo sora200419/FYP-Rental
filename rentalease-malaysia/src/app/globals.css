@@ -1,5 +1,19 @@
-@import "tailwindcss";
+@import 'tailwindcss';
 
+/*
+ * Design tokens for the application.
+ *
+ * The `--background` and `--foreground` variables are deliberately fixed
+ * to light-mode values. Earlier versions of this file included a
+ * `@media (prefers-color-scheme: dark)` block that flipped these values
+ * when the user's OS was in dark mode. That block has been removed because
+ * the application's UI was never designed for dark mode: inputs, cards,
+ * and buttons all assume a white background, so flipping the foreground
+ * to light grey made text inside form inputs effectively invisible.
+ *
+ * If dark mode is added in a future phase, it should be implemented as a
+ * deliberate opt-in via a class toggle, not via OS preference detection.
+ */
 :root {
   --background: #ffffff;
   --foreground: #171717;
@@ -10,13 +24,6 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
 }
 
 body {

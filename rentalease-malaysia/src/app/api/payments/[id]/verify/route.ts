@@ -1,97 +1,108 @@
-import { NextRequest, NextResponse } from 'next/server';
+// src/app/api/payments/[id]/verify/route.ts
+import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
-import { ensureNextPaymentPending } from '@/lib/payments';
-import { z } from 'zod';
-
-const bodySchema = z.discriminatedUnion('action', [
-  z.object({ action: z.literal('approve') }),
-  z.object({
-    action: z.literal('reject'),
-    reason: z
-      .string()
-      .min(10, 'Please provide a reason (at least 10 characters)'),
-  }),
-]);
+import { createNotification } from '@/lib/notifications';
 
 export async function PATCH(
-  request: NextRequest,
+  request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
   const session = await getServerSession(authOptions);
-  if (!session)
-    return NextResponse.json({ error: 'Unauthorised' }, { status: 401 });
-  if (session.user.role !== 'LANDLORD')
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  if (!session?.user?.id || session.user.role !== 'LANDLORD') {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
 
   const { id: paymentId } = await params;
+  const body = await request.json();
+  const { action, rejectionReason } = body; // action: 'APPROVE' | 'REJECT'
 
-  // Authorization chain: RentPayment → Tenancy → Room → Property → landlordId
-  const payment = await prisma.rentPayment.findFirst({
-    where: {
-      id: paymentId,
-      tenancy: { room: { property: { landlordId: session.user.id } } },
-    },
-    include: { tenancy: { select: { id: true } } },
-  });
+  if (!['APPROVE', 'REJECT'].includes(action)) {
+    return NextResponse.json({ error: 'Invalid action' }, { status: 400 });
+  }
 
-  if (!payment)
+  if (action === 'REJECT' && !rejectionReason?.trim()) {
     return NextResponse.json(
-      { error: 'Payment not found or access denied' },
-      { status: 404 },
-    );
-
-  if (payment.status !== 'UNDER_REVIEW')
-    return NextResponse.json(
-      { error: 'This payment is not currently under review.' },
-      { status: 409 },
-    );
-
-  try {
-    const body = await request.json();
-    const data = bodySchema.parse(body);
-
-    if (data.action === 'approve') {
-      await prisma.$transaction([
-        prisma.rentPayment.update({
-          where: { id: paymentId },
-          data: { status: 'PAID', paidDate: new Date(), rejectionReason: null },
-        }),
-        prisma.paymentProof.updateMany({
-          where: { paymentId },
-          data: { isReadByTenant: false },
-        }),
-      ]);
-
-      await ensureNextPaymentPending(payment.tenancy.id, payment.dueDate);
-      return NextResponse.json({ message: 'Payment approved.' });
-    }
-
-    if (data.action === 'reject') {
-      await prisma.$transaction([
-        prisma.rentPayment.update({
-          where: { id: paymentId },
-          data: { status: 'PENDING', rejectionReason: data.reason },
-        }),
-        prisma.paymentProof.updateMany({
-          where: { paymentId },
-          data: { isReadByTenant: false },
-        }),
-      ]);
-
-      return NextResponse.json({ message: 'Payment proof rejected.' });
-    }
-  } catch (error) {
-    if (error instanceof z.ZodError)
-      return NextResponse.json(
-        { error: error.issues[0].message },
-        { status: 400 },
-      );
-    console.error('Payment verify error:', error);
-    return NextResponse.json(
-      { error: 'Something went wrong.' },
-      { status: 500 },
+      { error: 'Please provide a reason for rejection' },
+      { status: 400 },
     );
   }
+
+  // Verify the payment belongs to this landlord's property
+  const payment = await prisma.rentPayment.findUnique({
+    where: { id: paymentId },
+    include: {
+      tenancy: {
+        include: {
+          tenant: { select: { id: true, name: true } },
+          room: {
+            include: {
+              property: {
+                select: { landlordId: true, address: true },
+              },
+            },
+          },
+        },
+      },
+    },
+  });
+
+  if (!payment) {
+    return NextResponse.json({ error: 'Payment not found' }, { status: 404 });
+  }
+
+  if (payment.tenancy.room.property.landlordId !== session.user.id) {
+    return NextResponse.json({ error: 'Access denied' }, { status: 403 });
+  }
+
+  if (payment.status !== 'UNDER_REVIEW') {
+    return NextResponse.json(
+      { error: 'This payment is not awaiting verification' },
+      { status: 409 },
+    );
+  }
+
+  const tenantId = payment.tenancy.tenant.id;
+  const propertyAddress = payment.tenancy.room.property.address;
+
+  if (action === 'APPROVE') {
+    await prisma.rentPayment.update({
+      where: { id: paymentId },
+      data: {
+        status: 'PAID',
+        paidDate: new Date(),
+        rejectionReason: null,
+      },
+    });
+
+    await createNotification(
+      tenantId,
+      'PAYMENT_APPROVED',
+      'Payment approved',
+      `Your payment for ${propertyAddress} has been approved.`,
+      `/dashboard/tenant/payments`,
+    );
+
+    return NextResponse.json({ ok: true, status: 'PAID' });
+  }
+
+  // REJECT
+  await prisma.rentPayment.update({
+    where: { id: paymentId },
+    data: {
+      status: 'PENDING',
+      rejectionReason,
+    },
+  });
+
+  await createNotification(
+    tenantId,
+    'PAYMENT_REJECTED',
+    'Payment proof rejected',
+    `Your payment proof for ${propertyAddress} was rejected: ${rejectionReason}. Please re-upload.`,
+    `/dashboard/tenant/payments`,
+  );
+
+  return NextResponse.json({ ok: true, status: 'PENDING' });
 }
