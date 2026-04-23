@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
-import { generateTenancyAgreement } from '@/lib/gemini';
+import { generateTenancyAgreement, translateAgreementOutputs } from '@/lib/gemini';
 import { z } from 'zod';
 
 const bodySchema = z.object({
@@ -77,6 +77,22 @@ export async function POST(request: NextRequest) {
       select: { negotiationNotes: true, negotiationRound: true },
     });
 
+    // Load wizard preferences — required for generation
+    const preferences = await prisma.agreementPreferences.findUnique({
+      where: { tenancyId },
+    });
+
+    if (!preferences || !preferences.isComplete) {
+      return NextResponse.json(
+        {
+          error:
+            'Please complete the Agreement Wizard before generating. The wizard captures the policy decisions needed to produce an accurate agreement.',
+          requiresWizard: true,
+        },
+        { status: 400 },
+      );
+    }
+
     const generated = await generateTenancyAgreement({
       id: tenancy.id,
       startDate: tenancy.startDate,
@@ -108,7 +124,22 @@ export async function POST(request: NextRequest) {
       tenant: tenancy.tenant,
       landlord,
       negotiationContext: existingAgreement?.negotiationNotes ?? null,
-    });
+    }, preferences);
+
+    // Second call: translate summary and red flags into Malay.
+    // Failures here are non-blocking — the English generation already succeeded.
+    let plainLanguageSummaryMs: string | null = null;
+    let redFlagsMs: string | null = null;
+    try {
+      const translated = await translateAgreementOutputs(
+        generated.plainLanguageSummary,
+        generated.redFlags,
+      );
+      plainLanguageSummaryMs = translated.plainLanguageSummaryMs;
+      redFlagsMs = translated.redFlagsMs;
+    } catch (translationError) {
+      console.error('Bilingual translation failed (non-blocking):', translationError);
+    }
 
     const nextRound = (existingAgreement?.negotiationRound ?? 0) + 1;
 
@@ -118,14 +149,18 @@ export async function POST(request: NextRequest) {
         tenancyId,
         rawContent: generated.rawContent,
         plainLanguageSummary: generated.plainLanguageSummary,
+        plainLanguageSummaryMs,
         redFlags: generated.redFlags,
+        redFlagsMs,
         status: 'DRAFT',
         negotiationRound: 1,
       },
       update: {
         rawContent: generated.rawContent,
         plainLanguageSummary: generated.plainLanguageSummary,
+        plainLanguageSummaryMs,
         redFlags: generated.redFlags,
+        redFlagsMs,
         status: 'DRAFT',
         negotiationNotes: null,
         negotiationRound: nextRound,

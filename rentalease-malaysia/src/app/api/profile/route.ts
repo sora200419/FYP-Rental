@@ -11,6 +11,7 @@ import { z } from 'zod';
 const profileSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters').optional(),
   phone: z.string().optional().nullable(),
+  language: z.enum(['en', 'ms']).optional(),
   icNumber: z
     .string()
     .optional()
@@ -42,6 +43,7 @@ export async function GET() {
       email: true,
       phone: true,
       icNumber: true,
+      language: true,
       role: true,
       createdAt: true,
     },
@@ -72,6 +74,7 @@ export async function PATCH(request: NextRequest) {
     if (data.name !== undefined) updateData.name = data.name;
     if ('phone' in data) updateData.phone = data.phone;
     if ('icNumber' in data) updateData.icNumber = data.icNumber;
+    if (data.language !== undefined) updateData.language = data.language;
 
     if (Object.keys(updateData).length === 0)
       return NextResponse.json(

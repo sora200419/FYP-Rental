@@ -8,7 +8,7 @@ import { NotificationBell } from './NotificationBell';
 import { NotificationDropdown } from './NotificationDropdown';
 
 export default function TopNav() {
-  const { data: session } = useSession();
+  const { data: session, update: updateSession } = useSession();
   const router = useRouter();
   const pathname = usePathname();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -45,6 +45,24 @@ export default function TopNav() {
   }, [session?.user, fetchUnreadCounts]);
 
   const role = session?.user?.role;
+  const language = session?.user?.language ?? 'en';
+
+  const toggleLanguage = async () => {
+    const newLang = language === 'en' ? 'ms' : 'en';
+    try {
+      await fetch('/api/profile', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ language: newLang }),
+      });
+      // Update the JWT session so the new language is reflected without re-login
+      await updateSession({ language: newLang });
+      // Reload page to apply new locale throughout server components
+      window.location.reload();
+    } catch {
+      // Silent fail — language toggle is non-critical
+    }
+  };
 
   const landlordLinks = [
     { href: '/dashboard/landlord', label: 'Dashboard' },
@@ -106,8 +124,22 @@ export default function TopNav() {
             </div>
           </div>
 
-          {/* Right side — messages badge, notification bell, user menu */}
+          {/* Right side — language toggle, messages badge, notification bell, user menu */}
           <div className="flex items-center gap-2">
+            {/* Language toggle pill */}
+            <button
+              onClick={toggleLanguage}
+              className="hidden sm:flex items-center gap-0 border border-gray-200 rounded-lg overflow-hidden text-xs font-semibold"
+              aria-label="Toggle language"
+              title={language === 'en' ? 'Switch to Bahasa Malaysia' : 'Switch to English'}
+            >
+              <span className={`px-2.5 py-1.5 transition-colors ${language === 'en' ? 'bg-blue-600 text-white' : 'text-gray-500 hover:bg-gray-50'}`}>
+                EN
+              </span>
+              <span className={`px-2.5 py-1.5 transition-colors ${language === 'ms' ? 'bg-blue-600 text-white' : 'text-gray-500 hover:bg-gray-50'}`}>
+                MS
+              </span>
+            </button>
             {/* Messages link with unread badge */}
             <Link
               href={
@@ -304,6 +336,13 @@ export default function TopNav() {
                 </Link>
               );
             })}
+            {/* Language toggle in mobile menu */}
+            <button
+              onClick={() => { setMobileMenuOpen(false); toggleLanguage(); }}
+              className="block w-full text-left px-4 py-2.5 text-sm font-medium text-gray-600 hover:bg-gray-50 rounded-lg mx-1 transition-colors"
+            >
+              🌐 {language === 'en' ? 'Switch to Bahasa Malaysia' : 'Switch to English'}
+            </button>
           </div>
         )}
       </div>

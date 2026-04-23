@@ -179,3 +179,64 @@ export async function getMockAgreement(): Promise<GeneratedAgreement> {
   await new Promise((resolve) => setTimeout(resolve, 300));
   return MOCK_AGREEMENT;
 }
+
+export interface MockTranslation {
+  plainLanguageSummaryMs: string;
+  redFlagsMs: string;
+}
+
+const MOCK_TRANSLATION: MockTranslation = {
+  plainLanguageSummaryMs: `Fasal 1 (Pihak-Pihak dan Harta): Mengenal pasti siapa yang menyewa kepada siapa dan harta apa yang disewakan. Nama dan alamat tertentu terdapat dalam blok tandatangan di penghujung.
+
+Fasal 2 (Tempoh Penyewaan): Menetapkan tarikh sewa bermula dan tamat. Jika tiada pihak menamatkannya lebih awal, penyewaan berjalan untuk tempoh penuh.
+
+Fasal 3 (Pembayaran Sewa): Anda membayar sewa pada hari pertama setiap bulan. Jika lebih daripada 7 hari lewat, ada penalti RM 50 seminggu.
+
+Fasal 4 (Deposit Keselamatan): Tuan tanah memegang deposit anda terhadap kerosakan atau sewa yang tidak dibayar. Anda akan mendapatkannya semula dalam masa 30 hari selepas berpindah keluar, tolak sebarang potongan yang didokumenkan.
+
+Fasal 5 (Utiliti): Anda membayar elektrik, air, dan internet sendiri melainkan perjanjian menyatakan sebaliknya.
+
+Fasal 6 (Perabot): Anda mengakui menerima harta seperti yang ditunjukkan dalam Laporan Keadaan Masuk dan bersetuju untuk memulangkannya dalam keadaan yang sama.
+
+Fasal 7 (Penghunian): Hanya anda dan penghuni yang diluluskan boleh tinggal di sini, sehingga jumlah maksimum yang dinyatakan.
+
+Fasal 8 (Tiada Penyewaan Semula): Anda tidak boleh menyewakan semula tempat itu kepada orang lain atau memindahkan pajakan tanpa kebenaran bertulis tuan tanah.
+
+Fasal 9 (Penyelenggaraan): Anda membayar untuk pembaikan kecil di bawah RM 200. Tuan tanah mengendalikan masalah struktur, paip, dan elektrik. Isu mendesak mendapat tindak balas dalam masa 48 jam.
+
+Fasal 10 (Pemeriksaan): Tuan tanah boleh memeriksa dengan notis 24 jam, atau serta-merta dalam keadaan kecemasan.
+
+Fasal 11 (Penamatan): Sama ada pihak boleh menamatkan perjanjian dengan notis 2 bulan. Penamatan awal oleh anda menyebabkan deposit hilang melainkan anda menemukan penyewa pengganti.
+
+Fasal 12 (Berpindah Keluar): Kembalikan tempat itu dalam keadaan bersih, ambil barang anda, dan serahkan semua kunci.
+
+Fasal 13 (Pertikaian): Undang-undang Malaysia terpakai. Cuba selesaikan perselisihan melalui perbincangan dahulu; jika tidak berjaya, tuntutan kecil atau mahkamah.
+
+Fasal 14 (Perjanjian Keseluruhan): Dokumen ini merupakan perjanjian lengkap. Perubahan perlu dibuat secara bertulis dan ditandatangani oleh kedua-dua pihak.`,
+
+  redFlagsMs: JSON.stringify([
+    {
+      severity: 'MEDIUM',
+      clause: 'Fasal 3 — Penalti Pembayaran Lewat',
+      issue: 'Penalti pembayaran lewat sebanyak RM 50 seminggu ditakrifkan tetapi tiada had jumlah keseluruhan penalti, yang boleh terkumpul dengan ketara dari semasa ke semasa.',
+      recommendation: 'Pertimbangkan untuk menambah penalti maksimum keseluruhan (contohnya, tidak melebihi satu bulan sewa) bagi mengelakkan caj yang tidak berkadar.',
+    },
+    {
+      severity: 'HIGH',
+      clause: 'Fasal 4 — Syarat Pemulangan Deposit',
+      issue: 'Fasal itu membenarkan potongan untuk "kerosakan melebihi kehausan biasa" tanpa menentukan apa yang layak. Kekaburan ini merupakan punca pertikaian deposit yang biasa.',
+      recommendation: 'Kaitkan kriteria potongan secara eksplisit dengan Laporan Keadaan Masuk dan Keluar, dan memerlukan bukti fotografi untuk setiap tuntutan potongan.',
+    },
+    {
+      severity: 'LOW',
+      clause: 'Fasal 10 — Kemasukan Tuan Tanah',
+      issue: 'Tempoh notis 24 jam adalah munasabah tetapi fasal itu tidak menentukan kaedah notis yang boleh diterima (bertulis, SMS, mesej dalam aplikasi).',
+      recommendation: 'Nyatakan bahawa notis boleh dihantar melalui sistem pesanan platform atau SMS, untuk mengelakkan kekaburan tentang apa yang merupakan notis yang sah.',
+    },
+  ]),
+};
+
+export async function getMockTranslation(): Promise<MockTranslation> {
+  await new Promise((resolve) => setTimeout(resolve, 200));
+  return MOCK_TRANSLATION;
+}

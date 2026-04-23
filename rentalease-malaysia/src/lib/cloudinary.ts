@@ -69,3 +69,53 @@ export async function uploadConditionPhoto(
 export async function deletePaymentProof(publicId: string): Promise<void> {
   await cloudinary.uploader.destroy(publicId);
 }
+
+// Uploads a tenant identity document (IC copy or income proof).
+// Uses auto resource_type so PDFs are accepted alongside images.
+export async function uploadTenantDocument(
+  fileBuffer: Buffer,
+  fileName: string,
+  mimeType: string,
+): Promise<{ url: string; publicId: string }> {
+  const base64 = fileBuffer.toString('base64');
+  const dataUri = `data:${mimeType};base64,${base64}`;
+
+  const result = await cloudinary.uploader.upload(dataUri, {
+    folder: 'rentalease/tenant-documents',
+    public_id: `${Date.now()}-${fileName.replace(/\.[^/.]+$/, '')}`,
+    resource_type: 'auto', // accepts image and PDF
+  });
+
+  return {
+    url: result.secure_url,
+    publicId: result.public_id,
+  };
+}
+
+export async function deleteTenantDocument(publicId: string): Promise<void> {
+  await cloudinary.uploader.destroy(publicId, { resource_type: 'auto' });
+}
+
+// Uploads deposit refund proof (same pattern as payment proof)
+export async function uploadRefundProof(
+  fileBuffer: Buffer,
+  fileName: string,
+): Promise<{ url: string; publicId: string }> {
+  const base64 = fileBuffer.toString('base64');
+  const dataUri = `data:image/jpeg;base64,${base64}`;
+
+  const result = await cloudinary.uploader.upload(dataUri, {
+    folder: 'rentalease/refund-proofs',
+    public_id: `${Date.now()}-${fileName.replace(/\.[^/.]+$/, '')}`,
+    resource_type: 'image',
+    transformation: [
+      { quality: 'auto', fetch_format: 'auto' },
+      { width: 1920, crop: 'limit' },
+    ],
+  });
+
+  return {
+    url: result.secure_url,
+    publicId: result.public_id,
+  };
+}
