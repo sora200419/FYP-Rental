@@ -55,7 +55,7 @@ export default function TopNav() {
 
   const tenantLinks = [
     { href: '/dashboard/tenant', label: 'Dashboard' },
-    { href: '/dashboard/tenant/tenancies', label: 'My Tenancies' },
+    { href: '/dashboard/tenant/tenancies', label: 'My Tenancy' },
     { href: '/dashboard/tenant/messages', label: 'Messages' },
   ];
 
@@ -209,11 +209,7 @@ export default function TopNav() {
                       </p>
                     </div>
                     <Link
-                      href={
-                        role === 'LANDLORD'
-                          ? '/dashboard/landlord/profile'
-                          : '/dashboard/tenant/profile'
-                      }
+                      href="/dashboard/profile"
                       className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
                       onClick={() => setUserMenuOpen(false)}
                     >

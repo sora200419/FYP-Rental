@@ -161,7 +161,7 @@ export default async function TenantDashboard() {
                       {tenancy.status}
                     </span>
                     <Link
-                      href={`/dashboard/tenant/tenancies/${tenancy.id}`}
+                      href="/dashboard/tenant/tenancy"
                       className="text-xs text-blue-600 hover:underline"
                     >
                       View
@@ -260,7 +260,7 @@ function ActiveTenancyCard({ tenancy }: { tenancy: ActiveTenancyType }) {
           </p>
         </div>
         <Link
-          href={`/dashboard/tenant/tenancies/${tenancy.id}`}
+          href="/dashboard/tenant/tenancy"
           className="text-sm text-blue-600 hover:underline flex-shrink-0"
         >
           View details →
