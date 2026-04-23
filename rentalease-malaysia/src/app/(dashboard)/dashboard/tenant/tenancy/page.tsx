@@ -5,6 +5,7 @@ import { redirect } from 'next/navigation';
 import { prisma } from '@/lib/prisma';
 import AgreementViewer from '@/components/ui/AgreementViewer';
 import TenantAgreementActions from '@/components/ui/TenantAgreementActions';
+import TenantDepositReview from '@/components/ui/TenantDepositReview';
 
 export default async function TenantTenancyPage() {
   const session = await getServerSession(authOptions);
@@ -13,7 +14,7 @@ export default async function TenantTenancyPage() {
   const tenancy = await prisma.tenancy.findFirst({
     where: {
       tenantId: session.user.id,
-      status: { in: ['PENDING', 'ACTIVE'] },
+      status: { in: ['PENDING', 'ACTIVE', 'EXPIRED', 'TERMINATED'] },
     },
     orderBy: { createdAt: 'desc' },
     include: {
@@ -27,6 +28,9 @@ export default async function TenantTenancyPage() {
         },
       },
       agreement: true, // full include — contentHash, signedAt, signedByIp all present
+      depositRefund: {
+        include: { deductions: { orderBy: { createdAt: 'asc' } } },
+      },
     },
   });
 
@@ -263,6 +267,39 @@ export default async function TenantTenancyPage() {
               readOnly
             />
             <TenantAgreementActions agreementId={tenancy.agreement.id} />
+          </div>
+        )}
+
+        {/* Deposit settlement — shown when landlord has initiated the process */}
+        {tenancy.depositRefund && (
+          <TenantDepositReview
+            refund={{
+              id: tenancy.depositRefund.id,
+              status: tenancy.depositRefund.status,
+              originalAmount: Number(tenancy.depositRefund.originalAmount),
+              refundAmount: Number(tenancy.depositRefund.refundAmount),
+              paidAt: tenancy.depositRefund.paidAt?.toISOString() ?? null,
+              paidProofUrl: tenancy.depositRefund.paidProofUrl,
+              deductions: tenancy.depositRefund.deductions.map((d) => ({
+                id: d.id,
+                reason: d.reason,
+                amount: Number(d.amount),
+                status: d.status,
+                tenantDisputeNote: d.tenantDisputeNote,
+              })),
+            }}
+          />
+        )}
+
+        {/* End-of-tenancy status card */}
+        {(tenancy.status === 'EXPIRED' || tenancy.status === 'TERMINATED') && !tenancy.depositRefund && (
+          <div className="bg-gray-50 border border-gray-200 rounded-xl px-5 py-4">
+            <p className="font-semibold text-gray-700 text-sm">
+              {tenancy.status === 'TERMINATED' ? '🔴 Tenancy Terminated' : '⏹ Tenancy Expired'}
+            </p>
+            <p className="text-gray-400 text-xs mt-1">
+              Your landlord will initiate the deposit settlement process. You will be notified when it is ready for your review.
+            </p>
           </div>
         )}
       </div>
