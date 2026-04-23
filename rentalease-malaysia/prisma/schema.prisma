@@ -16,6 +16,7 @@ model User {
   role      Role     @default(TENANT)
   phone     String?
   icNumber  String? // Malaysian IC — sensitive, PDPA 2010 protected
+  language  String   @default("en") // "en" or "ms" — bilingual preference
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -28,7 +29,8 @@ model User {
   acknowledgedReports     ConditionReport[] @relation("AcknowledgedReports")
   uploadedConditionPhotos ConditionPhoto[]  @relation("UploadedConditionPhotos")
 
-  notifications Notification[]
+  notifications   Notification[]
+  tenantDocuments TenantDocument[]
 }
 
 enum Role {
@@ -136,6 +138,13 @@ model Tenancy {
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
 
+  // End-of-tenancy: renewal chain and termination metadata
+  renewalOfTenancyId String?
+  renewalOf          Tenancy?  @relation("TenancyRenewals", fields: [renewalOfTenancyId], references: [id])
+  renewalBy          Tenancy[] @relation("TenancyRenewals")
+  terminatedAt       DateTime?
+  terminatedReason   String?
+
   // Foreign key to Room (not Property directly — go through room.property for auth)
   roomId String
   room   Room   @relation(fields: [roomId], references: [id])
@@ -143,10 +152,12 @@ model Tenancy {
   tenantId String
   tenant   User   @relation("TenantTenancies", fields: [tenantId], references: [id])
 
-  agreement        Agreement?
-  rentPayments     RentPayment[]
-  messages         Message[]
-  conditionReports ConditionReport[]
+  agreement          Agreement?
+  rentPayments       RentPayment[]
+  messages           Message[]
+  conditionReports   ConditionReport[]
+  agreementPreferences AgreementPreferences?
+  depositRefund      DepositRefund?
 }
 
 enum TenancyStatus {
@@ -162,7 +173,9 @@ model Agreement {
   id                   String          @id @default(cuid())
   rawContent           String          @db.Text
   plainLanguageSummary String          @db.Text
+  plainLanguageSummaryMs String?       @db.Text // Bahasa Malaysia version
   redFlags             String?         @db.Text
+  redFlagsMs           String?         @db.Text // Bahasa Malaysia version
   negotiationNotes     String?         @db.Text
   negotiationRound     Int             @default(0)
   status               AgreementStatus @default(DRAFT)
@@ -324,4 +337,151 @@ enum NotificationType {
   PAYMENT_REJECTED
   CONDITION_REPORT_CREATED
   CONDITION_REPORT_ACKNOWLEDGED
+  DEPOSIT_DEDUCTION_FILED
+  DEPOSIT_REFUND_PAID
+  TENANCY_ENDING_SOON
+  MUTUAL_TERMINATION_PROPOSED
+  MUTUAL_TERMINATION_RESPONDED
+}
+
+// ─── AGREEMENT PREFERENCES (WIZARD) ──────────────────────────────────────────
+// Captures the landlord's policy decisions from the 6-step wizard. These are
+// injected into the Gemini prompt so the generated agreement reflects explicit
+// choices rather than AI-invented defaults.
+model AgreementPreferences {
+  id        String  @id @default(cuid())
+  tenancyId String  @unique
+  tenancy   Tenancy @relation(fields: [tenancyId], references: [id])
+
+  // Step 1 — House Rules and Occupancy
+  petsPolicy           String // "NONE"|"CATS_ONLY"|"DOGS_ONLY"|"APPROVAL"|"UNRESTRICTED"
+  petsMaxCount         Int?
+  petsDeposit          Decimal? @db.Decimal(10, 2)
+  smokingPolicy        String // "ANYWHERE"|"BALCONY_ONLY"|"NOT_INDOORS"|"NOT_ANYWHERE"
+  overnightGuests      String // "UNRESTRICTED"|"LIMITED"|"NOTIFICATION"|"NOT_ALLOWED"
+  overnightMaxNights   Int?
+  quietHoursPolicy     String // "STANDARD"|"CUSTOM"|"NONE"
+  quietHoursCustom     String?
+  additionalHouseRules String?  @db.Text
+
+  // Step 2 — Utilities and Services
+  utilityPaymentMethod   String // "DIRECT_TO_PROVIDER"|"REIMBURSE_LANDLORD"
+  utilityDisputeMethod   String // "OVER_TYPICAL"|"SPLIT_50_50"|"LANDLORD_FINAL"
+  internetProvider       String?
+  internetAccountManager String? // "LANDLORD"|"TENANT"|"SHARED"
+  acServicing            String // "LANDLORD_HANDLES_PAYS"|"LANDLORD_HANDLES_TENANT_PAYS"|"TENANT"
+  pestControl            String // same enum options as acServicing
+
+  // Step 3 — Financial Terms
+  rentDueDay               Int // 1 through 28
+  gracePeriodDays          Int // 0, 3, 7, or custom
+  latePenaltyType          String // "NONE"|"FLAT"|"PERCENTAGE"|"PER_DAY"
+  latePenaltyAmount        Decimal? @db.Decimal(10, 2)
+  acceptablePaymentMethods String // JSON array: ["BANK_TRANSFER","CASH","EWALLET"]
+  rentIncreaseTerms        String // "NO_INCREASE"|"FIXED_PERCENT"|"MUTUAL_AGREEMENT"
+  rentIncreasePercent      Decimal? @db.Decimal(5, 2)
+
+  // Step 4 — Maintenance and Repairs
+  minorRepairThreshold   Decimal @db.Decimal(10, 2)
+  minorRepairResponsible String // "TENANT"|"LANDLORD"|"SPLIT"|"DEPENDS"
+  plumbingResponsible    String
+  electricalResponsible  String
+  applianceResponsible   String
+  structuralResponsible  String
+  urgentResponseTime     String // "24H"|"48H"|"72H"|"7D"
+
+  // Step 5 — Ending the Tenancy
+  tenantNoticeMonths      Int
+  landlordNoticeMonths    Int // 0 = not allowed except for breach
+  earlyTerminationPenalty String // "NONE"|"FORFEIT_DEPOSIT"|"MONTHS_RENT"|"PRORATED"
+  earlyTerminationMonths  Int?
+  reinstatementLevel      String // "BROOM_CLEAN"|"PROFESSIONAL_CLEANING"|"ORIGINAL_STATE"|"AS_IS"
+  sublettingPolicy        String // "NOT_ALLOWED"|"WITH_CONSENT"|"WITHOUT_CONSENT"
+
+  // Step 6 — Deposit Handling
+  depositRefundDays      Int // 7, 14, 30, 60
+  deductionCategories    String // JSON array
+  disputeResolution      String // "PLATFORM_MESSAGING"|"MEDIATION"|"COURT"
+  utilityDepositHandling String // "COMBINED"|"SEPARATE"|"NONE"
+
+  // Progress tracking — allows saving partial wizard answers
+  completedSteps Int     @default(0) // highest step reached, 1 through 6
+  isComplete     Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// ─── TENANT DOCUMENT ─────────────────────────────────────────────────────────
+// Secure storage for tenant identity and income documents. Replaces the
+// insecure WhatsApp-based document sharing identified in the IR problem statement.
+// Access is scoped to landlords with an active tenancy relationship (PDPA measure).
+model TenantDocument {
+  id           String       @id @default(cuid())
+  userId       String
+  user         User         @relation(fields: [userId], references: [id])
+  type         DocumentType
+  imageUrl     String
+  publicId     String // Cloudinary public_id for deletion
+  originalName String // Original filename for display
+  fileSize     Int // bytes
+  mimeType     String // image/jpeg, image/png, application/pdf
+  uploadedAt   DateTime     @default(now())
+
+  @@unique([userId, type]) // one document per type per user; uploading replaces
+}
+
+enum DocumentType {
+  IC_COPY
+  INCOME_PROOF
+}
+
+// ─── DEPOSIT REFUND ───────────────────────────────────────────────────────────
+// Deposit settlement workflow after tenancy ends. Landlord proposes deductions,
+// tenant reviews each one, and both reach AGREED before refund is paid.
+model DepositRefund {
+  id            String       @id @default(cuid())
+  tenancyId     String       @unique
+  tenancy       Tenancy      @relation(fields: [tenancyId], references: [id])
+  originalAmount Decimal     @db.Decimal(10, 2)
+  refundAmount  Decimal      @db.Decimal(10, 2)
+  status        RefundStatus @default(PROPOSED)
+
+  paidProofUrl      String?
+  paidProofPublicId String?
+  paidAt            DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  deductions DepositDeduction[]
+}
+
+enum RefundStatus {
+  PROPOSED // Landlord submitted initial deductions
+  IN_REVIEW // Tenant reviewing, may dispute
+  AGREED // Both parties accepted; awaiting payment
+  DISPUTED // No agreement reached; parked for external resolution
+  PAID // Refund paid; tenancy fully closed
+}
+
+model DepositDeduction {
+  id               String          @id @default(cuid())
+  refundId         String
+  refund           DepositRefund   @relation(fields: [refundId], references: [id])
+  reason           String          @db.Text
+  amount           Decimal         @db.Decimal(10, 2)
+  status           DeductionStatus @default(PROPOSED)
+  tenantDisputeNote String?        @db.Text
+  photoIds         String          @db.Text // JSON array of ConditionPhoto IDs
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+enum DeductionStatus {
+  PROPOSED // Landlord added; tenant hasn't reviewed
+  ACCEPTED // Tenant accepted
+  DISPUTED // Tenant contested
+  WITHDRAWN // Landlord removed
 }

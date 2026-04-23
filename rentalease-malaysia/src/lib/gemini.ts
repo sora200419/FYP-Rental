@@ -1,6 +1,8 @@
 // src/lib/gemini.ts
 import { GoogleGenerativeAI } from '@google/generative-ai';
-import { isMockGeminiEnabled, getMockAgreement } from './mockGemini';
+import { isMockGeminiEnabled, getMockAgreement, getMockTranslation } from './mockGemini';
+import type { AgreementPreferences } from '@prisma/client';
+import { buildWizardPolicyBlock } from './wizardFormatters';
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
 
@@ -122,6 +124,7 @@ function buildUtilitiesClause(
 
 export async function generateTenancyAgreement(
   tenancy: TenancyForAgreement,
+  preferences?: AgreementPreferences | null,
 ): Promise<GeneratedAgreement> {
   // ── Mock mode short-circuit ───────────────────────────────────────────────
   // When USE_MOCK_GEMINI=true is set in the environment, return a canned
@@ -204,10 +207,13 @@ ${tenancy.negotiationContext}
 `
     : '';
 
+  const wizardPolicyBlock = preferences ? buildWizardPolicyBlock(preferences) : '';
+
   const prompt = `
 You are a Malaysian legal document assistant specialising in residential tenancy agreements.
 ${negotiationBlock}
 Generate a complete residential tenancy agreement using the following details.
+${wizardPolicyBlock}
 All clauses must reflect Malaysian law (Contracts Act 1950, Distress Act 1951, NLC 1965, PDPA 2010).
 
 ── PROPERTY DETAILS ──────────────────────────────────────────────────────────
@@ -303,5 +309,76 @@ For "redFlags": Analyse the agreement and identify clauses that could disadvanta
   } catch (error) {
     console.error('Gemini generation error:', error);
     throw new Error('Failed to generate agreement. Please try again.');
+  }
+}
+
+// ── Bilingual translation ──────────────────────────────────────────────────
+// Takes the English plain-language summary and red flags and returns Malay
+// translations. Run as a second call after main generation to keep each
+// response within token limits and localize failure scope.
+
+export interface TranslatedOutputs {
+  plainLanguageSummaryMs: string;
+  redFlagsMs: string; // JSON-stringified array with 'issue' and 'recommendation' in Malay
+}
+
+export async function translateAgreementOutputs(
+  plainLanguageSummary: string,
+  redFlagsJson: string,
+): Promise<TranslatedOutputs> {
+  if (isMockGeminiEnabled()) {
+    return getMockTranslation();
+  }
+
+  const model = genAI.getGenerativeModel({
+    model: 'gemini-2.0-flash',
+    generationConfig: { responseMimeType: 'application/json' },
+  });
+
+  const prompt = `
+You are a professional translator specialising in legal and property documents.
+Translate the following Malaysian residential tenancy agreement summaries from
+English into formal Bahasa Malaysia (Malay). Use terminology appropriate for
+legal and property contexts in Malaysia.
+
+DO NOT translate the agreement body itself — only the plain-language summary
+and red flag explanations are needed.
+
+PLAIN LANGUAGE SUMMARY (English):
+${plainLanguageSummary}
+
+RED FLAGS (English JSON):
+${redFlagsJson}
+
+Respond ONLY with a valid JSON object containing exactly these two keys:
+{
+  "plainLanguageSummaryMs": "<full Malay translation of the plain language summary>",
+  "redFlagsMs": [
+    {
+      "severity": "<same as original>",
+      "clause": "<same as original — keep in English>",
+      "issue": "<Malay translation of the issue>",
+      "recommendation": "<Malay translation of the recommendation>"
+    }
+  ]
+}
+`;
+
+  try {
+    const result = await model.generateContent(prompt);
+    const text = result.response.text();
+    const parsed = JSON.parse(text);
+
+    if (!parsed.plainLanguageSummaryMs || !Array.isArray(parsed.redFlagsMs)) {
+      throw new Error('Translation response missing required fields');
+    }
+
+    return {
+      plainLanguageSummaryMs: parsed.plainLanguageSummaryMs,
+      redFlagsMs: JSON.stringify(parsed.redFlagsMs),
+    };
+  } catch (error) {
+    console.error('Gemini translation error:', error);
+    throw new Error('Failed to translate agreement outputs.');
   }
 }

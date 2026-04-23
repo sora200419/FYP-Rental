@@ -3,6 +3,7 @@ import { authOptions } from '@/lib/auth';
 import { redirect } from 'next/navigation';
 import { prisma } from '@/lib/prisma';
 import ProfileForm from '@/components/ui/ProfileForm';
+import TenantDocumentUploader from '@/components/ui/TenantDocumentUploader';
 
 export default async function ProfilePage() {
   const session = await getServerSession(authOptions);
@@ -21,6 +22,14 @@ export default async function ProfilePage() {
       createdAt: true,
     },
   });
+
+  const tenantDocuments =
+    session.user.role === 'TENANT'
+      ? await prisma.tenantDocument.findMany({
+          where: { userId: session.user.id },
+          orderBy: { uploadedAt: 'desc' },
+        })
+      : [];
 
   if (!user) redirect('/login');
 
@@ -124,6 +133,24 @@ export default async function ProfilePage() {
           role={user.role}
         />
       </div>
+
+      {/* Tenant identity documents — only shown to tenants */}
+      {user.role === 'TENANT' && (
+        <div className="bg-white rounded-xl border border-gray-200 p-6">
+          <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">
+            Identity Documents
+          </h2>
+          <p className="text-xs text-gray-400 mb-4">
+            Upload your IC copy and income proof. Landlords can view these only during an active tenancy.
+          </p>
+          <TenantDocumentUploader
+            initialDocuments={tenantDocuments.map((d) => ({
+              ...d,
+              uploadedAt: d.uploadedAt.toISOString(),
+            }))}
+          />
+        </div>
+      )}
     </div>
   );
 }

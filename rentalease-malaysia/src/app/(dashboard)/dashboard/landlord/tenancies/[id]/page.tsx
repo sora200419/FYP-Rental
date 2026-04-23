@@ -5,6 +5,8 @@ import { prisma } from '@/lib/prisma';
 import Link from 'next/link';
 import GenerateAgreementButton from '@/components/ui/GenerateAgreementButton';
 import EditTenancyTerms from './EditTenancyTerms';
+import { EndOfTenancyBanner } from '@/components/ui/EndOfTenancyBanner';
+import TenantDocumentsCard from '@/components/ui/TenantDocumentsCard';
 
 const STATUS_STYLES: Record<string, string> = {
   INVITED: 'bg-blue-100 text-blue-700',
@@ -53,6 +55,12 @@ export default async function TenancyDetailPage({
       conditionReports: {
         select: { id: true, type: true, acknowledgedAt: true },
       },
+      agreementPreferences: {
+        select: { isComplete: true, completedSteps: true },
+      },
+      depositRefund: {
+        select: { id: true, status: true, refundAmount: true },
+      },
     },
   });
 
@@ -82,6 +90,17 @@ export default async function TenancyDetailPage({
   const pendingAckReports = tenancy.conditionReports.filter(
     (r) => !r.acknowledgedAt,
   ).length;
+
+  // End-of-tenancy: check if within 30 days of endDate
+  const daysUntilEnd = Math.ceil(
+    (new Date(tenancy.endDate).getTime() - Date.now()) / (1000 * 60 * 60 * 24),
+  );
+  const isEndingSoon = tenancy.status === 'ACTIVE' && daysUntilEnd <= 30 && daysUntilEnd > 0;
+
+  const hasMoveOutReport = tenancy.conditionReports.some((r) => r.type === 'MOVE_OUT');
+  const acknowledgedMoveOut = tenancy.conditionReports.find(
+    (r) => r.type === 'MOVE_OUT' && r.acknowledgedAt,
+  );
 
   // A payment is overdue when it is PENDING and its due date has passed.
   // We compute this dynamically rather than storing a LATE status in the DB.
@@ -124,6 +143,45 @@ export default async function TenancyDetailPage({
       </div>
 
       <div className="space-y-5">
+        {/* End-of-tenancy banner — ACTIVE and within 30 days of end */}
+        {isEndingSoon && (
+          <EndOfTenancyBanner
+            tenancyId={id}
+            daysLeft={daysUntilEnd}
+            role="LANDLORD"
+            hasMoveOutReport={hasMoveOutReport}
+            acknowledgedMoveOut={!!acknowledgedMoveOut}
+            depositRefundStatus={tenancy.depositRefund?.status ?? null}
+          />
+        )}
+
+        {/* EXPIRED/TERMINATED — show next steps */}
+        {(tenancy.status === 'EXPIRED' || tenancy.status === 'TERMINATED') && (
+          <div className="bg-gray-50 border border-gray-200 rounded-xl px-5 py-4">
+            <p className="font-semibold text-gray-700 text-sm mb-2">
+              {tenancy.status === 'TERMINATED' ? '🔴 Tenancy Terminated' : '⏹ Tenancy Expired'}
+            </p>
+            {!hasMoveOutReport && (
+              <p className="text-gray-500 text-xs">
+                Create a Move-Out Condition Report to document the property state, then proceed to Deposit Settlement.
+              </p>
+            )}
+            {hasMoveOutReport && !acknowledgedMoveOut && (
+              <p className="text-amber-600 text-xs">Move-out report awaiting acknowledgement before deposit settlement can begin.</p>
+            )}
+            {acknowledgedMoveOut && !tenancy.depositRefund && (
+              <div className="mt-2">
+                <Link
+                  href={`/dashboard/landlord/tenancies/${id}/deposit-settlement`}
+                  className="text-sm font-semibold text-blue-600 hover:underline"
+                >
+                  → Start Deposit Settlement
+                </Link>
+              </div>
+            )}
+          </div>
+        )}
+
         {/* INVITED state banner — tenant hasn't accepted yet */}
         {tenancy.status === 'INVITED' && (
           <div className="bg-blue-50 border border-blue-200 rounded-xl px-5 py-4">
@@ -158,6 +216,9 @@ export default async function TenancyDetailPage({
             </div>
           </div>
         </div>
+
+        {/* Tenant identity documents — client component fetches from API */}
+        <TenantDocumentsCard tenancyId={id} tenantName={tenancy.tenant.name} />
 
         {/* Tenancy terms card */}
         <div className="bg-white rounded-xl border border-gray-200 p-6">
@@ -344,11 +405,21 @@ export default async function TenancyDetailPage({
                   >
                     View Agreement
                   </Link>
-                  <GenerateAgreementButton
-                    tenancyId={tenancy.id}
-                    label="🔄 Regenerate"
-                    variant="secondary"
-                  />
+                  {tenancy.agreement?.status !== 'SIGNED' && (
+                    <>
+                      <GenerateAgreementButton
+                        tenancyId={tenancy.id}
+                        label="🔄 Regenerate"
+                        variant="secondary"
+                      />
+                      <Link
+                        href={`/dashboard/landlord/tenancies/${tenancy.id}/wizard`}
+                        className="border border-gray-300 text-gray-700 text-sm font-semibold px-4 py-2.5 rounded-lg hover:bg-gray-50 transition-colors"
+                      >
+                        Edit Wizard Answers
+                      </Link>
+                    </>
+                  )}
                 </div>
               </div>
             ) : (
@@ -358,14 +429,31 @@ export default async function TenancyDetailPage({
                   No agreement generated yet
                 </p>
                 <p className="text-gray-400 text-sm mt-1 mb-5 max-w-sm mx-auto">
-                  Generate an AI-assisted agreement based on the tenancy terms.
-                  Includes plain-language explanations and red-flag warnings.
+                  Use the guided wizard to capture your policy decisions, then let the AI generate a tailored agreement with plain-language explanations and red-flag warnings.
                 </p>
-                <GenerateAgreementButton
-                  tenancyId={tenancy.id}
-                  label="✨ Generate Agreement"
-                  variant="primary"
-                />
+                {!tenancy.agreementPreferences?.isComplete ? (
+                  <Link
+                    href={`/dashboard/landlord/tenancies/${tenancy.id}/wizard`}
+                    className="inline-block bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold px-6 py-2.5 rounded-lg transition-colors"
+                  >
+                    ✨ Start Agreement Wizard
+                  </Link>
+                ) : (
+                  <div className="space-y-3">
+                    <div className="bg-green-50 border border-green-200 rounded-lg px-4 py-2 text-sm text-green-700 mb-3">
+                      ✓ Wizard complete — ready to generate
+                    </div>
+                    <div className="flex gap-3 justify-center">
+                      <GenerateAgreementButton tenancyId={tenancy.id} label="✨ Generate Agreement" variant="primary" />
+                      <Link
+                        href={`/dashboard/landlord/tenancies/${tenancy.id}/wizard`}
+                        className="border border-gray-300 text-gray-700 text-sm font-semibold px-4 py-2.5 rounded-lg hover:bg-gray-50 transition-colors"
+                      >
+                        Edit Wizard Answers
+                      </Link>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </div>

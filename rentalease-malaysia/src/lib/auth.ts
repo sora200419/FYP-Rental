@@ -43,15 +43,21 @@ export const authOptions: NextAuthOptions = {
           email: user.email,
           name: user.name,
           role: user.role,
+          language: user.language ?? 'en',
         };
       },
     }),
   ],
   callbacks: {
-    async jwt({ token, user }) {
+    async jwt({ token, user, trigger, session: updatedSession }) {
       if (user) {
-        token.role = (user as { id: string; role: string }).role;
+        token.role = (user as { id: string; role: string; language: string }).role;
         token.id = user.id;
+        token.language = (user as { language: string }).language ?? 'en';
+      }
+      // Allow updating language via session update() call
+      if (trigger === 'update' && updatedSession?.language) {
+        token.language = updatedSession.language;
       }
       return token;
     },
@@ -59,6 +65,7 @@ export const authOptions: NextAuthOptions = {
       if (token && session.user) {
         session.user.role = token.role as string;
         session.user.id = token.id as string;
+        session.user.language = (token.language as string) ?? 'en';
       }
       return session;
     },

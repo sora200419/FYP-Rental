@@ -15,15 +15,17 @@ interface Props {
   status: string;
   rawContent: string;
   plainLanguageSummary: string;
+  plainLanguageSummaryMs?: string | null;
   redFlags: RedFlag[];
+  redFlagsMs?: RedFlag[] | null;
   tenantName: string;
   propertyAddress: string;
   readOnly?: boolean;
   contentHash?: string | null;
   signedAt?: Date | string | null;
   signedByIp?: string | null;
-  // Phase 14: Sepolia transaction hash — null until blockchain anchoring completes
   txHash?: string | null;
+  language?: string; // 'en' | 'ms' — user's language preference
 }
 
 const SEVERITY_STYLES: Record<string, string> = {
@@ -39,7 +41,9 @@ export default function AgreementViewer({
   status,
   rawContent,
   plainLanguageSummary,
+  plainLanguageSummaryMs,
   redFlags,
+  redFlagsMs,
   tenantName,
   propertyAddress,
   readOnly = false,
@@ -47,11 +51,21 @@ export default function AgreementViewer({
   signedAt,
   signedByIp,
   txHash,
+  language = 'en',
 }: Props) {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<Tab>('agreement');
   const [isFinalizing, setIsFinalizing] = useState(false);
   const [finalizeError, setFinalizeError] = useState<string | null>(null);
+
+  // Pick the right language for summary and red flags, with fallback to English
+  const displaySummary =
+    language === 'ms' && plainLanguageSummaryMs
+      ? plainLanguageSummaryMs
+      : plainLanguageSummary;
+  const displayRedFlags =
+    language === 'ms' && redFlagsMs && redFlagsMs.length > 0 ? redFlagsMs : redFlags;
+  const isMalay = language === 'ms';
 
   const highCount = redFlags.filter((f) => f.severity === 'HIGH').length;
   const isDraft = status === 'DRAFT';
@@ -191,12 +205,20 @@ export default function AgreementViewer({
 
         {activeTab === 'summary' && (
           <div className="p-6 md:p-8">
-            <p className="text-xs text-gray-400 mb-5 pb-4 border-b border-gray-100">
-              Each clause explained in plain language — designed for tenants and
-              landlords without legal training.
-            </p>
+            <div className="flex items-center justify-between mb-5 pb-4 border-b border-gray-100">
+              <p className="text-xs text-gray-400">
+                {isMalay
+                  ? 'Setiap fasal dijelaskan dalam bahasa mudah — direka untuk penyewa dan tuan tanah tanpa latihan undang-undang.'
+                  : 'Each clause explained in plain language — designed for tenants and landlords without legal training.'}
+              </p>
+              {isMalay && !plainLanguageSummaryMs && (
+                <span className="text-xs text-amber-600 bg-amber-50 px-2 py-0.5 rounded">
+                  Not available in Malay — showing English
+                </span>
+              )}
+            </div>
             <pre className="whitespace-pre-wrap font-sans text-sm text-gray-700 leading-relaxed">
-              {plainLanguageSummary}
+              {displaySummary}
             </pre>
           </div>
         )}
@@ -204,24 +226,26 @@ export default function AgreementViewer({
         {activeTab === 'redflags' && (
           <div className="p-6 md:p-8">
             <p className="text-xs text-gray-400 mb-5 pb-4 border-b border-gray-100">
-              AI analysis of potential issues, ambiguities, or unfair terms in
-              the agreement under Malaysian law.
+              {isMalay
+                ? 'Analisis AI tentang isu-isu, kekaburan, atau terma yang tidak adil dalam perjanjian di bawah undang-undang Malaysia.'
+                : 'AI analysis of potential issues, ambiguities, or unfair terms in the agreement under Malaysian law.'}
             </p>
 
-            {redFlags.length === 0 ? (
+            {displayRedFlags.length === 0 ? (
               <div className="text-center py-12">
                 <p className="text-4xl mb-3">✅</p>
                 <p className="text-gray-700 font-semibold">
-                  No red flags detected
+                  {isMalay ? 'Tiada bendera merah dikesan' : 'No red flags detected'}
                 </p>
                 <p className="text-gray-400 text-sm mt-1">
-                  The AI analysis found no significant issues with this
-                  agreement.
+                  {isMalay
+                    ? 'Analisis AI tidak menemui sebarang isu ketara dengan perjanjian ini.'
+                    : 'The AI analysis found no significant issues with this agreement.'}
                 </p>
               </div>
             ) : (
               <div className="space-y-4">
-                {redFlags.map((flag, index) => (
+                {displayRedFlags.map((flag, index) => (
                   <div
                     key={index}
                     className={`border rounded-xl p-5 ${SEVERITY_STYLES[flag.severity]}`}
@@ -234,7 +258,7 @@ export default function AgreementViewer({
                     </div>
                     <p className="text-sm mb-2">{flag.issue}</p>
                     <p className="text-xs opacity-80">
-                      <span className="font-semibold">Recommendation:</span>{' '}
+                      <span className="font-semibold">{isMalay ? 'Cadangan:' : 'Recommendation:'}</span>{' '}
                       {flag.recommendation}
                     </p>
                   </div>
