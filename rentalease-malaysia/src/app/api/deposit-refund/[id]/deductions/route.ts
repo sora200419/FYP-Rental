@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { createNotification } from '@/lib/notifications';
 import { z } from 'zod';
 
 const deductionSchema = z.object({
@@ -28,7 +29,12 @@ export async function POST(
       tenancy: { room: { property: { landlordId: session.user.id } } },
       status: { in: ['PROPOSED', 'IN_REVIEW'] },
     },
-    select: { id: true, originalAmount: true, deductions: { select: { amount: true, status: true } } },
+    select: {
+      id: true,
+      originalAmount: true,
+      deductions: { select: { amount: true, status: true } },
+      tenancy: { select: { tenantId: true } },
+    },
   });
 
   if (!refund) return NextResponse.json({ error: 'Refund not found or not editable' }, { status: 404 });
@@ -61,6 +67,15 @@ export async function POST(
       data: { refundAmount },
     }),
   ]);
+
+  // Notify tenant of the new deduction (non-blocking)
+  createNotification(
+    refund.tenancy.tenantId,
+    'DEPOSIT_DEDUCTION_FILED',
+    'New deposit deduction added',
+    `Your landlord has added a deduction of RM ${parsed.data.amount.toFixed(2)}: ${parsed.data.reason}. Please review and respond.`,
+    `/dashboard/tenant/tenancy`,
+  );
 
   return NextResponse.json({ deduction }, { status: 201 });
 }

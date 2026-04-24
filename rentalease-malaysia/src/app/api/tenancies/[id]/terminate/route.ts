@@ -5,6 +5,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { createNotification } from '@/lib/notifications';
 import { z } from 'zod';
 
 const terminateSchema = z.object({
@@ -21,7 +22,6 @@ export async function POST(
 
   const { id } = await params;
 
-  // Both landlords and tenants can serve notice — auth chain differs per role
   const tenancy = await prisma.tenancy.findFirst({
     where: {
       id,
@@ -30,7 +30,11 @@ export async function POST(
         ? { room: { property: { landlordId: session.user.id } } }
         : { tenantId: session.user.id }),
     },
-    select: { id: true },
+    select: {
+      id: true,
+      tenantId: true,
+      room: { select: { property: { select: { landlordId: true } } } },
+    },
   });
 
   if (!tenancy) return NextResponse.json({ error: 'Active tenancy not found' }, { status: 404 });
@@ -51,6 +55,28 @@ export async function POST(
       terminatedReason: parsed.data.reason,
     },
   });
+
+  // Notify the other party (non-blocking)
+  const isLandlord = session.user.role === 'LANDLORD';
+  const notifyUserId = isLandlord
+    ? tenancy.tenantId
+    : tenancy.room.property.landlordId;
+  const notifyTitle = isLandlord
+    ? 'Landlord has served notice to quit'
+    : 'Tenant has served notice to quit';
+  const notifyBody = isLandlord
+    ? `Your landlord has served a formal notice to terminate the tenancy. Reason: ${parsed.data.reason}`
+    : `Your tenant has served a formal notice to terminate the tenancy. Reason: ${parsed.data.reason}`;
+
+  createNotification(
+    notifyUserId,
+    'MUTUAL_TERMINATION_RESPONDED',
+    notifyTitle,
+    notifyBody,
+    isLandlord
+      ? `/dashboard/tenant/tenancy`
+      : `/dashboard/landlord/tenancies/${id}`,
+  );
 
   return NextResponse.json({ message: 'Tenancy terminated' });
 }

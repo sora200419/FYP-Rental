@@ -4,6 +4,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { createNotification } from '@/lib/notifications';
 import { z } from 'zod';
 
 const tenantSchema = z.object({
@@ -35,7 +36,25 @@ export async function PATCH(
           : { tenantId: session.user.id },
       },
     },
-    select: { id: true, amount: true, status: true, refund: { select: { id: true, originalAmount: true, deductions: { select: { amount: true, status: true } } } } },
+    select: {
+      id: true,
+      amount: true,
+      status: true,
+      reason: true,
+      refund: {
+        select: {
+          id: true,
+          originalAmount: true,
+          deductions: { select: { amount: true, status: true } },
+          tenancy: {
+            select: {
+              tenantId: true,
+              room: { select: { property: { select: { landlordId: true } } } },
+            },
+          },
+        },
+      },
+    },
   });
 
   if (!deduction) return NextResponse.json({ error: 'Deduction not found' }, { status: 404 });
@@ -80,6 +99,17 @@ export async function PATCH(
         data: { status: hasDispute ? 'DISPUTED' : 'AGREED' },
       });
     }
+
+  // Notify landlord of tenant's response (non-blocking)
+    const landlordId = deduction.refund.tenancy.room.property.landlordId;
+    const responseLabel = parsed.data.action === 'ACCEPT' ? 'accepted' : 'disputed';
+    createNotification(
+      landlordId,
+      'DEPOSIT_DEDUCTION_FILED',
+      `Tenant ${responseLabel} a deduction`,
+      `Your tenant has ${responseLabel} the deduction "${deduction.reason}" (RM ${Number(deduction.amount).toFixed(2)}).`,
+      `/dashboard/landlord/tenancies`,
+    );
 
     return NextResponse.json({ deduction: updated });
   }
