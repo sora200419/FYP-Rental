@@ -6,6 +6,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { createNotification } from '@/lib/notifications';
 import { z } from 'zod';
 
 const renewSchema = z.object({
@@ -60,6 +61,15 @@ export async function POST(
     },
     select: { id: true },
   });
+
+  // Notify tenant of renewal invitation (non-blocking)
+  createNotification(
+    tenancy.tenantId,
+    'INVITATION_RECEIVED',
+    'Tenancy renewal offer',
+    'Your landlord has offered to renew your tenancy. Review the new terms and accept or decline.',
+    `/dashboard/tenant/tenancy`,
+  );
 
   return NextResponse.json({ tenancyId: renewal.id }, { status: 201 });
 }

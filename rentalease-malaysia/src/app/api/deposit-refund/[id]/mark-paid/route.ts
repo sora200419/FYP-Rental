@@ -5,6 +5,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { uploadRefundProof } from '@/lib/cloudinary';
+import { createNotification } from '@/lib/notifications';
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024;
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'];
@@ -26,7 +27,11 @@ export async function POST(
       status: 'AGREED',
       tenancy: { room: { property: { landlordId: session.user.id } } },
     },
-    select: { id: true },
+    select: {
+      id: true,
+      refundAmount: true,
+      tenancy: { select: { tenantId: true } },
+    },
   });
 
   if (!refund) return NextResponse.json({ error: 'Refund not found or not in AGREED status' }, { status: 404 });
@@ -58,6 +63,15 @@ export async function POST(
       paidAt: new Date(),
     },
   });
+
+  // Notify tenant that the deposit has been refunded (non-blocking)
+  createNotification(
+    refund.tenancy.tenantId,
+    'DEPOSIT_REFUND_PAID',
+    'Deposit refund paid',
+    `Your landlord has transferred your deposit refund of RM ${Number(refund.refundAmount).toFixed(2)}. Proof of payment has been uploaded.`,
+    `/dashboard/tenant/tenancy`,
+  );
 
   return NextResponse.json({ message: 'Deposit refund marked as paid' });
 }

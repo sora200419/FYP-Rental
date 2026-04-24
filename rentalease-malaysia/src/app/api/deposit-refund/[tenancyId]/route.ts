@@ -4,6 +4,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { createNotification } from '@/lib/notifications';
 import { z } from 'zod';
 
 async function verifyAccess(tenancyId: string, userId: string, role: string) {
@@ -14,7 +15,7 @@ async function verifyAccess(tenancyId: string, userId: string, role: string) {
         ? { room: { property: { landlordId: userId } } }
         : { tenantId: userId }),
     },
-    select: { id: true, depositAmount: true, status: true },
+    select: { id: true, depositAmount: true, status: true, tenantId: true },
   });
 }
 
@@ -92,6 +93,15 @@ export async function POST(
     },
     include: { deductions: true },
   });
+
+  // Notify tenant that deposit settlement has been initiated (non-blocking)
+  createNotification(
+    tenancy.tenantId,
+    'DEPOSIT_DEDUCTION_FILED',
+    'Deposit settlement started',
+    `Your landlord has initiated the deposit settlement. Review the proposed deductions and respond.`,
+    `/dashboard/tenant/tenancy`,
+  );
 
   return NextResponse.json({ refund }, { status: 201 });
 }
