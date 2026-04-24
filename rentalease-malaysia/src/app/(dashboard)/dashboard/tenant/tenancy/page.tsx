@@ -53,12 +53,15 @@ export default async function TenantTenancyPage() {
 
   let redFlags: RedFlag[] = [];
   if (tenancy?.agreement?.redFlags) {
-    try {
-      redFlags = JSON.parse(tenancy.agreement.redFlags);
-    } catch {
-      redFlags = [];
-    }
+    try { redFlags = JSON.parse(tenancy.agreement.redFlags); } catch { redFlags = []; }
   }
+
+  let redFlagsMs: RedFlag[] | null = null;
+  if (tenancy?.agreement?.redFlagsMs) {
+    try { redFlagsMs = JSON.parse(tenancy.agreement.redFlagsMs); } catch { redFlagsMs = null; }
+  }
+
+  const language = session.user.language ?? 'en';
 
   // ── Case 1: No PENDING/ACTIVE tenancy for this tenant ─────────────────────
   if (!tenancy) {
@@ -215,9 +218,12 @@ export default async function TenantTenancyPage() {
               status={tenancy.agreement.status}
               rawContent={tenancy.agreement.rawContent}
               plainLanguageSummary={tenancy.agreement.plainLanguageSummary}
+              plainLanguageSummaryMs={tenancy.agreement.plainLanguageSummaryMs}
               redFlags={redFlags}
+              redFlagsMs={redFlagsMs}
               tenantName={session.user.name ?? 'Tenant'}
               propertyAddress={fullAddress}
+              language={language}
               readOnly
             />
           </>
@@ -240,11 +246,13 @@ export default async function TenantTenancyPage() {
               status={tenancy.agreement.status}
               rawContent={tenancy.agreement.rawContent}
               plainLanguageSummary={tenancy.agreement.plainLanguageSummary}
+              plainLanguageSummaryMs={tenancy.agreement.plainLanguageSummaryMs}
               redFlags={redFlags}
+              redFlagsMs={redFlagsMs}
               tenantName={session.user.name ?? 'Tenant'}
               propertyAddress={fullAddress}
+              language={language}
               readOnly
-              // Phase 11: signing audit trail — the panel renders once these are non-null
               contentHash={tenancy.agreement.contentHash}
               signedAt={tenancy.agreement.signedAt}
               signedByIp={tenancy.agreement.signedByIp}
@@ -261,9 +269,12 @@ export default async function TenantTenancyPage() {
               status={tenancy.agreement.status}
               rawContent={tenancy.agreement.rawContent}
               plainLanguageSummary={tenancy.agreement.plainLanguageSummary}
+              plainLanguageSummaryMs={tenancy.agreement.plainLanguageSummaryMs}
               redFlags={redFlags}
+              redFlagsMs={redFlagsMs}
               tenantName={session.user.name ?? 'Tenant'}
               propertyAddress={fullAddress}
+              language={language}
               readOnly
             />
             <TenantAgreementActions agreementId={tenancy.agreement.id} />

@@ -51,6 +51,12 @@ export default async function AgreementPage({
 
   const isSigned = tenancy.agreement.status === 'SIGNED';
 
+  // Parse Malay red flags if present
+  let redFlagsMs: typeof redFlags | null = null;
+  if (tenancy.agreement.redFlagsMs) {
+    try { redFlagsMs = JSON.parse(tenancy.agreement.redFlagsMs); } catch { redFlagsMs = null; }
+  }
+
   return (
     <div className="max-w-4xl">
       <div className="flex items-center gap-2 text-sm text-gray-400 mb-6">
@@ -77,10 +83,12 @@ export default async function AgreementPage({
         status={tenancy.agreement.status}
         rawContent={tenancy.agreement.rawContent}
         plainLanguageSummary={tenancy.agreement.plainLanguageSummary}
+        plainLanguageSummaryMs={tenancy.agreement.plainLanguageSummaryMs}
         redFlags={redFlags}
+        redFlagsMs={redFlagsMs}
         tenantName={tenancy.tenant.name}
         propertyAddress={`${tenancy.room.property.address}, ${tenancy.room.property.city} — ${tenancy.room.label}`}
-        // Phase 11: pass signing audit trail fields so the panel renders
+        language={session.user.language ?? 'en'}
         contentHash={tenancy.agreement.contentHash}
         signedAt={tenancy.agreement.signedAt}
         signedByIp={tenancy.agreement.signedByIp}
