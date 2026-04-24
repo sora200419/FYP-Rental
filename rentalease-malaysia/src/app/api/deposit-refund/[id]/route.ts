@@ -1,11 +1,15 @@
-// GET /api/deposit-refund/[tenancyId] — fetch existing refund record (landlord or tenant)
-// POST /api/deposit-refund/[tenancyId] — landlord creates the initial refund proposal
+// GET /api/deposit-refund/[id] — fetch existing refund by tenancyId (landlord or tenant)
+// POST /api/deposit-refund/[id] — landlord creates the initial refund proposal (id = tenancyId)
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { createNotification } from '@/lib/notifications';
 import { z } from 'zod';
+
+// Note: the [id] segment here is the tenancyId. It shares the same dynamic
+// segment name as the /deductions and /mark-paid sub-routes (which use refundId)
+// because Next.js requires one consistent name per level of the URL tree.
 
 async function verifyAccess(tenancyId: string, userId: string, role: string) {
   return prisma.tenancy.findFirst({
@@ -21,12 +25,12 @@ async function verifyAccess(tenancyId: string, userId: string, role: string) {
 
 export async function GET(
   _request: NextRequest,
-  { params }: { params: Promise<{ tenancyId: string }> },
+  { params }: { params: Promise<{ id: string }> },
 ) {
   const session = await getServerSession(authOptions);
   if (!session) return NextResponse.json({ error: 'Unauthorised' }, { status: 401 });
 
-  const { tenancyId } = await params;
+  const { id: tenancyId } = await params;
   const tenancy = await verifyAccess(tenancyId, session.user.id, session.user.role);
   if (!tenancy) return NextResponse.json({ error: 'Not found' }, { status: 404 });
 
@@ -49,14 +53,14 @@ const createSchema = z.object({
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: Promise<{ tenancyId: string }> },
+  { params }: { params: Promise<{ id: string }> },
 ) {
   const session = await getServerSession(authOptions);
   if (!session) return NextResponse.json({ error: 'Unauthorised' }, { status: 401 });
   if (session.user.role !== 'LANDLORD')
     return NextResponse.json({ error: 'Only landlords can initiate deposit settlement' }, { status: 403 });
 
-  const { tenancyId } = await params;
+  const { id: tenancyId } = await params;
   const tenancy = await verifyAccess(tenancyId, session.user.id, session.user.role);
   if (!tenancy) return NextResponse.json({ error: 'Not found' }, { status: 404 });
 
