@@ -17,10 +17,6 @@ export default withAuth(
       return NextResponse.redirect(new URL('/dashboard/landlord', req.url));
     }
 
-    if (pathname.startsWith('/dashboard/admin') && token?.role !== 'ADMIN') {
-      return NextResponse.redirect(new URL('/dashboard', req.url));
-    }
-
     return NextResponse.next();
   },
   {

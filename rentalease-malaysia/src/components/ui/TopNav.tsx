@@ -131,12 +131,20 @@ export default function TopNav() {
               onClick={toggleLanguage}
               className="hidden sm:flex items-center gap-0 border border-gray-200 rounded-lg overflow-hidden text-xs font-semibold"
               aria-label="Toggle language"
-              title={language === 'en' ? 'Switch to Bahasa Malaysia' : 'Switch to English'}
+              title={
+                language === 'en'
+                  ? 'Switch to Bahasa Malaysia'
+                  : 'Switch to English'
+              }
             >
-              <span className={`px-2.5 py-1.5 transition-colors ${language === 'en' ? 'bg-blue-600 text-white' : 'text-gray-500 hover:bg-gray-50'}`}>
+              <span
+                className={`px-2.5 py-1.5 transition-colors ${language === 'en' ? 'bg-blue-600 text-white' : 'text-gray-500 hover:bg-gray-50'}`}
+              >
                 EN
               </span>
-              <span className={`px-2.5 py-1.5 transition-colors ${language === 'ms' ? 'bg-blue-600 text-white' : 'text-gray-500 hover:bg-gray-50'}`}>
+              <span
+                className={`px-2.5 py-1.5 transition-colors ${language === 'ms' ? 'bg-blue-600 text-white' : 'text-gray-500 hover:bg-gray-50'}`}
+              >
                 MS
               </span>
             </button>
@@ -338,10 +346,16 @@ export default function TopNav() {
             })}
             {/* Language toggle in mobile menu */}
             <button
-              onClick={() => { setMobileMenuOpen(false); toggleLanguage(); }}
+              onClick={() => {
+                setMobileMenuOpen(false);
+                toggleLanguage();
+              }}
               className="block w-full text-left px-4 py-2.5 text-sm font-medium text-gray-600 hover:bg-gray-50 rounded-lg mx-1 transition-colors"
             >
-              🌐 {language === 'en' ? 'Switch to Bahasa Malaysia' : 'Switch to English'}
+              🌐{' '}
+              {language === 'en'
+                ? 'Switch to Bahasa Malaysia'
+                : 'Switch to English'}
             </button>
           </div>
         )}

@@ -9,7 +9,5 @@ export default async function DashboardPage() {
 
   if (session.user.role === 'LANDLORD') redirect('/dashboard/landlord');
   if (session.user.role === 'TENANT') redirect('/dashboard/tenant');
-  if (session.user.role === 'ADMIN') redirect('/dashboard/admin');
-
   redirect('/login');
 }

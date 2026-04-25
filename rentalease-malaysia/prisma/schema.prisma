@@ -36,7 +36,6 @@ model User {
 enum Role {
   LANDLORD
   TENANT
-  ADMIN
 }
 
 // ─── PROPERTY ────────────────────────────────────────────────────────────────
