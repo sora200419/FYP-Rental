@@ -4,6 +4,8 @@ import { redirect, notFound } from 'next/navigation';
 import { prisma } from '@/lib/prisma';
 import Link from 'next/link';
 import AddRoomForm from '@/components/ui/AddRoomForm';
+import PropertyPhotoUploader from '@/components/ui/PropertyPhotoUploader';
+import PropertyPhotoGallery from '@/components/ui/PropertyPhotoGallery';
 
 export default async function PropertyDetailPage({
   params,
@@ -18,6 +20,7 @@ export default async function PropertyDetailPage({
   const property = await prisma.property.findFirst({
     where: { id, landlordId: session.user.id },
     include: {
+      photos: { orderBy: [{ order: 'asc' }, { createdAt: 'asc' }] },
       rooms: {
         include: {
           tenancies: {
@@ -80,6 +83,23 @@ export default async function PropertyDetailPage({
       </div>
 
       <div className="space-y-5">
+        {/* Photos section */}
+        <div className="bg-white rounded-xl border border-gray-200 p-6">
+          <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-4">
+            Property Photos
+          </h2>
+          <PropertyPhotoGallery
+            propertyId={property.id}
+            photos={property.photos}
+          />
+          <div className="mt-4 border-t border-gray-100 pt-4">
+            <p className="text-xs font-medium text-gray-500 mb-3">
+              Add a Photo
+            </p>
+            <PropertyPhotoUploader propertyId={property.id} />
+          </div>
+        </div>
+
         <div className="bg-white rounded-xl border border-gray-200 p-6">
           <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-4">
             Property Details

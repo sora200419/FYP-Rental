@@ -5,6 +5,7 @@ import { redirect } from 'next/navigation';
 import { prisma } from '@/lib/prisma';
 import Link from 'next/link';
 import { DashboardBanners } from '@/components/ui/DashboardBanners';
+import { triggerEndingSoonNotifications } from '@/lib/endingSoonNotifications';
 
 export default async function TenantDashboard() {
   const session = await getServerSession(authOptions);
@@ -13,6 +14,8 @@ export default async function TenantDashboard() {
   if (session.user.role !== 'TENANT') redirect('/dashboard/landlord');
 
   const tenantId = session.user.id;
+
+  void triggerEndingSoonNotifications(tenantId, 'TENANT');
 
   const [
     tenancies,

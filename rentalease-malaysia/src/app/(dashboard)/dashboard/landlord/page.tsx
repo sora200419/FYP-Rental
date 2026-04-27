@@ -5,6 +5,7 @@ import { redirect } from 'next/navigation';
 import { prisma } from '@/lib/prisma';
 import Link from 'next/link';
 import { DashboardBanners } from '@/components/ui/DashboardBanners';
+import { triggerEndingSoonNotifications } from '@/lib/endingSoonNotifications';
 
 export default async function LandlordDashboard() {
   const session = await getServerSession(authOptions);
@@ -13,6 +14,10 @@ export default async function LandlordDashboard() {
   if (session.user.role !== 'LANDLORD') redirect('/dashboard/tenant');
 
   const landlordId = session.user.id;
+
+  // Fire-and-forget: create TENANCY_ENDING_SOON notifications for tenancies
+  // ending within 30 days. Deduped per tenancy per 7 days. Non-blocking.
+  void triggerEndingSoonNotifications(landlordId, 'LANDLORD');
 
   // Run all data fetches in parallel to minimise server response time
   const [

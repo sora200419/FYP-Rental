@@ -28,6 +28,7 @@ model User {
   createdReports          ConditionReport[] @relation("CreatedReports")
   acknowledgedReports     ConditionReport[] @relation("AcknowledgedReports")
   uploadedConditionPhotos ConditionPhoto[]  @relation("UploadedConditionPhotos")
+  uploadedPropertyPhotos  PropertyPhoto[]   @relation("UploadedPropertyPhotos")
 
   notifications   Notification[]
   tenantDocuments TenantDocument[]
@@ -57,7 +58,8 @@ model Property {
   landlord   User   @relation("LandlordProperties", fields: [landlordId], references: [id])
 
   // A property has many rentable rooms (could be one "Entire Unit" or many rooms)
-  rooms Room[]
+  rooms  Room[]
+  photos PropertyPhoto[]
 }
 
 // ─── ROOM ─────────────────────────────────────────────────────────────────────
@@ -117,6 +119,22 @@ enum GenderPref {
   ANY
   MALE_ONLY
   FEMALE_ONLY
+}
+
+// ─── PROPERTY PHOTO ──────────────────────────────────────────────────────────
+model PropertyPhoto {
+  id        String   @id @default(cuid())
+  imageUrl  String
+  publicId  String
+  caption   String?
+  order     Int      @default(0)
+  createdAt DateTime @default(now())
+
+  propertyId   String
+  property     Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+
+  uploadedById String
+  uploadedBy   User     @relation("UploadedPropertyPhotos", fields: [uploadedById], references: [id])
 }
 
 // ─── TENANCY ─────────────────────────────────────────────────────────────────

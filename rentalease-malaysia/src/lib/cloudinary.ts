@@ -96,6 +96,34 @@ export async function deleteTenantDocument(publicId: string): Promise<void> {
   await cloudinary.uploader.destroy(publicId, { resource_type: 'auto' });
 }
 
+// Uploads a property listing photo to Cloudinary.
+export async function uploadPropertyPhoto(
+  fileBuffer: Buffer,
+  fileName: string,
+): Promise<{ url: string; publicId: string }> {
+  const base64 = fileBuffer.toString('base64');
+  const dataUri = `data:image/jpeg;base64,${base64}`;
+
+  const result = await cloudinary.uploader.upload(dataUri, {
+    folder: 'rentalease/properties',
+    public_id: `${Date.now()}-${fileName.replace(/\.[^/.]+$/, '')}`,
+    resource_type: 'image',
+    transformation: [
+      { quality: 'auto', fetch_format: 'auto' },
+      { width: 2048, crop: 'limit' },
+    ],
+  });
+
+  return {
+    url: result.secure_url,
+    publicId: result.public_id,
+  };
+}
+
+export async function deletePropertyPhoto(publicId: string): Promise<void> {
+  await cloudinary.uploader.destroy(publicId);
+}
+
 // Uploads deposit refund proof (same pattern as payment proof)
 export async function uploadRefundProof(
   fileBuffer: Buffer,
