@@ -164,20 +164,36 @@ export default function ProfileForm({
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
             Malaysian IC Number (MyKad){' '}
-            <span className="text-gray-400">(optional)</span>
+            {!initialIcNumber && <span className="text-gray-400">(optional)</span>}
           </label>
-          <input
-            type="text"
-            value={icNumber}
-            onChange={(e) => setIcNumber(e.target.value)}
-            placeholder="e.g. 901231-14-5678"
-            maxLength={14} // 12 digits + 2 hyphens
-            className={inputClass}
-          />
-          <p className="text-xs text-gray-400 mt-1">
-            Format: YYMMDD-PB-NNNC (12 digits, hyphens optional). Example:
-            901231-14-5678
-          </p>
+          {initialIcNumber ? (
+            <>
+              <input
+                type="text"
+                value={icNumber}
+                disabled
+                className="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm bg-gray-50 text-gray-500 cursor-not-allowed"
+              />
+              <p className="text-xs text-gray-400 mt-1">
+                IC number cannot be changed after saving.
+              </p>
+            </>
+          ) : (
+            <>
+              <input
+                type="text"
+                value={icNumber}
+                onChange={(e) => setIcNumber(e.target.value)}
+                placeholder="e.g. 901231-14-5678"
+                maxLength={14}
+                className={inputClass}
+              />
+              <p className="text-xs text-gray-400 mt-1">
+                Format: YYMMDD-PB-NNNC (12 digits, hyphens optional). Example:
+                901231-14-5678
+              </p>
+            </>
+          )}
         </div>
 
         {/* Role badge — shown as context so the user understands what they're

@@ -150,13 +150,13 @@ interface Props {
 export default function TenantDocumentUploader({ initialDocuments }: Props) {
   const router = useRouter();
   const [docs, setDocs] = useState<TenantDocument[]>(initialDocuments);
-  const [isUploading, setIsUploading] = useState(false);
+  const [uploadingType, setUploadingType] = useState<DocumentType | null>(null);
   const [globalError, setGlobalError] = useState<string | null>(null);
 
   const getDoc = (type: DocumentType) => docs.find((d) => d.type === type) ?? null;
 
   const handleUpload = async (type: DocumentType, file: File) => {
-    setIsUploading(true);
+    setUploadingType(type);
     setGlobalError(null);
     try {
       const formData = new FormData();
@@ -175,12 +175,12 @@ export default function TenantDocumentUploader({ initialDocuments }: Props) {
         return [...filtered, data.document];
       });
     } finally {
-      setIsUploading(false);
+      setUploadingType(null);
     }
   };
 
-  const handleDelete = async (id: string) => {
-    setIsUploading(true);
+  const handleDelete = async (id: string, type: DocumentType) => {
+    setUploadingType(type);
     setGlobalError(null);
     try {
       const res = await fetch(`/api/tenant-documents/${id}`, { method: 'DELETE' });
@@ -193,7 +193,7 @@ export default function TenantDocumentUploader({ initialDocuments }: Props) {
     } catch (err) {
       setGlobalError(err instanceof Error ? err.message : 'Failed to remove document');
     } finally {
-      setIsUploading(false);
+      setUploadingType(null);
     }
   };
 
@@ -212,8 +212,8 @@ export default function TenantDocumentUploader({ initialDocuments }: Props) {
         description="Front and back of your Malaysian identity card. Accepted: JPG, PNG, WebP, PDF (max 10 MB)"
         doc={getDoc('IC_COPY')}
         onUpload={handleUpload}
-        onDelete={handleDelete}
-        isUploading={isUploading}
+        onDelete={(id) => handleDelete(id, 'IC_COPY')}
+        isUploading={uploadingType === 'IC_COPY'}
       />
 
       <DocumentSlot
@@ -222,8 +222,8 @@ export default function TenantDocumentUploader({ initialDocuments }: Props) {
         description="Latest 3 months payslips, EA form, or bank statement. Accepted: JPG, PNG, WebP, PDF (max 10 MB)"
         doc={getDoc('INCOME_PROOF')}
         onUpload={handleUpload}
-        onDelete={handleDelete}
-        isUploading={isUploading}
+        onDelete={(id) => handleDelete(id, 'INCOME_PROOF')}
+        isUploading={uploadingType === 'INCOME_PROOF'}
       />
 
       {globalError && (

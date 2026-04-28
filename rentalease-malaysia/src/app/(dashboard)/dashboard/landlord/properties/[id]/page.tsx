@@ -6,6 +6,8 @@ import Link from 'next/link';
 import AddRoomForm from '@/components/ui/AddRoomForm';
 import PropertyPhotoUploader from '@/components/ui/PropertyPhotoUploader';
 import PropertyPhotoGallery from '@/components/ui/PropertyPhotoGallery';
+import DeletePropertyButton from '@/components/ui/DeletePropertyButton';
+import DeleteRoomButton from '@/components/ui/DeleteRoomButton';
 
 export default async function PropertyDetailPage({
   params,
@@ -70,15 +72,19 @@ export default async function PropertyDetailPage({
             {property.city}, {property.state} {property.postcode}
           </p>
         </div>
-        <div className="text-right">
-          <span className="text-xs text-gray-400 capitalize">
+        <div className="text-right space-y-1">
+          <span className="text-xs text-gray-400 capitalize block">
             {property.type}
           </span>
           {totalRooms > 0 && (
-            <p className="text-xs font-medium text-gray-500 mt-1">
+            <p className="text-xs font-medium text-gray-500">
               {occupiedRooms}/{totalRooms} rooms occupied
             </p>
           )}
+          <DeletePropertyButton
+            propertyId={property.id}
+            propertyAddress={property.address}
+          />
         </div>
       </div>
 
@@ -214,12 +220,15 @@ export default async function PropertyDetailPage({
                       <span className="text-xs text-gray-400 font-medium">
                         Vacant
                       </span>
-                      <Link
-                        href={`/dashboard/landlord/tenancies/new?roomId=${room.id}`}
-                        className="bg-green-600 hover:bg-green-700 text-white text-xs font-semibold px-4 py-2 rounded-lg transition-colors"
-                      >
-                        + Create Tenancy
-                      </Link>
+                      <div className="flex items-center gap-3">
+                        <DeleteRoomButton roomId={room.id} roomLabel={room.label} />
+                        <Link
+                          href={`/dashboard/landlord/tenancies/new?roomId=${room.id}`}
+                          className="bg-green-600 hover:bg-green-700 text-white text-xs font-semibold px-4 py-2 rounded-lg transition-colors"
+                        >
+                          + Create Tenancy
+                        </Link>
+                      </div>
                     </div>
                   )}
                 </div>
