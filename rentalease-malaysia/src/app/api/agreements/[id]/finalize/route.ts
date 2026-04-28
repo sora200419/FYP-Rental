@@ -61,7 +61,7 @@ export async function PATCH(
     'AGREEMENT_READY',
     'Your agreement is ready to review',
     `Your tenancy agreement for ${agreement.tenancy.room.property.address} has been finalized and is ready for your review and signature.`,
-    `/dashboard/tenant/agreements/${agreement.id}`,
+    `/dashboard/tenant/tenancy`,
   );
 
   return NextResponse.json({ ok: true });

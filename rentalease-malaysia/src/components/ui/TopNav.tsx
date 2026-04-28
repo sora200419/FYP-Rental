@@ -73,7 +73,7 @@ export default function TopNav() {
 
   const tenantLinks = [
     { href: '/dashboard/tenant', label: 'Dashboard' },
-    { href: '/dashboard/tenant/tenancies', label: 'My Tenancy' },
+    { href: '/dashboard/tenant/tenancy', label: 'My Tenancy' },
     { href: '/dashboard/tenant/messages', label: 'Messages' },
   ];
 

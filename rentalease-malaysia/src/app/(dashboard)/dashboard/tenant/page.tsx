@@ -283,7 +283,7 @@ function ActiveTenancyCard({ tenancy }: { tenancy: ActiveTenancyType }) {
           </span>
           {agreementStatus === 'FINALIZED' && (
             <Link
-              href={`/dashboard/tenant/agreements/${tenancy.agreement?.id}`}
+              href="/dashboard/tenant/tenancy"
               className="text-xs text-blue-600 hover:underline font-medium"
             >
               Review &amp; sign →
