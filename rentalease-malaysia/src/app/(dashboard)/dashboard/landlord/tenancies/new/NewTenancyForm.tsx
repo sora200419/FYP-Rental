@@ -122,7 +122,6 @@ export default function NewTenancyForm({
         return;
       }
       router.push(`/dashboard/landlord/tenancies/${result.tenancy.id}`);
-      router.refresh();
     } catch {
       setServerError('Network error. Please try again.');
     } finally {
