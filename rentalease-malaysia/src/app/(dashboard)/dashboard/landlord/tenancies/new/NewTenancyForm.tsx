@@ -121,7 +121,7 @@ export default function NewTenancyForm({
         setServerError(result.error || 'Failed to create tenancy');
         return;
       }
-      router.push(`/dashboard/landlord/tenancies/${result.tenancy.id}`);
+      router.push(`/dashboard/landlord/tenancies/${result.id}`);
     } catch {
       setServerError('Network error. Please try again.');
     } finally {
