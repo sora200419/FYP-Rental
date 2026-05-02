@@ -33,7 +33,7 @@ export async function PATCH(
           },
         },
       },
-      tenant: { select: { id: true, name: true } },
+      tenant: { select: { id: true, name: true, isVerified: true } },
     },
   });
 
@@ -52,6 +52,16 @@ export async function PATCH(
   const propertyAddress = tenancy.room.property.address;
 
   if (action === 'ACCEPT') {
+    if (!tenancy.tenant.isVerified) {
+      return NextResponse.json(
+        {
+          error:
+            'You must complete identity verification before accepting an invitation. Please upload your IC on your Profile page and wait for admin approval.',
+        },
+        { status: 403 },
+      );
+    }
+
     await prisma.tenancy.update({
       where: { id },
       data: { status: 'PENDING' },

@@ -97,7 +97,7 @@ export async function POST(request: Request) {
   const room = await prisma.room.findUnique({
     where: { id: roomId },
     include: {
-      property: { select: { landlordId: true, address: true, city: true } },
+      property: { select: { landlordId: true, address: true, city: true, isVerified: true } },
     },
   });
 
@@ -105,6 +105,16 @@ export async function POST(request: Request) {
     return NextResponse.json(
       { error: 'Room not found or access denied' },
       { status: 404 },
+    );
+  }
+
+  if (!room.property.isVerified) {
+    return NextResponse.json(
+      {
+        error:
+          'This property has not been verified by an admin yet. You cannot invite tenants until it is approved.',
+      },
+      { status: 403 },
     );
   }
 

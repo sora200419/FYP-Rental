@@ -52,15 +52,23 @@ export default function ProfileForm({
     setSuccess(false);
 
     try {
+      const rawIc = icNumber.replace(/-/g, '');
+      const icChanged = rawIc !== (initialIcNumber ?? '');
+
+      const payload: Record<string, unknown> = {
+        name: name.trim(),
+        phone: phone.trim() || null,
+      };
+      // Only include icNumber when it has actually changed — sending an unchanged
+      // IC in every PATCH would incorrectly reset isVerified on the server.
+      if (icChanged) {
+        payload.icNumber = icNumber.trim() || null;
+      }
+
       const res = await fetch('/api/profile', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: name.trim(),
-          phone: phone.trim() || null,
-          // Send the raw value — the API strips hyphens before storing
-          icNumber: icNumber.trim() || null,
-        }),
+        body: JSON.stringify(payload),
       });
 
       const data = await res.json();

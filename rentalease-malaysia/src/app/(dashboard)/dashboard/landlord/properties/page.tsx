@@ -8,55 +8,84 @@ export default async function PropertiesPage() {
   const session = await getServerSession(authOptions);
   if (!session || session.user.role !== 'LANDLORD') redirect('/login');
 
-  const properties = await prisma.property.findMany({
-    where: { landlordId: session.user.id },
-    include: {
-      rooms: {
-        include: {
-          tenancies: {
-            where: { status: { in: ['INVITED', 'PENDING', 'ACTIVE'] } },
-            select: { id: true },
+  const [properties, landlord] = await Promise.all([
+    prisma.property.findMany({
+      where: { landlordId: session.user.id },
+      include: {
+        rooms: {
+          include: {
+            tenancies: {
+              where: { status: { in: ['INVITED', 'PENDING', 'ACTIVE'] } },
+              select: { id: true },
+            },
           },
         },
       },
-    },
-    orderBy: { createdAt: 'desc' },
-  });
+      orderBy: { createdAt: 'desc' },
+    }),
+    prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: { isVerified: true },
+    }),
+  ]);
+
+  const isVerified = landlord?.isVerified ?? false;
 
   return (
     <div>
+      {/* KYC warning — blocks "Add Property" until admin verifies the landlord */}
+      {!isVerified && (
+        <div className="bg-amber-50 border border-amber-200 rounded-xl px-5 py-4 mb-6 flex items-start gap-3">
+          <span className="text-amber-500 text-xl mt-0.5">⚠️</span>
+          <div>
+            <p className="text-amber-800 font-semibold text-sm">Account not yet verified</p>
+            <p className="text-amber-700 text-xs mt-0.5 leading-relaxed">
+              You need to upload your IC on your{' '}
+              <Link href="/dashboard/profile" className="underline font-medium">
+                Profile page
+              </Link>{' '}
+              and wait for admin approval before you can add properties. This protects
+              tenants from fraudulent listings.
+            </p>
+          </div>
+        </div>
+      )}
+
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Properties</h1>
           <p className="text-gray-500 mt-1 text-sm">
             {properties.length}{' '}
-            {properties.length === 1 ? 'property' : 'properties'} in your
-            portfolio
+            {properties.length === 1 ? 'property' : 'properties'} in your portfolio
           </p>
         </div>
-        <Link
-          href="/dashboard/landlord/properties/new"
-          className="bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold px-5 py-2.5 rounded-lg transition-colors"
-        >
-          + Add Property
-        </Link>
+        {isVerified && (
+          <Link
+            href="/dashboard/landlord/properties/new"
+            className="bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold px-5 py-2.5 rounded-lg transition-colors"
+          >
+            + Add Property
+          </Link>
+        )}
       </div>
 
       {properties.length === 0 ? (
         <div className="text-center py-20 bg-white rounded-xl border border-gray-200">
           <p className="text-4xl mb-4">🏠</p>
-          <p className="text-gray-700 font-semibold text-lg">
-            No properties yet
-          </p>
+          <p className="text-gray-700 font-semibold text-lg">No properties yet</p>
           <p className="text-gray-400 text-sm mt-1 mb-6">
-            Add your first property to get started with RentalEase.
+            {isVerified
+              ? 'Add your first property to get started with RentalEase.'
+              : 'Complete identity verification to start adding properties.'}
           </p>
-          <Link
-            href="/dashboard/landlord/properties/new"
-            className="bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold px-6 py-3 rounded-lg transition-colors"
-          >
-            Add Property
-          </Link>
+          {isVerified && (
+            <Link
+              href="/dashboard/landlord/properties/new"
+              className="bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold px-6 py-3 rounded-lg transition-colors"
+            >
+              Add Property
+            </Link>
+          )}
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
@@ -65,8 +94,7 @@ export default async function PropertiesPage() {
             const occupiedRooms = property.rooms.filter(
               (r) => r.tenancies.length > 0,
             ).length;
-            const fullyOccupied =
-              totalRooms > 0 && occupiedRooms === totalRooms;
+            const fullyOccupied = totalRooms > 0 && occupiedRooms === totalRooms;
             const hasVacancy = totalRooms > 0 && occupiedRooms < totalRooms;
             const noRooms = totalRooms === 0;
 
@@ -99,6 +127,14 @@ export default async function PropertiesPage() {
                     {property.type}
                   </span>
                 </div>
+
+                {!property.isVerified && (
+                  <div className="bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 mb-3">
+                    <p className="text-xs text-amber-700 font-medium">
+                      Pending admin verification — tenant invitations are blocked until approved.
+                    </p>
+                  </div>
+                )}
                 <p className="font-semibold text-gray-900 text-sm leading-snug">
                   {property.address}
                 </p>

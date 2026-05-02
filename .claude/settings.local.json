@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(mkdir -p \"C:/Users/ONG/OneDrive/Desktop/FYP Rental/rentalease-malaysia/src/app/api/admin/users/[id]/reject\")",
+      "Bash(mkdir -p \"C:/Users/ONG/OneDrive/Desktop/FYP Rental/rentalease-malaysia/src/app/api/admin/properties/[id]/reject\")",
+      "Bash(npx prisma *)"
+    ]
+  }
+}

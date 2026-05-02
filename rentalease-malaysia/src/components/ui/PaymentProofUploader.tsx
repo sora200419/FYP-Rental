@@ -72,12 +72,35 @@ export default function PaymentProofUploader({
     }
   };
 
-  // PAID — show a clean verified state, no upload UI needed
+  // PAID — show verified state with the submitted proof thumbnails
   if (currentStatus === 'PAID') {
     return (
-      <div className="flex items-center gap-2 text-green-600 text-sm font-medium">
-        <span>✓</span>
-        <span>Payment verified by landlord</span>
+      <div className="space-y-3">
+        <div className="flex items-center gap-2 text-green-600 text-sm font-medium">
+          <span>✓</span>
+          <span>Payment verified by landlord</span>
+        </div>
+        {existingProofs.length > 0 && (
+          <div className="flex flex-wrap gap-2">
+            {existingProofs.map((proof) => (
+              <a
+                key={proof.id}
+                href={proof.imageUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="relative block w-16 h-16 rounded-lg overflow-hidden border border-gray-200 hover:opacity-80 transition-opacity"
+              >
+                <Image
+                  src={proof.imageUrl}
+                  alt="Payment proof"
+                  fill
+                  className="object-cover"
+                  sizes="64px"
+                />
+              </a>
+            ))}
+          </div>
+        )}
       </div>
     );
   }

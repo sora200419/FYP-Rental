@@ -153,9 +153,9 @@ export default function AgreementEditor({
           <span className="text-xs text-purple-500 font-medium">optional</span>
         </div>
         <p className="text-xs text-purple-700 mb-3">
-          Describe one specific change in plain English. The AI will apply it to
-          your current draft and show you a suggestion — you decide whether to
-          accept it.
+          Describe one specific change in plain English. The AI will show you a
+          suggestion — review it, then click <strong>Apply to Editor</strong> to
+          accept, or <strong>Discard</strong> to ignore it.
         </p>
 
         <div className="flex gap-2 mb-3">
@@ -183,7 +183,7 @@ export default function AgreementEditor({
                 Working…
               </span>
             ) : (
-              'Apply AI'
+              'Get Suggestion'
             )}
           </button>
         </div>

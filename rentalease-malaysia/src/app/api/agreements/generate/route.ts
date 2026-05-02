@@ -35,13 +35,16 @@ export async function POST(request: NextRequest) {
           },
         },
         tenant: {
-          // Phase 13: also select icNumber for injection into agreement
           select: {
             name: true,
             email: true,
             phone: true,
             icNumber: true,
           },
+        },
+        coTenants: {
+          select: { name: true, icNumber: true },
+          orderBy: { createdAt: 'asc' },
         },
       },
     });
@@ -124,6 +127,7 @@ export async function POST(request: NextRequest) {
       tenant: tenancy.tenant,
       landlord,
       negotiationContext: existingAgreement?.negotiationNotes ?? null,
+      coTenants: tenancy.coTenants,
     }, preferences);
 
     // Second call: translate summary and red flags into Malay.

@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import { isMockGeminiEnabled } from '@/lib/mockGemini';
 import { z } from 'zod';
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
@@ -57,6 +58,15 @@ export async function POST(
   try {
     const body = await request.json();
     const { currentContent, instruction } = bodySchema.parse(body);
+
+    // Mock mode — simulate the edit without calling the real API
+    if (isMockGeminiEnabled()) {
+      await new Promise((resolve) => setTimeout(resolve, 600));
+      const mockSuggestion =
+        currentContent +
+        `\n\n[MOCK AI SUGGESTION] Applied instruction: "${instruction}"\n(This is a simulated suggestion. Set USE_MOCK_GEMINI=false to use real Gemini.)`;
+      return NextResponse.json({ suggestedContent: mockSuggestion }, { status: 200 });
+    }
 
     const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
 

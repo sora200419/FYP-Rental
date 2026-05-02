@@ -68,16 +68,29 @@ export default function TopNav() {
     { href: '/dashboard/landlord', label: 'Dashboard' },
     { href: '/dashboard/landlord/properties', label: 'Properties' },
     { href: '/dashboard/landlord/tenancies', label: 'Tenancies' },
+    { href: '/dashboard/landlord/payments', label: 'Payments' },
     { href: '/dashboard/landlord/messages', label: 'Messages' },
   ];
 
   const tenantLinks = [
     { href: '/dashboard/tenant', label: 'Dashboard' },
     { href: '/dashboard/tenant/tenancy', label: 'My Tenancy' },
+    { href: '/dashboard/tenant/payments', label: 'Payments' },
     { href: '/dashboard/tenant/messages', label: 'Messages' },
   ];
 
-  const navLinks = role === 'LANDLORD' ? landlordLinks : tenantLinks;
+  const adminLinks = [
+    { href: '/dashboard/admin', label: 'Dashboard' },
+    { href: '/dashboard/admin/verify', label: 'KYC Verification' },
+    { href: '/dashboard/admin/properties', label: 'Property Verification' },
+  ];
+
+  const navLinks =
+    role === 'LANDLORD'
+      ? landlordLinks
+      : role === 'ADMIN'
+        ? adminLinks
+        : tenantLinks;
 
   const handleSignOut = async () => {
     await signOut({ redirect: false });
@@ -96,7 +109,9 @@ export default function TopNav() {
               href={
                 role === 'LANDLORD'
                   ? '/dashboard/landlord'
-                  : '/dashboard/tenant'
+                  : role === 'ADMIN'
+                    ? '/dashboard/admin'
+                    : '/dashboard/tenant'
               }
               className="text-xl font-bold text-blue-600 flex-shrink-0"
             >
@@ -126,10 +141,10 @@ export default function TopNav() {
 
           {/* Right side — language toggle, messages badge, notification bell, user menu */}
           <div className="flex items-center gap-2">
-            {/* Language toggle pill */}
+            {/* Language toggle pill — not shown for admin */}
             <button
               onClick={toggleLanguage}
-              className="hidden sm:flex items-center gap-0 border border-gray-200 rounded-lg overflow-hidden text-xs font-semibold"
+              className={`hidden sm:flex items-center gap-0 border border-gray-200 rounded-lg overflow-hidden text-xs font-semibold ${role === 'ADMIN' ? '!hidden' : ''}`}
               aria-label="Toggle language"
               title={
                 language === 'en'
@@ -148,8 +163,8 @@ export default function TopNav() {
                 MS
               </span>
             </button>
-            {/* Messages link with unread badge */}
-            <Link
+            {/* Messages link with unread badge — not shown for ADMIN */}
+            {role !== 'ADMIN' && <Link
               href={
                 role === 'LANDLORD'
                   ? '/dashboard/landlord/messages'
@@ -184,10 +199,10 @@ export default function TopNav() {
                     : unreadCounts.messageCount}
                 </span>
               )}
-            </Link>
+            </Link>}
 
-            {/* Notification bell — Phase B addition */}
-            <div className="relative">
+            {/* Notification bell — not shown for ADMIN */}
+            {role !== 'ADMIN' && <div className="relative">
               <NotificationBell
                 count={unreadCounts.notificationCount}
                 onClick={() => setNotificationOpen((v) => !v)}
@@ -197,7 +212,7 @@ export default function TopNav() {
                 onClose={() => setNotificationOpen(false)}
                 onCountChanged={fetchUnreadCounts}
               />
-            </div>
+            </div>}
 
             {/* User menu */}
             <div className="relative">
@@ -344,19 +359,21 @@ export default function TopNav() {
                 </Link>
               );
             })}
-            {/* Language toggle in mobile menu */}
-            <button
-              onClick={() => {
-                setMobileMenuOpen(false);
-                toggleLanguage();
-              }}
-              className="block w-full text-left px-4 py-2.5 text-sm font-medium text-gray-600 hover:bg-gray-50 rounded-lg mx-1 transition-colors"
-            >
-              🌐{' '}
-              {language === 'en'
-                ? 'Switch to Bahasa Malaysia'
-                : 'Switch to English'}
-            </button>
+            {/* Language toggle in mobile menu — not shown for admin */}
+            {role !== 'ADMIN' && (
+              <button
+                onClick={() => {
+                  setMobileMenuOpen(false);
+                  toggleLanguage();
+                }}
+                className="block w-full text-left px-4 py-2.5 text-sm font-medium text-gray-600 hover:bg-gray-50 rounded-lg mx-1 transition-colors"
+              >
+                🌐{' '}
+                {language === 'en'
+                  ? 'Switch to Bahasa Malaysia'
+                  : 'Switch to English'}
+              </button>
+            )}
           </div>
         )}
       </div>

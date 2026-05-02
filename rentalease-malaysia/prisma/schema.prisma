@@ -15,8 +15,9 @@ model User {
   password  String // bcrypt hash, never plaintext
   role      Role     @default(TENANT)
   phone     String?
-  icNumber  String? // Malaysian IC — sensitive, PDPA 2010 protected
-  language  String   @default("en") // "en" or "ms" — bilingual preference
+  icNumber   String?  @unique // Malaysian IC — sensitive, PDPA 2010 protected
+  isVerified Boolean  @default(false) // set to true by admin after IC review
+  language   String   @default("en") // "en" or "ms" — bilingual preference
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -29,6 +30,9 @@ model User {
   acknowledgedReports     ConditionReport[] @relation("AcknowledgedReports")
   uploadedConditionPhotos ConditionPhoto[]  @relation("UploadedConditionPhotos")
   uploadedPropertyPhotos  PropertyPhoto[]   @relation("UploadedPropertyPhotos")
+  uploadedDepositProofs   DepositProof[]    @relation("UploadedDepositProofs")
+
+  kycRejectedReason String? @db.Text // set by admin on KYC rejection; cleared on approval
 
   notifications   Notification[]
   tenantDocuments TenantDocument[]
@@ -37,6 +41,7 @@ model User {
 enum Role {
   LANDLORD
   TENANT
+  ADMIN
 }
 
 // ─── PROPERTY ────────────────────────────────────────────────────────────────
@@ -51,7 +56,9 @@ model Property {
   postcode    String
   type        String // "Apartment", "Terrace House", "Condo", etc.
   description String?
-  createdAt   DateTime @default(now())
+  isVerified      Boolean  @default(false) // set to true by admin after ownership review
+  rejectedReason  String?  @db.Text       // set by admin on rejection; cleared on approval
+  createdAt       DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
   landlordId String
@@ -169,12 +176,32 @@ model Tenancy {
   tenantId String
   tenant   User   @relation("TenantTenancies", fields: [tenantId], references: [id])
 
-  agreement          Agreement?
-  rentPayments       RentPayment[]
-  messages           Message[]
-  conditionReports   ConditionReport[]
+  // Deposit payment tracking
+  depositStatus          String  @default("PENDING") // PENDING | UNDER_REVIEW | PAID | REJECTED
+  depositRejectionReason String? @db.Text
+
+  agreement            Agreement?
+  rentPayments         RentPayment[]
+  messages             Message[]
+  conditionReports     ConditionReport[]
   agreementPreferences AgreementPreferences?
-  depositRefund      DepositRefund?
+  depositRefund        DepositRefund?
+  depositProofs        DepositProof[]
+  coTenants            CoTenant[]
+}
+
+// ─── CO-TENANT ────────────────────────────────────────────────────────────────
+// Additional named occupants on a tenancy. The primary tenant holds the system
+// account and signs the agreement; co-tenants are listed by name/IC only.
+model CoTenant {
+  id        String   @id @default(cuid())
+  name      String
+  icNumber  String?
+  phone     String?
+  createdAt DateTime @default(now())
+
+  tenancyId String
+  tenancy   Tenancy @relation(fields: [tenancyId], references: [id], onDelete: Cascade)
 }
 
 enum TenancyStatus {
@@ -359,6 +386,13 @@ enum NotificationType {
   TENANCY_ENDING_SOON
   MUTUAL_TERMINATION_PROPOSED
   MUTUAL_TERMINATION_RESPONDED
+  DEPOSIT_PROOF_UPLOADED
+  DEPOSIT_PROOF_APPROVED
+  DEPOSIT_PROOF_REJECTED
+  ACCOUNT_VERIFIED
+  ACCOUNT_KYC_REJECTED
+  PROPERTY_VERIFICATION_APPROVED
+  PROPERTY_VERIFICATION_REJECTED
 }
 
 // ─── AGREEMENT PREFERENCES (WIZARD) ──────────────────────────────────────────
@@ -451,6 +485,21 @@ model TenantDocument {
 enum DocumentType {
   IC_COPY
   INCOME_PROOF
+}
+
+// ─── DEPOSIT PROOF ───────────────────────────────────────────────────────────
+// Photo proof of deposit payment uploaded by tenant. Landlord approves/rejects.
+model DepositProof {
+  id        String   @id @default(cuid())
+  imageUrl  String
+  publicId  String
+  createdAt DateTime @default(now())
+
+  tenancyId String
+  tenancy   Tenancy @relation(fields: [tenancyId], references: [id])
+
+  uploadedById String
+  uploadedBy   User   @relation("UploadedDepositProofs", fields: [uploadedById], references: [id])
 }
 
 // ─── DEPOSIT REFUND ───────────────────────────────────────────────────────────

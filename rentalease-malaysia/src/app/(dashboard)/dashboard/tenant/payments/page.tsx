@@ -3,6 +3,7 @@ import { authOptions } from '@/lib/auth';
 import { redirect } from 'next/navigation';
 import { prisma } from '@/lib/prisma';
 import PaymentProofUploader from '@/components/ui/PaymentProofUploader';
+import DepositProofUploader from '@/components/ui/DepositProofUploader';
 
 const STATUS_LABEL: Record<string, string> = {
   PENDING: 'Pending',
@@ -28,8 +29,9 @@ export default async function TenantPaymentsPage() {
   const tenancy = await prisma.tenancy.findFirst({
     where: {
       tenantId: session.user.id,
-      status: 'ACTIVE',
+      status: { in: ['PENDING', 'ACTIVE'] },
     },
+    orderBy: { createdAt: 'desc' },
     include: {
       room: {
         include: {
@@ -44,6 +46,10 @@ export default async function TenantPaymentsPage() {
             select: { id: true, imageUrl: true, isReadByTenant: true },
           },
         },
+      },
+      depositProofs: {
+        orderBy: { createdAt: 'desc' },
+        select: { id: true, imageUrl: true },
       },
     },
   });
@@ -97,6 +103,58 @@ export default async function TenantPaymentsPage() {
         </div>
       </div>
 
+      {/* ── Deposit card — pinned at top when tenancy exists ───────────────── */}
+      {tenancy && (
+        <div
+          className={`bg-white rounded-xl border p-5 mb-6 ${
+            tenancy.depositStatus === 'UNDER_REVIEW'
+              ? 'border-amber-300'
+              : tenancy.depositStatus === 'PAID'
+                ? 'border-green-200'
+                : tenancy.depositStatus === 'REJECTED'
+                  ? 'border-red-300'
+                  : 'border-gray-200'
+          }`}
+        >
+          <div className="flex items-center justify-between mb-3">
+            <div>
+              <p className="text-sm font-semibold text-gray-900">
+                Security Deposit
+              </p>
+              <p className="text-xs text-gray-400 mt-0.5">
+                {formatRM(tenancy.depositAmount)} · one-time payment
+              </p>
+            </div>
+            <span
+              className={`text-xs font-semibold px-2.5 py-1 rounded-full ${
+                tenancy.depositStatus === 'PAID'
+                  ? 'bg-green-100 text-green-700'
+                  : tenancy.depositStatus === 'UNDER_REVIEW'
+                    ? 'bg-amber-100 text-amber-700'
+                    : tenancy.depositStatus === 'REJECTED'
+                      ? 'bg-red-100 text-red-600'
+                      : 'bg-gray-100 text-gray-500'
+              }`}
+            >
+              {tenancy.depositStatus === 'UNDER_REVIEW'
+                ? 'Under Review'
+                : tenancy.depositStatus === 'PAID'
+                  ? 'Confirmed'
+                  : tenancy.depositStatus === 'REJECTED'
+                    ? 'Rejected'
+                    : 'Pending'}
+            </span>
+          </div>
+          <DepositProofUploader
+            tenancyId={tenancy.id}
+            depositStatus={tenancy.depositStatus}
+            depositRejectionReason={tenancy.depositRejectionReason}
+            existingProofs={tenancy.depositProofs}
+            depositAmount={formatRM(tenancy.depositAmount)}
+          />
+        </div>
+      )}
+
       {/* No active tenancy */}
       {!tenancy && (
         <div className="text-center py-20 bg-white rounded-xl border border-gray-200">
@@ -111,11 +169,14 @@ export default async function TenantPaymentsPage() {
       )}
 
       {tenancy && tenancy.rentPayments.length === 0 && (
-        <div className="text-center py-20 bg-white rounded-xl border border-gray-200">
-          <p className="text-4xl mb-4">💳</p>
-          <p className="text-gray-700 font-semibold text-lg">No payments yet</p>
+        <div className="text-center py-12 bg-white rounded-xl border border-gray-200">
+          <p className="text-4xl mb-4">📅</p>
+          <p className="text-gray-700 font-semibold text-lg">
+            No rent schedule yet
+          </p>
           <p className="text-gray-400 text-sm mt-1">
-            Your payment schedule is being prepared.
+            Your monthly payment schedule will appear here once your agreement
+            is signed.
           </p>
         </div>
       )}
@@ -207,18 +268,6 @@ export default async function TenantPaymentsPage() {
                         : (STATUS_LABEL[payment.status] ?? payment.status)}
                     </span>
                   </div>
-
-                  {/* Rejection reason if the landlord rejected the proof */}
-                  {payment.status === 'PENDING' && payment.rejectionReason && (
-                    <div className="bg-red-50 border border-red-200 rounded-lg px-4 py-3 mb-3">
-                      <p className="text-red-800 text-sm font-semibold mb-1">
-                        Proof rejected — please re-upload
-                      </p>
-                      <p className="text-red-600 text-xs">
-                        {payment.rejectionReason}
-                      </p>
-                    </div>
-                  )}
 
                   {/* Approval notification banner */}
                   {payment.status === 'PAID' && hasUnread && (

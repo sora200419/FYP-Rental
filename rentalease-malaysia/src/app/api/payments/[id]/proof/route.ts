@@ -27,6 +27,7 @@ export async function POST(
   const payment = await prisma.rentPayment.findUnique({
     where: { id: paymentId },
     include: {
+      proofs: { select: { id: true, publicId: true } },
       tenancy: {
         include: {
           room: {
@@ -51,6 +52,18 @@ export async function POST(
       { error: 'This payment is already settled' },
       { status: 409 },
     );
+  }
+
+  // If this is a re-upload after rejection, delete the old rejected proofs first
+  if (payment.status === 'PENDING' && payment.rejectionReason && payment.proofs.length > 0) {
+    await Promise.allSettled(
+      payment.proofs.map((p) =>
+        cloudinary.uploader.destroy(p.publicId).catch(() => null),
+      ),
+    );
+    await prisma.paymentProof.deleteMany({
+      where: { paymentId },
+    });
   }
 
   // Parse the multipart form data to get the image file
@@ -96,7 +109,7 @@ export async function POST(
     'PAYMENT_PROOF_UPLOADED',
     'Payment proof uploaded',
     `${payment.tenancy.tenant.name} uploaded a payment proof for ${payment.tenancy.room.property.address}. Please verify it.`,
-    `/dashboard/landlord/payments/${paymentId}`,
+    `/dashboard/landlord/payments`,
   );
 
   return NextResponse.json({ ok: true, imageUrl: uploadResult.secure_url });

@@ -28,9 +28,9 @@ export default function TenantAgreementActions({ agreementId }: Props) {
 
     try {
       const response = await fetch(`/api/agreements/${agreementId}/respond`, {
-        method: 'POST',
+        method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'accept', acknowledged: true }),
+        body: JSON.stringify({ action: 'SIGN' }),
       });
 
       const result = await response.json();
@@ -40,7 +40,7 @@ export default function TenantAgreementActions({ agreementId }: Props) {
         return;
       }
 
-      setSuccess(result.message);
+      setSuccess('Agreement signed successfully. Your tenancy is now active.');
       router.refresh();
     } catch {
       setError('Network error. Please try again.');
@@ -55,9 +55,9 @@ export default function TenantAgreementActions({ agreementId }: Props) {
 
     try {
       const response = await fetch(`/api/agreements/${agreementId}/respond`, {
-        method: 'POST',
+        method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'request_changes', notes }),
+        body: JSON.stringify({ action: 'REQUEST_CHANGES', negotiationNotes: notes }),
       });
 
       const result = await response.json();
@@ -67,7 +67,7 @@ export default function TenantAgreementActions({ agreementId }: Props) {
         return;
       }
 
-      setSuccess(result.message);
+      setSuccess('Your change request has been sent to the landlord.');
       router.refresh();
     } catch {
       setError('Network error. Please try again.');

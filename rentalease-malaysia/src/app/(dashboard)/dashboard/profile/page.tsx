@@ -18,18 +18,17 @@ export default async function ProfilePage() {
       email: true,
       phone: true,
       icNumber: true,
+      isVerified: true,
       role: true,
       createdAt: true,
     },
   });
 
-  const tenantDocuments =
-    session.user.role === 'TENANT'
-      ? await prisma.tenantDocument.findMany({
-          where: { userId: session.user.id },
-          orderBy: { uploadedAt: 'desc' },
-        })
-      : [];
+  // Both landlords and tenants need IC document upload for KYC
+  const tenantDocuments = await prisma.tenantDocument.findMany({
+    where: { userId: session.user.id },
+    orderBy: { uploadedAt: 'desc' },
+  });
 
   if (!user) redirect('/login');
 
@@ -54,6 +53,7 @@ export default async function ProfilePage() {
     });
 
   const hasIc = !!user.icNumber;
+  const isVerified = user.isVerified;
 
   return (
     <div className="max-w-2xl">
@@ -111,13 +111,17 @@ export default async function ProfilePage() {
             </p>
           </div>
           <div>
-            <p className="text-gray-400">IC Status</p>
+            <p className="text-gray-400">Verification</p>
             <p
               className={`font-medium mt-0.5 ${
-                hasIc ? 'text-green-600' : 'text-amber-600'
+                isVerified
+                  ? 'text-green-600'
+                  : hasIc
+                    ? 'text-blue-600'
+                    : 'text-amber-600'
               }`}
             >
-              {hasIc ? '✓ Verified' : 'Not provided'}
+              {isVerified ? '✓ Verified' : hasIc ? 'Pending Review' : 'Not provided'}
             </p>
           </div>
         </div>
@@ -134,23 +138,23 @@ export default async function ProfilePage() {
         />
       </div>
 
-      {/* Tenant identity documents — only shown to tenants */}
-      {user.role === 'TENANT' && (
-        <div className="bg-white rounded-xl border border-gray-200 p-6">
-          <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">
-            Identity Documents
-          </h2>
-          <p className="text-xs text-gray-400 mb-4">
-            Upload your IC copy and income proof. Landlords can view these only during an active tenancy.
-          </p>
-          <TenantDocumentUploader
-            initialDocuments={tenantDocuments.map((d) => ({
-              ...d,
-              uploadedAt: d.uploadedAt.toISOString(),
-            }))}
-          />
-        </div>
-      )}
+      {/* Identity documents — shown to both landlords and tenants for KYC */}
+      <div className="bg-white rounded-xl border border-gray-200 p-6">
+        <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">
+          Identity Documents
+        </h2>
+        <p className="text-xs text-gray-400 mb-4">
+          {user.role === 'LANDLORD'
+            ? 'Upload your IC copy so an admin can verify your identity before you can list properties.'
+            : 'Upload your IC copy and income proof. Landlords can view these only during an active tenancy.'}
+        </p>
+        <TenantDocumentUploader
+          initialDocuments={tenantDocuments.map((d) => ({
+            ...d,
+            uploadedAt: d.uploadedAt.toISOString(),
+          }))}
+        />
+      </div>
     </div>
   );
 }

@@ -1,12 +1,14 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { PasswordInput } from '@/components/ui/PasswordInput';
+
+const IC_REGEX = /^\d{6}-?\d{2}-?\d{4}$/;
 
 const registerSchema = z
   .object({
@@ -16,6 +18,10 @@ const registerSchema = z
     confirmPassword: z.string().min(1, 'Please confirm your password'),
     role: z.enum(['LANDLORD', 'TENANT']),
     phone: z.string().optional(),
+    icNumber: z
+      .string()
+      .min(1, 'IC number is required')
+      .regex(IC_REGEX, 'Invalid format — e.g. 900101-14-5678'),
   })
   .refine((data) => data.password === data.confirmPassword, {
     message: 'Passwords do not match',
@@ -28,6 +34,9 @@ export default function RegisterPage() {
   const router = useRouter();
   const [serverError, setServerError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [icFile, setIcFile] = useState<File | null>(null);
+  const [icPreview, setIcPreview] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const {
     register,
@@ -38,17 +47,37 @@ export default function RegisterPage() {
     defaultValues: { role: 'TENANT' },
   });
 
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0] ?? null;
+    setIcFile(file);
+    if (file && file.type.startsWith('image/')) {
+      setIcPreview(URL.createObjectURL(file));
+    } else {
+      setIcPreview(null);
+    }
+  };
+
   const onSubmit = async (data: RegisterFormData) => {
+    if (!icFile) {
+      setServerError('Please upload a photo of your IC.');
+      return;
+    }
+
     setIsLoading(true);
     setServerError(null);
 
     try {
-      const { confirmPassword: _, ...payload } = data;
+      const { confirmPassword: _, ...fields } = data;
+
+      const formData = new FormData();
+      Object.entries(fields).forEach(([key, value]) => {
+        if (value !== undefined && value !== '') formData.append(key, value);
+      });
+      formData.append('icPhoto', icFile);
 
       const response = await fetch('/api/register', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
+        body: formData,
       });
 
       const result = await response.json();
@@ -59,8 +88,7 @@ export default function RegisterPage() {
       }
 
       router.push('/login?registered=true');
-    } catch (error) {
-      console.error('Registration fetch error:', error);
+    } catch {
       setServerError('Network error. Please try again.');
     } finally {
       setIsLoading(false);
@@ -76,38 +104,31 @@ export default function RegisterPage() {
         </div>
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
+          {/* Full Name */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Full Name
-            </label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
             <input
               {...register('name')}
               type="text"
               placeholder="e.g. Ahmad bin Abdullah"
               className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
-            {errors.name && (
-              <p className="text-red-500 text-xs mt-1">{errors.name.message}</p>
-            )}
+            {errors.name && <p className="text-red-500 text-xs mt-1">{errors.name.message}</p>}
           </div>
 
+          {/* Email */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Email Address
-            </label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Email Address</label>
             <input
               {...register('email')}
               type="email"
               placeholder="you@example.com"
               className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
-            {errors.email && (
-              <p className="text-red-500 text-xs mt-1">
-                {errors.email.message}
-              </p>
-            )}
+            {errors.email && <p className="text-red-500 text-xs mt-1">{errors.email.message}</p>}
           </div>
 
+          {/* Phone */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Phone Number <span className="text-gray-400">(optional)</span>
@@ -120,14 +141,69 @@ export default function RegisterPage() {
             />
           </div>
 
-          {/* Two independent PasswordInput components — each owns its own toggle state */}
+          {/* IC Number */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Malaysian IC Number <span className="text-red-500">*</span>
+            </label>
+            <input
+              {...register('icNumber')}
+              type="text"
+              placeholder="e.g. 900101-14-5678"
+              maxLength={14}
+              className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+            {errors.icNumber ? (
+              <p className="text-red-500 text-xs mt-1">{errors.icNumber.message}</p>
+            ) : (
+              <p className="text-gray-400 text-xs mt-1">12 digits, dashes optional (YYMMDD-SS-####)</p>
+            )}
+          </div>
+
+          {/* IC Photo Upload */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              IC Photo <span className="text-red-500">*</span>
+            </label>
+            <p className="text-xs text-gray-400 mb-2">
+              Upload a clear photo or scan of your MyKad — required for identity verification.
+            </p>
+            <div
+              onClick={() => fileInputRef.current?.click()}
+              className={`border-2 border-dashed rounded-lg p-4 text-center cursor-pointer transition-colors ${
+                icFile ? 'border-green-400 bg-green-50' : 'border-gray-300 hover:border-blue-400 hover:bg-blue-50'
+              }`}
+            >
+              {icPreview ? (
+                <img src={icPreview} alt="IC preview" className="max-h-28 mx-auto rounded object-contain" />
+              ) : icFile ? (
+                <p className="text-sm text-green-700 font-medium">{icFile.name}</p>
+              ) : (
+                <div>
+                  <p className="text-sm text-gray-500">Click to upload IC photo</p>
+                  <p className="text-xs text-gray-400 mt-1">JPG, PNG, WebP, or PDF · max 10 MB</p>
+                </div>
+              )}
+            </div>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/jpeg,image/png,image/webp,application/pdf"
+              onChange={handleFileChange}
+              className="hidden"
+            />
+            {!icFile && serverError?.includes('IC') && (
+              <p className="text-red-500 text-xs mt-1">Please upload your IC photo.</p>
+            )}
+          </div>
+
+          {/* Password */}
           <PasswordInput
             registration={register('password')}
             label="Password"
             placeholder="At least 8 characters"
             error={errors.password?.message}
           />
-
           <PasswordInput
             registration={register('confirmPassword')}
             label="Confirm Password"
@@ -135,31 +211,20 @@ export default function RegisterPage() {
             error={errors.confirmPassword?.message}
           />
 
+          {/* Role */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              I am a...
-            </label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">I am a...</label>
             <div className="grid grid-cols-2 gap-3">
               <label className="relative flex cursor-pointer">
-                <input
-                  {...register('role')}
-                  type="radio"
-                  value="TENANT"
-                  className="sr-only peer"
-                />
+                <input {...register('role')} type="radio" value="TENANT" className="sr-only peer" />
                 <div className="w-full text-center py-3 rounded-lg border-2 border-gray-200 text-sm font-medium text-gray-600 peer-checked:border-blue-500 peer-checked:text-blue-600 peer-checked:bg-blue-50 transition-all">
-                  🏠 Tenant
+                  Tenant
                 </div>
               </label>
               <label className="relative flex cursor-pointer">
-                <input
-                  {...register('role')}
-                  type="radio"
-                  value="LANDLORD"
-                  className="sr-only peer"
-                />
+                <input {...register('role')} type="radio" value="LANDLORD" className="sr-only peer" />
                 <div className="w-full text-center py-3 rounded-lg border-2 border-gray-200 text-sm font-medium text-gray-600 peer-checked:border-blue-500 peer-checked:text-blue-600 peer-checked:bg-blue-50 transition-all">
-                  🔑 Landlord
+                  Landlord
                 </div>
               </label>
             </div>
@@ -176,16 +241,13 @@ export default function RegisterPage() {
             disabled={isLoading}
             className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 text-white font-semibold py-3 rounded-lg transition-colors text-sm"
           >
-            {isLoading ? 'Creating account...' : 'Create Account'}
+            {isLoading ? 'Creating account…' : 'Create Account'}
           </button>
         </form>
 
         <p className="text-center text-sm text-gray-500 mt-6">
           Already have an account?{' '}
-          <Link
-            href="/login"
-            className="text-blue-600 hover:underline font-medium"
-          >
+          <Link href="/login" className="text-blue-600 hover:underline font-medium">
             Sign in
           </Link>
         </p>

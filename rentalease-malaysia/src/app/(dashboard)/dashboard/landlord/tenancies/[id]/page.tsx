@@ -7,6 +7,8 @@ import GenerateAgreementButton from '@/components/ui/GenerateAgreementButton';
 import EditTenancyTerms from './EditTenancyTerms';
 import { EndOfTenancyBanner } from '@/components/ui/EndOfTenancyBanner';
 import TenantDocumentsCard from '@/components/ui/TenantDocumentsCard';
+import DepositVerificationCard from '@/components/ui/DepositVerificationCard';
+import CoTenantManager from '@/components/ui/CoTenantManager';
 
 const STATUS_STYLES: Record<string, string> = {
   INVITED: 'bg-blue-100 text-blue-700',
@@ -61,6 +63,11 @@ export default async function TenancyDetailPage({
       depositRefund: {
         select: { id: true, status: true, refundAmount: true },
       },
+      depositProofs: {
+        orderBy: { createdAt: 'desc' },
+        select: { id: true, imageUrl: true, createdAt: true },
+      },
+      coTenants: { orderBy: { createdAt: 'asc' } },
     },
   });
 
@@ -220,6 +227,13 @@ export default async function TenancyDetailPage({
         {/* Tenant identity documents — client component fetches from API */}
         <TenantDocumentsCard tenancyId={id} tenantName={tenancy.tenant.name} />
 
+        {/* Additional occupants — editable until tenancy ends */}
+        <CoTenantManager
+          tenancyId={id}
+          initialCoTenants={tenancy.coTenants}
+          readonly={tenancy.status === 'EXPIRED' || tenancy.status === 'TERMINATED'}
+        />
+
         {/* Tenancy terms card */}
         <div className="bg-white rounded-xl border border-gray-200 p-6">
           <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-4">
@@ -275,6 +289,22 @@ export default async function TenancyDetailPage({
               />
             )}
         </div>
+
+        {/* Deposit verification card — PENDING and ACTIVE tenancies */}
+        {(tenancy.status === 'PENDING' || tenancy.status === 'ACTIVE') && (
+          <div className="bg-white rounded-xl border border-gray-200 p-6">
+            <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-2">
+              Security Deposit
+            </h2>
+            <DepositVerificationCard
+              tenancyId={tenancy.id}
+              depositAmount={formatRM(tenancy.depositAmount)}
+              depositStatus={tenancy.depositStatus}
+              proofs={tenancy.depositProofs}
+              rejectionReason={tenancy.depositRejectionReason}
+            />
+          </div>
+        )}
 
         {/* Property condition card */}
         <div className="bg-white rounded-xl border border-gray-200 p-6">

@@ -22,6 +22,18 @@ export async function POST(request: NextRequest) {
   if (session.user.role !== 'LANDLORD')
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
+  // KYC gate — landlord must be verified before listing properties
+  const currentUser = await prisma.user.findUnique({
+    where: { id: session.user.id },
+    select: { isVerified: true },
+  });
+  if (!currentUser?.isVerified) {
+    return NextResponse.json(
+      { error: 'Your account must be verified before you can list properties. Please upload your IC on your Profile page and wait for admin approval.' },
+      { status: 403 },
+    );
+  }
+
   try {
     const body = await request.json();
     const data = propertySchema.parse(body);

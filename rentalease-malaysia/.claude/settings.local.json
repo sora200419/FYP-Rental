@@ -3,7 +3,12 @@
     "allow": [
       "Bash(npx prisma *)",
       "Bash(npx tsc *)",
-      "Bash(npm run *)"
+      "Bash(npm run *)",
+      "Bash(node -e ' *)",
+      "Bash(gh pr *)",
+      "PowerShell(gh pr *)",
+      "PowerShell(git diff *)",
+      "Bash(npx tsx *)"
     ]
   }
 }

@@ -6,6 +6,8 @@ import { prisma } from '@/lib/prisma';
 import AgreementViewer from '@/components/ui/AgreementViewer';
 import TenantAgreementActions from '@/components/ui/TenantAgreementActions';
 import TenantDepositReview from '@/components/ui/TenantDepositReview';
+import TenantInvitationActions from '@/components/ui/TenantInvitationActions';
+import DepositProofUploader from '@/components/ui/DepositProofUploader';
 
 export default async function TenantTenancyPage() {
   const session = await getServerSession(authOptions);
@@ -14,7 +16,7 @@ export default async function TenantTenancyPage() {
   const tenancy = await prisma.tenancy.findFirst({
     where: {
       tenantId: session.user.id,
-      status: { in: ['PENDING', 'ACTIVE', 'EXPIRED', 'TERMINATED'] },
+      status: { in: ['INVITED', 'PENDING', 'ACTIVE', 'EXPIRED', 'TERMINATED'] },
     },
     orderBy: { createdAt: 'desc' },
     include: {
@@ -28,6 +30,10 @@ export default async function TenantTenancyPage() {
         },
       },
       agreement: true, // full include — contentHash, signedAt, signedByIp all present
+      depositProofs: {
+        orderBy: { createdAt: 'desc' },
+        select: { id: true, imageUrl: true },
+      },
       depositRefund: {
         include: { deductions: { orderBy: { createdAt: 'asc' } } },
       },
@@ -166,8 +172,29 @@ export default async function TenantTenancyPage() {
           </div>
         </div>
 
-        {/* ── Case 2: No agreement generated yet ────────────────────────────── */}
-        {!tenancy.agreement && (
+        {/* ── Deposit payment section — shown for PENDING and ACTIVE tenancies ── */}
+        {(tenancy.status === 'PENDING' || tenancy.status === 'ACTIVE') && (
+          <div className="bg-white rounded-xl border border-gray-200 p-6">
+            <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-4">
+              Security Deposit
+            </h2>
+            <DepositProofUploader
+              tenancyId={tenancy.id}
+              depositStatus={tenancy.depositStatus}
+              depositRejectionReason={tenancy.depositRejectionReason}
+              existingProofs={tenancy.depositProofs}
+              depositAmount={formatRM(tenancy.depositAmount)}
+            />
+          </div>
+        )}
+
+        {/* ── Case 2: INVITED — waiting for tenant to accept or decline ──────── */}
+        {tenancy.status === 'INVITED' && (
+          <TenantInvitationActions tenancyId={tenancy.id} />
+        )}
+
+        {/* ── Case 3: No agreement generated yet ────────────────────────────── */}
+        {tenancy.status !== 'INVITED' && !tenancy.agreement && (
           <div className="text-center py-12 bg-white rounded-xl border border-gray-200">
             <p className="text-4xl mb-3">📄</p>
             <p className="text-gray-700 font-semibold">
@@ -180,7 +207,7 @@ export default async function TenantTenancyPage() {
           </div>
         )}
 
-        {/* ── Case 3: DRAFT ──────────────────────────────────────────────────── */}
+        {/* ── Case 4: DRAFT ──────────────────────────────────────────────────── */}
         {tenancy.agreement?.status === 'DRAFT' && (
           <div className="bg-amber-50 border border-amber-200 rounded-xl px-5 py-4">
             <p className="text-amber-800 font-semibold text-sm">

@@ -46,6 +46,7 @@ export interface TenancyForAgreement {
     phone?: string | null;
   };
   negotiationContext?: string | null;
+  coTenants?: { name: string; icNumber?: string | null }[];
 }
 
 export interface GeneratedAgreement {
@@ -187,6 +188,16 @@ export async function generateTenancyAgreement(
     ? `- Tenant IC Number: ${tenancy.tenant.icNumber}`
     : '- Tenant IC Number: Not provided (parties should verify identity separately)';
 
+  // Co-tenants block — only included if there are additional occupants
+  const coTenantsBlock =
+    tenancy.coTenants && tenancy.coTenants.length > 0
+      ? `
+── ADDITIONAL OCCUPANTS ──────────────────────────────────────────────────────
+The following persons will reside in the unit as co-occupants under the primary tenant's tenancy. They are NOT separate parties to this agreement but MUST be named in the Permitted Use and Occupancy clause:
+${tenancy.coTenants.map((ct) => `- ${ct.name} (IC: ${ct.icNumber ?? 'Not provided'})`).join('\n')}
+`
+      : '';
+
   // Optional room details section — only rendered if values are meaningful
   const optionalRoomDetails: string[] = [];
   if (tenancy.room.sizeSqFt)
@@ -240,7 +251,7 @@ The agreement MUST include a dedicated Utilities clause that clearly states whic
 - Tenant Email: ${tenancy.tenant.email}
 - Tenant Phone: ${tenancy.tenant.phone ?? 'Not provided'}
 ${tenantIcLine}
-
+${coTenantsBlock}
 ── FINANCIAL TERMS ───────────────────────────────────────────────────────────
 - Tenancy Start Date: ${startDate}
 - Tenancy End Date: ${endDate}

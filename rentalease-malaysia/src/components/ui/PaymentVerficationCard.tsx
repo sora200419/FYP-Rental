@@ -35,8 +35,11 @@ export default function PaymentVerificationCard({
     setIsLoading(true);
     setError(null);
 
+    const apiAction = action === 'approve' ? 'APPROVE' : 'REJECT';
     const body =
-      action === 'approve' ? { action } : { action, reason: rejectReason };
+      action === 'approve'
+        ? { action: apiAction }
+        : { action: apiAction, rejectionReason: rejectReason };
 
     try {
       const response = await fetch(`/api/payments/${paymentId}/verify`, {

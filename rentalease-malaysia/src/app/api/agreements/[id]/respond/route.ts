@@ -5,6 +5,7 @@ import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { createNotification } from '@/lib/notifications';
 import { sendSystemMessage } from '@/lib/messages';
+import { anchorHashToBlockchain } from '@/lib/blockchain';
 import crypto from 'crypto';
 
 export async function PATCH(
@@ -121,8 +122,15 @@ export async function PATCH(
       'AGREEMENT_SIGNED',
       'Agreement signed — tenancy is now active',
       `${tenantName} signed the tenancy agreement for ${propertyAddress}. The tenancy is now active.`,
-      `/dashboard/landlord/agreements/${agreement.id}`,
+      `/dashboard/landlord/tenancies/${agreement.tenancyId}`,
     );
+
+    // Anchor the content hash to Sepolia — best-effort, must not block signing
+    anchorHashToBlockchain(contentHash)
+      .then((txHash) =>
+        prisma.agreement.update({ where: { id }, data: { txHash } }),
+      )
+      .catch((err) => console.error('[Blockchain] Anchor failed:', err));
 
     return NextResponse.json({ ok: true, status: 'SIGNED' });
   }
@@ -151,7 +159,7 @@ export async function PATCH(
     'AGREEMENT_CHANGES_REQUESTED',
     'Tenant requested agreement changes',
     `${tenantName} requested changes to the agreement for ${propertyAddress}. Please review their notes and regenerate.`,
-    `/dashboard/landlord/agreements/${agreement.id}`,
+    `/dashboard/landlord/tenancies/${agreement.tenancyId}`,
   );
 
   return NextResponse.json({ ok: true, status: 'NEGOTIATING' });
