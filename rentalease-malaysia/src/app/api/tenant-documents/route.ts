@@ -25,8 +25,8 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   const session = await getServerSession(authOptions);
   if (!session) return NextResponse.json({ error: 'Unauthorised' }, { status: 401 });
-  if (session.user.role !== 'TENANT')
-    return NextResponse.json({ error: 'Only tenants can upload identity documents' }, { status: 403 });
+  if (session.user.role === 'ADMIN')
+    return NextResponse.json({ error: 'Admins do not upload identity documents' }, { status: 403 });
 
   try {
     const formData = await request.formData();

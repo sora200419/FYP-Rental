@@ -81,7 +81,7 @@ export default function TenancyInvitationCard({
           className={`font-semibold text-sm ${responded === 'accepted' ? 'text-green-800' : 'text-gray-600'}`}
         >
           {responded === 'accepted'
-            ? '✓ Invitation accepted — your landlord will now prepare the agreement.'
+            ? 'Invitation accepted — your landlord will now prepare the agreement.'
             : 'Invitation declined.'}
         </p>
         <p className="text-xs text-gray-400 mt-1">Refreshing your dashboard…</p>

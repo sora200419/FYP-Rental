@@ -28,9 +28,9 @@ export default function TenantAgreementActions({ agreementId }: Props) {
 
     try {
       const response = await fetch(`/api/agreements/${agreementId}/respond`, {
-        method: 'POST',
+        method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'accept', acknowledged: true }),
+        body: JSON.stringify({ action: 'SIGN' }),
       });
 
       const result = await response.json();
@@ -40,7 +40,7 @@ export default function TenantAgreementActions({ agreementId }: Props) {
         return;
       }
 
-      setSuccess(result.message);
+      setSuccess('Agreement signed successfully. Your tenancy is now active.');
       router.refresh();
     } catch {
       setError('Network error. Please try again.');
@@ -55,9 +55,9 @@ export default function TenantAgreementActions({ agreementId }: Props) {
 
     try {
       const response = await fetch(`/api/agreements/${agreementId}/respond`, {
-        method: 'POST',
+        method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'request_changes', notes }),
+        body: JSON.stringify({ action: 'REQUEST_CHANGES', negotiationNotes: notes }),
       });
 
       const result = await response.json();
@@ -67,7 +67,7 @@ export default function TenantAgreementActions({ agreementId }: Props) {
         return;
       }
 
-      setSuccess(result.message);
+      setSuccess('Your change request has been sent to the landlord.');
       router.refresh();
     } catch {
       setError('Network error. Please try again.');
@@ -80,7 +80,9 @@ export default function TenantAgreementActions({ agreementId }: Props) {
   if (success) {
     return (
       <div className="bg-green-50 border border-green-200 rounded-xl px-5 py-4 flex items-center gap-3">
-        <span className="text-green-500 text-xl">✓</span>
+        <svg className="w-5 h-5 text-green-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+        </svg>
         <p className="text-green-800 font-medium text-sm">{success}</p>
       </div>
     );
@@ -105,13 +107,13 @@ export default function TenantAgreementActions({ agreementId }: Props) {
               onClick={() => setMode('signing_modal')}
               className="flex-1 bg-green-600 hover:bg-green-700 text-white font-semibold py-3 rounded-lg transition-colors text-sm"
             >
-              ✓ Accept Agreement
+              Accept Agreement
             </button>
             <button
               onClick={() => setMode('requesting_changes')}
               className="flex-1 border border-gray-300 text-gray-600 hover:bg-gray-50 font-semibold py-3 rounded-lg transition-colors text-sm"
             >
-              ✏️ Request Changes
+              Request Changes
             </button>
           </div>
         </div>
@@ -125,7 +127,7 @@ export default function TenantAgreementActions({ agreementId }: Props) {
           {/* Legal acknowledgement banner */}
           <div className="bg-amber-50 border border-amber-200 rounded-xl px-5 py-4 mb-5">
             <p className="text-amber-900 font-semibold text-sm mb-1">
-              ⚖️ Before you sign
+              Before you sign
             </p>
             <p className="text-amber-700 text-xs leading-relaxed">
               By accepting this agreement, you confirm that you have read and
@@ -176,7 +178,7 @@ export default function TenantAgreementActions({ agreementId }: Props) {
               {isLoading
                 ? 'Processing…'
                 : acknowledged
-                  ? '✓ Confirm and Sign'
+                  ? 'Confirm and Sign'
                   : 'Tick the checkbox to continue'}
             </button>
           </div>

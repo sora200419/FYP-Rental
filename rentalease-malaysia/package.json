@@ -9,11 +9,16 @@
     "lint": "eslint",
     "postinstall": "prisma generate"
   },
+  "prisma": {
+    "seed": "npx tsx prisma/seed.ts"
+  },
   "dependencies": {
     "@google/generative-ai": "^0.24.1",
     "@hookform/resolvers": "^5.2.2",
     "@prisma/client": "^5.22.0",
     "@react-pdf/renderer": "^4.5.1",
+    "@upstash/ratelimit": "^2.0.8",
+    "@upstash/redis": "^1.38.0",
     "bcryptjs": "^3.0.3",
     "cloudinary": "^2.9.0",
     "ethers": "^6.16.0",
@@ -23,6 +28,7 @@
     "react": "19.2.3",
     "react-dom": "19.2.3",
     "react-hook-form": "^7.71.2",
+    "resend": "^6.12.3",
     "zod": "^4.3.6"
   },
   "devDependencies": {

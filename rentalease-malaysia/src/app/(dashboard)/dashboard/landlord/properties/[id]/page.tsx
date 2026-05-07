@@ -142,7 +142,9 @@ export default async function PropertyDetailPage({
 
           {totalRooms === 0 && (
             <div className="text-center py-6 mb-5">
-              <p className="text-3xl mb-2">🚪</p>
+              <svg className="w-8 h-8 text-gray-300 mb-2 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 11V7a4 4 0 118 0m-4 8v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2z" />
+              </svg>
               <p className="text-gray-600 font-medium text-sm">
                 No rooms added yet
               </p>
@@ -169,7 +171,7 @@ export default async function PropertyDetailPage({
                         {room.label}
                       </p>
                       <p className="text-xs text-gray-400 mt-0.5">
-                        🚿 {room.bathrooms} bathroom
+                        {room.bathrooms} bathroom
                         {room.bathrooms > 1 ? 's' : ''}
                       </p>
                     </div>

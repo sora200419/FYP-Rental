@@ -100,7 +100,7 @@ export default function EditTenancyTerms({
         onClick={() => setIsOpen(true)}
         className="text-xs text-blue-600 hover:text-blue-700 hover:underline font-medium mt-3 inline-block"
       >
-        ✏️ Edit terms
+        Edit terms
       </button>
     );
   }
@@ -189,7 +189,7 @@ export default function EditTenancyTerms({
       {/* Inline explanation of when editing is allowed */}
       <div className="bg-amber-50 border border-amber-200 rounded-lg px-3 py-2.5">
         <p className="text-xs text-amber-700">
-          ⚠️ Terms can only be edited before an agreement is generated. Once you
+          Terms can only be edited before an agreement is generated. Once you
           click &ldquo;Generate Agreement&rdquo;, these values will be locked
           into the agreement text.
         </p>

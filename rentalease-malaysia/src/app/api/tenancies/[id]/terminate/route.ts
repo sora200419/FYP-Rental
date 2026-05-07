@@ -25,7 +25,7 @@ export async function POST(
   const tenancy = await prisma.tenancy.findFirst({
     where: {
       id,
-      status: 'ACTIVE',
+      status: { in: ['ACTIVE', 'EXPIRED'] },
       ...(session.user.role === 'LANDLORD'
         ? { room: { property: { landlordId: session.user.id } } }
         : { tenantId: session.user.id }),
@@ -33,11 +33,12 @@ export async function POST(
     select: {
       id: true,
       tenantId: true,
+      roomId: true,
       room: { select: { property: { select: { landlordId: true } } } },
     },
   });
 
-  if (!tenancy) return NextResponse.json({ error: 'Active tenancy not found' }, { status: 404 });
+  if (!tenancy) return NextResponse.json({ error: 'Tenancy not found or already terminated' }, { status: 404 });
 
   let body: unknown;
   try { body = await request.json(); } catch { return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 }); }
@@ -47,14 +48,20 @@ export async function POST(
 
   const at = parsed.data.terminationDate ? new Date(parsed.data.terminationDate) : new Date();
 
-  await prisma.tenancy.update({
-    where: { id },
-    data: {
-      status: 'TERMINATED',
-      terminatedAt: at,
-      terminatedReason: parsed.data.reason,
-    },
-  });
+  await prisma.$transaction([
+    prisma.tenancy.update({
+      where: { id },
+      data: {
+        status: 'TERMINATED',
+        terminatedAt: at,
+        terminatedReason: parsed.data.reason,
+      },
+    }),
+    prisma.room.update({
+      where: { id: tenancy.roomId },
+      data: { isAvailable: true },
+    }),
+  ]);
 
   // Notify the other party (non-blocking)
   const isLandlord = session.user.role === 'LANDLORD';

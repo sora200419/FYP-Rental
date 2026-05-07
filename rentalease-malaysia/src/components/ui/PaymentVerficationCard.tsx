@@ -35,8 +35,11 @@ export default function PaymentVerificationCard({
     setIsLoading(true);
     setError(null);
 
+    const apiAction = action === 'approve' ? 'APPROVE' : 'REJECT';
     const body =
-      action === 'approve' ? { action } : { action, reason: rejectReason };
+      action === 'approve'
+        ? { action: apiAction }
+        : { action: apiAction, rejectionReason: rejectReason };
 
     try {
       const response = await fetch(`/api/payments/${paymentId}/verify`, {
@@ -117,14 +120,14 @@ export default function PaymentVerificationCard({
             disabled={isLoading}
             className="flex-1 bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white text-sm font-semibold py-2 rounded-lg transition-colors"
           >
-            {isLoading ? 'Processing…' : '✓ Approve'}
+            {isLoading ? 'Processing…' : 'Approve'}
           </button>
           <button
             onClick={() => setMode('rejecting')}
             disabled={isLoading}
             className="flex-1 border border-red-300 text-red-600 hover:bg-red-50 disabled:opacity-50 text-sm font-semibold py-2 rounded-lg transition-colors"
           >
-            ✗ Reject
+            Reject
           </button>
         </div>
       )}

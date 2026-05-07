@@ -67,7 +67,7 @@ export default async function WizardPage({
         </p>
         {tenancy.agreementPreferences && !tenancy.agreementPreferences.isComplete && (
           <div className="mt-3 bg-amber-50 border border-amber-200 rounded-lg px-4 py-3 text-sm text-amber-800">
-            📝 You have a draft in progress. Continue where you left off or start over by adjusting your answers.
+            You have a draft in progress. Continue where you left off or start over by adjusting your answers.
           </div>
         )}
       </div>
@@ -79,7 +79,25 @@ export default async function WizardPage({
           waterIncluded: tenancy.room.waterIncluded,
           electricIncluded: tenancy.room.electricIncluded,
         }}
-        existingPreferences={tenancy.agreementPreferences}
+        existingPreferences={
+          tenancy.agreementPreferences
+            ? {
+                ...tenancy.agreementPreferences,
+                // Prisma Decimal cannot cross the server→client boundary — convert to number
+                petsDeposit: tenancy.agreementPreferences.petsDeposit !== null
+                  ? Number(tenancy.agreementPreferences.petsDeposit)
+                  : null,
+                latePenaltyAmount: tenancy.agreementPreferences.latePenaltyAmount !== null
+                  ? Number(tenancy.agreementPreferences.latePenaltyAmount)
+                  : null,
+                rentIncreasePercent: tenancy.agreementPreferences.rentIncreasePercent !== null
+                  ? Number(tenancy.agreementPreferences.rentIncreasePercent)
+                  : null,
+                minorRepairThreshold: Number(tenancy.agreementPreferences.minorRepairThreshold),
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              } as any
+            : null
+        }
       />
     </div>
   );

@@ -55,7 +55,7 @@ function DocumentSlot({ type, label, description, doc, onUpload, onDelete, isUpl
         </div>
         {doc && (
           <span className="text-xs font-medium text-green-600 bg-green-50 px-2 py-0.5 rounded-full">
-            ✓ Uploaded
+            Uploaded
           </span>
         )}
       </div>
@@ -69,7 +69,9 @@ function DocumentSlot({ type, label, description, doc, onUpload, onDelete, isUpl
               rel="noopener noreferrer"
               className="flex items-center gap-2 text-sm text-blue-600 hover:underline"
             >
-              <span className="text-2xl">📄</span>
+              <svg className="w-5 h-5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
               <span className="truncate max-w-[200px]">{doc.originalName}</span>
             </a>
           ) : (
@@ -123,7 +125,7 @@ function DocumentSlot({ type, label, description, doc, onUpload, onDelete, isUpl
           ) : doc ? (
             '↩ Replace'
           ) : (
-            '📎 Upload'
+            'Upload'
           )}
         </label>
 
@@ -200,7 +202,9 @@ export default function TenantDocumentUploader({ initialDocuments }: Props) {
   return (
     <div className="space-y-4">
       <div className="flex items-start gap-2 bg-blue-50 border border-blue-200 rounded-xl px-4 py-3">
-        <span className="text-blue-500 text-base mt-0.5">🔒</span>
+        <svg className="w-4 h-4 text-blue-500 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+        </svg>
         <p className="text-xs text-blue-700 leading-relaxed">
           Your documents are stored securely and only visible to landlords with an active tenancy relationship with you. Access is automatically revoked when the tenancy ends — in accordance with PDPA data minimisation principles.
         </p>

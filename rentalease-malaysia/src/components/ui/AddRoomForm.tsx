@@ -266,7 +266,7 @@ export default function AddRoomForm({ propertyId }: { propertyId: string }) {
               />
               <div>
                 <p className="text-sm font-semibold text-gray-800">
-                  🚿 Attached
+                  Attached
                 </p>
                 <p className="text-xs text-gray-400">
                   Private bathroom inside the room
@@ -291,7 +291,7 @@ export default function AddRoomForm({ propertyId }: { propertyId: string }) {
                 className="accent-blue-600"
               />
               <div>
-                <p className="text-sm font-semibold text-gray-800">🚪 Shared</p>
+                <p className="text-sm font-semibold text-gray-800">Shared</p>
                 <p className="text-xs text-gray-400">
                   Common bathroom shared with others
                 </p>
@@ -380,19 +380,19 @@ export default function AddRoomForm({ propertyId }: { propertyId: string }) {
             {[
               {
                 key: 'wifi',
-                label: '📶 WiFi / Internet',
+                label: 'WiFi / Internet',
                 value: wifiIncluded,
                 setter: setWifiIncluded,
               },
               {
                 key: 'water',
-                label: '💧 Water',
+                label: 'Water',
                 value: waterIncluded,
                 setter: setWaterIncluded,
               },
               {
                 key: 'electric',
-                label: '⚡ Electricity',
+                label: 'Electricity',
                 value: electricIncluded,
                 setter: setElectricIncluded,
               },

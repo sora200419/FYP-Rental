@@ -69,11 +69,22 @@ export async function PATCH(request: NextRequest) {
     const data = profileSchema.parse(body);
 
     // Build the update object dynamically — only include fields that were sent.
-    // This prevents accidentally clearing a field the user didn't intend to change.
     const updateData: Record<string, unknown> = {};
     if (data.name !== undefined) updateData.name = data.name;
     if ('phone' in data) updateData.phone = data.phone;
-    if ('icNumber' in data) updateData.icNumber = data.icNumber;
+    if ('icNumber' in data) {
+      updateData.icNumber = data.icNumber;
+      // Only reset verification when the IC number is actually being changed —
+      // echoing back the same value (e.g. a name/phone-only save) must not
+      // undo an admin's approval.
+      const current = await prisma.user.findUnique({
+        where: { id: session.user.id },
+        select: { icNumber: true },
+      });
+      if (data.icNumber !== current?.icNumber) {
+        updateData.isVerified = false;
+      }
+    }
     if (data.language !== undefined) updateData.language = data.language;
 
     if (Object.keys(updateData).length === 0)
@@ -105,6 +116,18 @@ export async function PATCH(request: NextRequest) {
         { error: error.issues[0].message },
         { status: 400 },
       );
+    // Prisma unique constraint violation (e.g. IC number already registered)
+    if (
+      typeof error === 'object' &&
+      error !== null &&
+      'code' in error &&
+      (error as { code: string }).code === 'P2002'
+    ) {
+      return NextResponse.json(
+        { error: 'This IC number is already registered to another account.' },
+        { status: 409 },
+      );
+    }
     console.error('Profile update error:', error);
     return NextResponse.json(
       { error: 'Failed to update profile.' },

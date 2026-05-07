@@ -199,7 +199,9 @@ export default function DepositSettlementClient({
     return (
       <div className="space-y-5">
         <div className="bg-white rounded-xl border border-gray-200 p-6 text-center">
-          <p className="text-3xl mb-3">💰</p>
+          <svg className="w-10 h-10 text-gray-300 mb-3 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
           <p className="font-semibold text-gray-800">Start deposit settlement</p>
           <p className="text-sm text-gray-400 mt-1 mb-5">
             Create a deposit refund record. You can then add deductions for any damages or unpaid amounts, and {tenantName} will be notified to review.
@@ -262,8 +264,8 @@ export default function DepositSettlementClient({
                   <div className="flex items-center gap-2 mt-0.5">
                     <span className={`text-xs font-medium ${DEDUCTION_STYLE[d.status]}`}>
                       {d.status === 'PROPOSED' ? 'Pending response' :
-                       d.status === 'ACCEPTED' ? '✓ Accepted' :
-                       d.status === 'DISPUTED' ? '⚠ Disputed' : 'Withdrawn'}
+                       d.status === 'ACCEPTED' ? 'Accepted' :
+                       d.status === 'DISPUTED' ? 'Disputed' : 'Withdrawn'}
                     </span>
                     {d.tenantDisputeNote && (
                       <span className="text-xs text-red-500 truncate max-w-[200px]" title={d.tenantDisputeNote}>
@@ -352,7 +354,9 @@ export default function DepositSettlementClient({
                           <img src={photo.imageUrl} alt={photo.area} className="w-full h-full object-cover" />
                           {selectedPhotos.includes(photo.id) && (
                             <div className="absolute inset-0 bg-blue-500/20 flex items-center justify-center">
-                              <span className="text-white text-lg">✓</span>
+                              <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                              </svg>
                             </div>
                           )}
                         </div>
@@ -369,7 +373,7 @@ export default function DepositSettlementClient({
       {/* Mark as paid */}
       {canMarkPaid && (
         <div className="bg-green-50 border border-green-200 rounded-xl p-5">
-          <p className="font-semibold text-green-800 text-sm mb-1">✓ All parties agreed — ready to pay</p>
+          <p className="font-semibold text-green-800 text-sm mb-1">All parties agreed — ready to pay</p>
           <p className="text-green-700 text-xs mb-4">
             Refund {formatRM(refund.refundAmount)} to {tenantName} and upload proof of transfer.
           </p>
@@ -389,7 +393,7 @@ export default function DepositSettlementClient({
                 : 'bg-green-600 hover:bg-green-700 text-white'
             }`}
           >
-            {uploadingProof ? 'Uploading…' : '📎 Upload Payment Proof & Mark Paid'}
+            {uploadingProof ? 'Uploading…' : 'Upload Payment Proof & Mark Paid'}
           </label>
         </div>
       )}
@@ -397,7 +401,9 @@ export default function DepositSettlementClient({
       {/* Paid state */}
       {refund.status === 'PAID' && (
         <div className="bg-green-50 border border-green-200 rounded-xl p-5 flex items-center gap-3">
-          <span className="text-2xl">✅</span>
+          <svg className="w-6 h-6 text-green-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+          </svg>
           <div>
             <p className="font-semibold text-green-800 text-sm">Deposit refund paid</p>
             {refund.paidAt && (
@@ -417,7 +423,7 @@ export default function DepositSettlementClient({
       {/* Disputed state */}
       {refund.status === 'DISPUTED' && (
         <div className="bg-red-50 border border-red-200 rounded-xl p-5">
-          <p className="font-semibold text-red-800 text-sm">⚠ Dispute unresolved</p>
+          <p className="font-semibold text-red-800 text-sm">Dispute unresolved</p>
           <p className="text-red-600 text-xs mt-1 leading-relaxed">
             One or more deductions are disputed. Consider withdrawing the disputed deductions to reach agreement, or proceed to external mediation.
           </p>

@@ -118,7 +118,7 @@ export default async function AgreementPage({
       {isSigned && (
         <div className="mt-6 bg-gray-50 border border-gray-200 rounded-xl px-5 py-4">
           <p className="text-sm text-gray-500">
-            🔒 This agreement has been signed by the tenant and cannot be
+            This agreement has been signed by the tenant and cannot be
             edited. If both parties agree to changes, a new tenancy agreement
             would need to be created.
           </p>

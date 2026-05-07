@@ -10,17 +10,17 @@ interface Props {
 const REPORT_TYPES = [
   {
     value: 'MOVE_IN',
-    label: '📦 Move-In Report',
+    label: 'Move-In Report',
     description: 'Document property condition at the start of tenancy',
   },
   {
     value: 'MOVE_OUT',
-    label: '🚚 Move-Out Report',
+    label: 'Move-Out Report',
     description: 'Document property condition when tenant is leaving',
   },
   {
     value: 'INSPECTION',
-    label: '🔍 Mid-Tenancy Inspection',
+    label: 'Mid-Tenancy Inspection',
     description: 'Periodic check on property condition during tenancy',
   },
 ];

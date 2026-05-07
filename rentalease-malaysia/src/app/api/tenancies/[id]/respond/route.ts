@@ -33,7 +33,7 @@ export async function PATCH(
           },
         },
       },
-      tenant: { select: { id: true, name: true } },
+      tenant: { select: { id: true, name: true, isVerified: true } },
     },
   });
 
@@ -52,6 +52,16 @@ export async function PATCH(
   const propertyAddress = tenancy.room.property.address;
 
   if (action === 'ACCEPT') {
+    if (!tenancy.tenant.isVerified) {
+      return NextResponse.json(
+        {
+          error:
+            'You must complete identity verification before accepting an invitation. Please wait for admin approval of your identity documents.',
+        },
+        { status: 403 },
+      );
+    }
+
     await prisma.tenancy.update({
       where: { id },
       data: { status: 'PENDING' },
@@ -68,12 +78,10 @@ export async function PATCH(
     return NextResponse.json({ ok: true, status: 'PENDING' });
   }
 
-  // DECLINE — free the room and terminate the tenancy
+  // DECLINE — delete the tenancy (it was never accepted; no financial records attached)
+  // and free the room so the landlord can re-invite another tenant.
   await prisma.$transaction([
-    prisma.tenancy.update({
-      where: { id },
-      data: { status: 'TERMINATED' },
-    }),
+    prisma.tenancy.delete({ where: { id } }),
     prisma.room.update({
       where: { id: tenancy.roomId },
       data: { isAvailable: true },
@@ -88,5 +96,5 @@ export async function PATCH(
     '/dashboard/landlord',
   );
 
-  return NextResponse.json({ ok: true, status: 'TERMINATED' });
+  return NextResponse.json({ ok: true, status: 'DECLINED' });
 }

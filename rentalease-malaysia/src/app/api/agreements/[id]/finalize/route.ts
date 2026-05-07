@@ -4,6 +4,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { createNotification } from '@/lib/notifications';
+import { sendAgreementReadyEmail } from '@/lib/email';
 
 export async function PATCH(
   _request: Request,
@@ -21,7 +22,8 @@ export async function PATCH(
     where: { id },
     include: {
       tenancy: {
-        include: {
+        select: {
+          status: true,
           tenant: { select: { id: true, name: true } },
           room: {
             include: {
@@ -50,9 +52,22 @@ export async function PATCH(
     );
   }
 
+  if (!['PENDING', 'ACTIVE'].includes(agreement.tenancy.status)) {
+    return NextResponse.json(
+      { error: 'Agreement cannot be finalized because the tenancy has ended' },
+      { status: 409 },
+    );
+  }
+
   await prisma.agreement.update({
     where: { id },
     data: { status: 'FINALIZED' },
+  });
+
+  // Fetch tenant email for email notification
+  const tenantUser = await prisma.user.findUnique({
+    where: { id: agreement.tenancy.tenant.id },
+    select: { email: true },
   });
 
   // Notify tenant to review and sign
@@ -63,6 +78,16 @@ export async function PATCH(
     `Your tenancy agreement for ${agreement.tenancy.room.property.address} has been finalized and is ready for your review and signature.`,
     `/dashboard/tenant/tenancy`,
   );
+
+  // Send email (non-blocking)
+  if (tenantUser) {
+    sendAgreementReadyEmail(
+      tenantUser.email,
+      agreement.tenancy.tenant.name,
+      agreement.tenancy.room.property.address,
+      id,
+    );
+  }
 
   return NextResponse.json({ ok: true });
 }

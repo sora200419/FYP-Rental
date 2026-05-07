@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import { agreementAssistLimit } from '@/lib/ratelimit';
 import { z } from 'zod';
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
@@ -53,6 +54,15 @@ export async function POST(
       { error: 'This agreement has already been signed and cannot be edited.' },
       { status: 409 },
     );
+
+  // Rate limit: 10 AI assist calls per agreement per hour (IMP-02)
+  const { success } = await agreementAssistLimit.limit(`${session.user.id}:${agreementId}`);
+  if (!success) {
+    return NextResponse.json(
+      { error: 'Too many AI assist requests. Please wait before trying again.' },
+      { status: 429 },
+    );
+  }
 
   try {
     const body = await request.json();

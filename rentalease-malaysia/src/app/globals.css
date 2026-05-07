@@ -1,20 +1,35 @@
 @import 'tailwindcss';
 
 /*
- * Design tokens for the application.
+ * Design tokens — RentalEase redesign.
  *
- * The `--background` and `--foreground` variables are deliberately fixed
- * to light-mode values. Earlier versions of this file included a
- * `@media (prefers-color-scheme: dark)` block that flipped these values
- * when the user's OS was in dark mode. That block has been removed because
- * the application's UI was never designed for dark mode: inputs, cards,
- * and buttons all assume a white background, so flipping the foreground
- * to light grey made text inside form inputs effectively invisible.
- *
- * If dark mode is added in a future phase, it should be implemented as a
- * deliberate opt-in via a class toggle, not via OS preference detection.
+ * Fixed to light-mode values. The dark sidebar is a deliberate design choice
+ * (sidebar bg-gray-900), not a system dark-mode response. If OS-level dark
+ * mode support is ever added it should be implemented as a class toggle.
  */
 :root {
+  /* Canvas */
+  --app-bg:        #f9fafb;   /* gray-50  */
+  --card-bg:       #ffffff;
+
+  /* Sidebar */
+  --sidebar-bg:    #111827;   /* gray-900 */
+  --sidebar-border:#1f2937;   /* gray-800 */
+
+  /* Accent */
+  --accent:        #2563eb;   /* blue-600 */
+  --accent-hover:  #1d4ed8;   /* blue-700 */
+
+  /* Text */
+  --text-primary:   #111827;  /* gray-900 */
+  --text-secondary: #6b7280;  /* gray-500 */
+  --text-muted:     #9ca3af;  /* gray-400 */
+
+  /* Borders */
+  --border:        #e5e7eb;   /* gray-200 */
+  --border-light:  #f3f4f6;   /* gray-100 */
+
+  /* Legacy compat (remove when all pages migrated) */
   --background: #ffffff;
   --foreground: #171717;
 }
@@ -22,12 +37,14 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
+  --font-sans: var(--font-inter);
   --font-mono: var(--font-geist-mono);
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--app-bg);
+  color: var(--text-primary);
+  font-family: 'Inter', Arial, Helvetica, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }

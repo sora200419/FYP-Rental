@@ -45,7 +45,8 @@ export async function PATCH(
         select: {
           id: true,
           originalAmount: true,
-          deductions: { select: { amount: true, status: true } },
+          // Include id on each deduction so we can filter by id (BUG-03)
+          deductions: { select: { id: true, amount: true, status: true } },
           tenancy: {
             select: {
               tenantId: true,
@@ -70,7 +71,7 @@ export async function PATCH(
 
     const newStatus = parsed.data.action === 'ACCEPT' ? 'ACCEPTED' : 'DISPUTED';
 
-    const updated = await prisma.depositDeduction.update({
+    await prisma.depositDeduction.update({
       where: { id: deductionId },
       data: {
         status: newStatus,
@@ -84,23 +85,42 @@ export async function PATCH(
       data: { status: 'IN_REVIEW' },
     });
 
-    // Check if all non-withdrawn deductions are resolved
-    const allDeductions = deduction.refund.deductions.map((d, i) =>
-      i === deduction.refund.deductions.findIndex((x) => x === d) ? { ...d, status: newStatus } : d
-    );
-    const allResolved = deduction.refund.deductions
-      .filter((d) => d.status !== 'WITHDRAWN')
-      .every((d) => ['ACCEPTED', 'DISPUTED'].includes(d.status));
+    // Re-fetch all deductions after the update so the check uses fresh data (BUG-02)
+    const freshDeductions = await prisma.depositDeduction.findMany({
+      where: { refundId: id },
+      select: { id: true, status: true, amount: true },
+    });
+
+    const nonWithdrawn = freshDeductions.filter((d) => d.status !== 'WITHDRAWN');
+    const allResolved = nonWithdrawn.every((d) => ['ACCEPTED', 'DISPUTED'].includes(d.status));
 
     if (allResolved) {
-      const hasDispute = deduction.refund.deductions.some((d) => d.status === 'DISPUTED');
+      const hasDispute = nonWithdrawn.some((d) => d.status === 'DISPUTED');
+      const finalStatus = hasDispute ? 'DISPUTED' : 'AGREED';
+
+      // Recalculate refund amount from accepted non-withdrawn deductions (IMP-07)
+      const totalDeductions = nonWithdrawn.reduce((sum, d) => sum + Number(d.amount), 0);
+      const refundAmount = Math.max(0, Number(deduction.refund.originalAmount) - totalDeductions);
+
       await prisma.depositRefund.update({
         where: { id },
-        data: { status: hasDispute ? 'DISPUTED' : 'AGREED' },
+        data: { status: finalStatus, refundAmount },
       });
+
+      // Notify landlord to upload payment proof when all deductions are agreed (IMP-12)
+      if (finalStatus === 'AGREED') {
+        const landlordId = deduction.refund.tenancy.room.property.landlordId;
+        createNotification(
+          landlordId,
+          'DEPOSIT_REFUND_PAID',
+          'All deductions agreed — please arrange deposit refund',
+          'The tenant has agreed to all deductions. Please arrange the deposit refund payment.',
+          `/dashboard/landlord/tenancies`,
+        );
+      }
     }
 
-  // Notify landlord of tenant's response (non-blocking)
+    // Notify landlord of tenant's response (non-blocking)
     const landlordId = deduction.refund.tenancy.room.property.landlordId;
     const responseLabel = parsed.data.action === 'ACCEPT' ? 'accepted' : 'disputed';
     createNotification(
@@ -111,6 +131,7 @@ export async function PATCH(
       `/dashboard/landlord/tenancies`,
     );
 
+    const updated = await prisma.depositDeduction.findUnique({ where: { id: deductionId } });
     return NextResponse.json({ deduction: updated });
   }
 
@@ -118,14 +139,14 @@ export async function PATCH(
   const parsed = landlordSchema.safeParse(body);
   if (!parsed.success) return NextResponse.json({ error: parsed.error.issues[0].message }, { status: 400 });
 
-  const updated = await prisma.depositDeduction.update({
+  await prisma.depositDeduction.update({
     where: { id: deductionId },
     data: { status: 'WITHDRAWN' },
   });
 
-  // Recalculate refund amount without this deduction
+  // Recalculate refund amount excluding this deduction by ID, not amount (BUG-03)
   const remaining = deduction.refund.deductions
-    .filter((d) => d.status !== 'WITHDRAWN' && d.amount !== deduction.amount)
+    .filter((d) => d.status !== 'WITHDRAWN' && d.id !== deductionId)
     .reduce((s, d) => s + Number(d.amount), 0);
 
   await prisma.depositRefund.update({
@@ -133,5 +154,6 @@ export async function PATCH(
     data: { refundAmount: Math.max(0, Number(deduction.refund.originalAmount) - remaining) },
   });
 
+  const updated = await prisma.depositDeduction.findUnique({ where: { id: deductionId } });
   return NextResponse.json({ deduction: updated });
 }

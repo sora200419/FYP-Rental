@@ -140,21 +140,21 @@ export default function TenantDepositReview({ refund: initialRefund }: Props) {
                         disabled={responding === d.id}
                         className="flex-1 bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white font-semibold px-3 py-1.5 rounded-lg text-xs"
                       >
-                        {responding === d.id ? '…' : '✓ Accept'}
+                        {responding === d.id ? '…' : 'Accept'}
                       </button>
                       <button
                         onClick={() => respond(d.id, 'DISPUTE')}
                         disabled={responding === d.id || !disputeNotes[d.id]?.trim()}
                         className="flex-1 bg-red-50 hover:bg-red-100 disabled:opacity-50 text-red-600 font-semibold px-3 py-1.5 rounded-lg text-xs border border-red-200"
                       >
-                        {responding === d.id ? '…' : '⚠ Dispute'}
+                        {responding === d.id ? '…' : 'Dispute'}
                       </button>
                     </div>
                   </div>
                 ) : (
                   <div className="mt-1">
                     <span className={`text-xs font-medium ${d.status === 'ACCEPTED' ? 'text-green-600' : 'text-red-600'}`}>
-                      {d.status === 'ACCEPTED' ? '✓ You accepted this deduction' : '⚠ You disputed this deduction'}
+                      {d.status === 'ACCEPTED' ? 'You accepted this deduction' : 'You disputed this deduction'}
                     </span>
                     {d.tenantDisputeNote && (
                       <p className="text-xs text-gray-500 mt-0.5">Your note: &quot;{d.tenantDisputeNote}&quot;</p>
@@ -174,13 +174,13 @@ export default function TenantDepositReview({ refund: initialRefund }: Props) {
 
       {refund.status === 'AGREED' && (
         <div className="bg-green-50 border border-green-200 rounded-lg px-4 py-3 text-xs text-green-700">
-          ✓ Settlement agreed. Your landlord will transfer {formatRM(refund.refundAmount)} to you.
+          Settlement agreed. Your landlord will transfer {formatRM(refund.refundAmount)} to you.
         </div>
       )}
 
       {refund.status === 'PAID' && (
         <div className="bg-green-50 border border-green-200 rounded-lg px-4 py-3">
-          <p className="text-xs text-green-700 font-semibold">✅ Refund paid</p>
+          <p className="text-xs text-green-700 font-semibold">Refund paid</p>
           {refund.paidAt && (
             <p className="text-xs text-green-600">
               {new Date(refund.paidAt).toLocaleDateString('en-MY', { day: 'numeric', month: 'long', year: 'numeric' })}

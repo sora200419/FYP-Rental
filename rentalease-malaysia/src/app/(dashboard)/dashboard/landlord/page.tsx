@@ -15,19 +15,20 @@ export default async function LandlordDashboard() {
 
   const landlordId = session.user.id;
 
-  // Fire-and-forget: create TENANCY_ENDING_SOON notifications for tenancies
-  // ending within 30 days. Deduped per tenancy per 7 days. Non-blocking.
   void triggerEndingSoonNotifications(landlordId, 'LANDLORD');
 
-  // Run all data fetches in parallel to minimise server response time
+  const now = new Date();
+
   const [
     properties,
     recentTenancies,
     pendingChangesRequested,
     pendingPaymentVerifications,
     unacknowledgedConditionReports,
+    // Financial summary queries (IMP-05 / FEAT-04)
+    activeRentPayments,
+    overduePayments,
   ] = await Promise.all([
-    // Properties with room and tenancy summaries
     prisma.property.findMany({
       where: { landlordId },
       include: {
@@ -46,7 +47,6 @@ export default async function LandlordDashboard() {
       orderBy: { createdAt: 'desc' },
     }),
 
-    // 10 most recent tenancies across all properties
     prisma.tenancy.findMany({
       where: {
         room: { property: { landlordId } },
@@ -69,8 +69,6 @@ export default async function LandlordDashboard() {
       take: 10,
     }),
 
-    // ── Banner counts ────────────────────────────────────────────────────────
-    // Agreements where tenant requested changes
     prisma.agreement.count({
       where: {
         status: 'NEGOTIATING',
@@ -78,7 +76,6 @@ export default async function LandlordDashboard() {
       },
     }),
 
-    // Payment proofs awaiting verification
     prisma.rentPayment.count({
       where: {
         status: 'UNDER_REVIEW',
@@ -86,7 +83,6 @@ export default async function LandlordDashboard() {
       },
     }),
 
-    // Condition reports created by tenant, not yet acknowledged
     prisma.conditionReport.count({
       where: {
         acknowledgedAt: null,
@@ -94,217 +90,261 @@ export default async function LandlordDashboard() {
         createdBy: { role: 'TENANT' },
       },
     }),
+
+    // All rent payments for ACTIVE tenancies — used to sum confirmed monthly income
+    prisma.rentPayment.findMany({
+      where: {
+        status: 'PAID',
+        tenancy: {
+          status: 'ACTIVE',
+          room: { property: { landlordId } },
+        },
+        // Paid in the last 30 days
+        paidDate: { gte: new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000) },
+      },
+      select: { amount: true },
+    }),
+
+    // Overdue: PENDING payments past their due date
+    prisma.rentPayment.findMany({
+      where: {
+        status: 'PENDING',
+        dueDate: { lt: now },
+        tenancy: {
+          status: 'ACTIVE',
+          room: { property: { landlordId } },
+        },
+      },
+      select: { amount: true },
+    }),
   ]);
 
-  // Derive summary stats from fetched data
   const totalRooms = properties.reduce((sum, p) => sum + p.rooms.length, 0);
   const activeRooms = properties.reduce(
     (sum, p) =>
-      sum +
-      p.rooms.filter((r) => r.tenancies.some((t) => t.status === 'ACTIVE'))
-        .length,
+      sum + p.rooms.filter((r) => r.tenancies.some((t) => t.status === 'ACTIVE')).length,
     0,
   );
-  const invitedTenancies = recentTenancies.filter(
-    (t) => t.status === 'INVITED',
-  ).length;
+  const invitedTenancies = recentTenancies.filter((t) => t.status === 'INVITED').length;
+
+  // Financial calculations
+  const confirmedIncome30d = activeRentPayments.reduce((s, p) => s + Number(p.amount), 0);
+  const totalOverdue = overduePayments.reduce((s, p) => s + Number(p.amount), 0);
+  const occupancyRate = totalRooms > 0 ? Math.round((activeRooms / totalRooms) * 100) : 0;
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Page header */}
-        <div className="mb-6">
-          <h1 className="text-2xl font-bold text-gray-900">
-            Welcome back, {session.user.name}
-          </h1>
-          <p className="text-sm text-gray-500 mt-1">
-            Manage your properties, tenants, and agreements
-          </p>
-        </div>
+    <div>
+      {/* Page header */}
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold text-gray-900">
+          Welcome back, {session.user.name}
+        </h1>
+        <p className="text-sm text-gray-500 mt-1">
+          Manage your properties, tenants, and agreements
+        </p>
+      </div>
 
-        {/* Dashboard banners — Phase B: shows urgent items needing action */}
-        <DashboardBanners
-          role="LANDLORD"
-          pendingChangesRequested={pendingChangesRequested}
-          pendingPaymentVerifications={pendingPaymentVerifications}
-          unacknowledgedConditionReports={unacknowledgedConditionReports}
-        />
+      <DashboardBanners
+        role="LANDLORD"
+        pendingChangesRequested={pendingChangesRequested}
+        pendingPaymentVerifications={pendingPaymentVerifications}
+        unacknowledgedConditionReports={unacknowledgedConditionReports}
+      />
 
-        {/* Summary stats */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
-          <StatCard label="Total Properties" value={properties.length} />
-          <StatCard label="Total Rooms" value={totalRooms} />
-          <StatCard label="Occupied Rooms" value={activeRooms} />
-          <StatCard
-            label="Pending Invitations"
-            value={invitedTenancies}
-            accent
+      {/* Financial summary (IMP-05 / FEAT-04) */}
+      <section className="mb-6">
+        <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">Financial Summary</h2>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          <FinancialCard
+            label="Income (last 30 days)"
+            value={`RM ${confirmedIncome30d.toLocaleString('en-MY', { minimumFractionDigits: 2 })}`}
+            color="green"
+          />
+          <FinancialCard
+            label="Overdue payments"
+            value={`RM ${totalOverdue.toLocaleString('en-MY', { minimumFractionDigits: 2 })}`}
+            color={totalOverdue > 0 ? 'red' : 'gray'}
+          />
+          <FinancialCard
+            label="Pending proofs"
+            value={String(pendingPaymentVerifications)}
+            color={pendingPaymentVerifications > 0 ? 'amber' : 'gray'}
+          />
+          <FinancialCard
+            label="Occupancy rate"
+            value={`${occupancyRate}%`}
+            sub={`${activeRooms} / ${totalRooms} rooms`}
+            color="blue"
           />
         </div>
+      </section>
 
-        {/* Quick actions */}
-        <div className="flex flex-wrap gap-3 mb-8">
-          <Link
-            href="/dashboard/landlord/properties/new"
-            className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold px-4 py-2.5 rounded-lg transition-colors"
-          >
-            <span>+</span> Add Property
-          </Link>
-          <Link
-            href="/dashboard/landlord/tenancies/new"
-            className="inline-flex items-center gap-2 border border-gray-300 bg-white hover:bg-gray-50 text-gray-700 text-sm font-semibold px-4 py-2.5 rounded-lg transition-colors"
-          >
-            Invite Tenant
-          </Link>
-        </div>
-
-        {/* Recent tenancies */}
-        {recentTenancies.length > 0 ? (
-          <section className="mb-8">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">
-              Active &amp; Pending Tenancies
-            </h2>
-            <div className="bg-white rounded-xl border border-gray-200 divide-y divide-gray-100">
-              {recentTenancies.map((tenancy) => (
-                <TenancyRow key={tenancy.id} tenancy={tenancy} />
-              ))}
-            </div>
-          </section>
-        ) : (
-          <div className="bg-white rounded-xl border border-gray-200 p-12 text-center mb-8">
-            <p className="text-gray-500 text-sm">
-              No active tenancies yet.{' '}
-              <Link
-                href="/dashboard/landlord/tenancies/new"
-                className="text-blue-600 hover:underline"
-              >
-                Invite a tenant
-              </Link>{' '}
-              to get started.
-            </p>
-          </div>
-        )}
-
-        {/* Properties overview */}
-        {properties.length > 0 && (
-          <section>
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-semibold text-gray-900">
-                Your Properties
-              </h2>
-              <Link
-                href="/dashboard/landlord/properties"
-                className="text-sm text-blue-600 hover:underline"
-              >
-                View all
-              </Link>
-            </div>
-            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {properties.slice(0, 6).map((property) => (
-                <div
-                  key={property.id}
-                  className="bg-white rounded-xl border border-gray-200 p-4"
-                >
-                  <p className="font-medium text-gray-900 text-sm truncate">
-                    {property.address}
-                  </p>
-                  <p className="text-xs text-gray-500 mt-0.5">
-                    {property.city}, {property.state}
-                  </p>
-                  <div className="flex items-center gap-3 mt-3 text-xs text-gray-600">
-                    <span>
-                      {property.rooms.length} room
-                      {property.rooms.length !== 1 ? 's' : ''}
-                    </span>
-                    <span>·</span>
-                    <span>
-                      {property.rooms.filter((r) => !r.isAvailable).length}{' '}
-                      occupied
-                    </span>
-                  </div>
-                  <Link
-                    href={`/dashboard/landlord/properties/${property.id}`}
-                    className="block mt-3 text-xs text-blue-600 hover:underline"
-                  >
-                    Manage →
-                  </Link>
-                </div>
-              ))}
-            </div>
-          </section>
-        )}
+      {/* Summary stats */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
+        <StatCard label="Properties" value={properties.length} />
+        <StatCard label="Total Rooms" value={totalRooms} />
+        <StatCard label="Occupied" value={activeRooms} />
+        <StatCard label="Pending Invites" value={invitedTenancies} accent />
       </div>
+
+      {/* Quick actions */}
+      <div className="flex flex-wrap gap-3 mb-8">
+        <Link
+          href="/dashboard/landlord/properties/new"
+          className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2.5 rounded-lg transition-colors"
+        >
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+          </svg>
+          Add Property
+        </Link>
+        <Link
+          href="/dashboard/landlord/tenancies/new"
+          className="inline-flex items-center gap-2 border border-gray-300 bg-white hover:bg-gray-50 text-gray-700 text-sm font-medium px-4 py-2.5 rounded-lg transition-colors"
+        >
+          Invite Tenant
+        </Link>
+        <Link
+          href="/dashboard/landlord/payments"
+          className="inline-flex items-center gap-2 border border-gray-300 bg-white hover:bg-gray-50 text-gray-700 text-sm font-medium px-4 py-2.5 rounded-lg transition-colors"
+        >
+          View Payments
+        </Link>
+      </div>
+
+      {/* Recent tenancies */}
+      {recentTenancies.length > 0 ? (
+        <section className="mb-8">
+          <h2 className="text-lg font-semibold text-gray-900 mb-4">
+            Active &amp; Pending Tenancies
+          </h2>
+          <div className="bg-white rounded-xl border border-gray-200 divide-y divide-gray-100">
+            {recentTenancies.map((tenancy) => (
+              <TenancyRow key={tenancy.id} tenancy={tenancy} />
+            ))}
+          </div>
+        </section>
+      ) : (
+        <div className="bg-white rounded-xl border border-gray-200 p-12 text-center mb-8">
+          <p className="text-sm text-gray-400">
+            No active tenancies yet.{' '}
+            <Link href="/dashboard/landlord/tenancies/new" className="text-blue-600 hover:underline">
+              Invite a tenant
+            </Link>{' '}
+            to get started.
+          </p>
+        </div>
+      )}
+
+      {/* Properties overview */}
+      {properties.length > 0 && (
+        <section>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-semibold text-gray-900">Your Properties</h2>
+            <Link href="/dashboard/landlord/properties" className="text-sm text-blue-600 hover:underline">
+              View all
+            </Link>
+          </div>
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {properties.slice(0, 6).map((property) => (
+              <div key={property.id} className="bg-white rounded-xl border border-gray-200 p-5 hover:border-gray-300 transition-colors">
+                <p className="font-medium text-gray-900 text-sm truncate">{property.address}</p>
+                <p className="text-xs text-gray-500 mt-0.5">
+                  {property.city}, {property.state}
+                </p>
+                <div className="flex items-center gap-3 mt-3 text-xs text-gray-500">
+                  <span>{property.rooms.length} room{property.rooms.length !== 1 ? 's' : ''}</span>
+                  <span>&middot;</span>
+                  <span>{property.rooms.filter((r) => !r.isAvailable).length} occupied</span>
+                </div>
+                <Link
+                  href={`/dashboard/landlord/properties/${property.id}`}
+                  className="block mt-3 text-xs text-blue-600 hover:underline"
+                >
+                  Manage &rarr;
+                </Link>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
     </div>
   );
 }
 
 // ── Sub-components ─────────────────────────────────────────────────────────────
 
-function StatCard({
+const COLOR_MAP = {
+  green: { bg: 'bg-green-50', text: 'text-green-700', border: 'border-green-100' },
+  red:   { bg: 'bg-red-50',   text: 'text-red-700',   border: 'border-red-100' },
+  amber: { bg: 'bg-amber-50', text: 'text-amber-700', border: 'border-amber-100' },
+  blue:  { bg: 'bg-blue-50',  text: 'text-blue-700',  border: 'border-blue-100' },
+  gray:  { bg: 'bg-gray-50',  text: 'text-gray-700',  border: 'border-gray-100' },
+} as const;
+
+function FinancialCard({
   label,
   value,
-  accent = false,
+  sub,
+  color,
 }: {
   label: string;
-  value: number;
-  accent?: boolean;
+  value: string;
+  sub?: string;
+  color: keyof typeof COLOR_MAP;
 }) {
+  const c = COLOR_MAP[color];
   return (
-    <div className="bg-white rounded-xl border border-gray-200 p-4">
-      <p className="text-xs text-gray-500 font-medium">{label}</p>
-      <p
-        className={`text-3xl font-bold mt-1 ${
-          accent ? 'text-blue-600' : 'text-gray-900'
-        }`}
-      >
+    <div className={`rounded-xl border p-4 ${c.bg} ${c.border}`}>
+      <p className="text-xs font-medium text-gray-500 mb-1">{label}</p>
+      <p className={`text-xl font-bold ${c.text}`}>{value}</p>
+      {sub && <p className="text-xs text-gray-400 mt-0.5">{sub}</p>}
+    </div>
+  );
+}
+
+const PILL_BASE = 'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium';
+
+const STATUS_PILL: Record<string, string> = {
+  INVITED:   `${PILL_BASE} bg-yellow-50 text-yellow-700 ring-1 ring-yellow-200 ring-inset`,
+  PENDING:   `${PILL_BASE} bg-blue-50 text-blue-700 ring-1 ring-blue-200 ring-inset`,
+  ACTIVE:    `${PILL_BASE} bg-green-50 text-green-700 ring-1 ring-green-200 ring-inset`,
+  EXPIRED:   `${PILL_BASE} bg-gray-100 text-gray-500 ring-1 ring-gray-200 ring-inset`,
+  TERMINATED:`${PILL_BASE} bg-red-50 text-red-600 ring-1 ring-red-200 ring-inset`,
+};
+
+function StatCard({ label, value, accent = false }: { label: string; value: number; accent?: boolean }) {
+  return (
+    <div className="bg-white rounded-xl border border-gray-200 p-5">
+      <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">{label}</p>
+      <p className={`text-3xl font-bold mt-2 ${accent ? 'text-blue-600' : 'text-gray-900'}`}>
         {value}
       </p>
     </div>
   );
 }
 
-function TenancyRow({
-  tenancy,
-}: {
-  tenancy: ReturnType<typeof buildTenancyRow>;
-}) {
-  const statusColors: Record<string, string> = {
-    INVITED: 'bg-yellow-100 text-yellow-700',
-    PENDING: 'bg-blue-100 text-blue-700',
-    ACTIVE: 'bg-green-100 text-green-700',
-    EXPIRED: 'bg-gray-100 text-gray-600',
-    TERMINATED: 'bg-red-100 text-red-700',
-  };
-
+function TenancyRow({ tenancy }: { tenancy: ReturnType<typeof buildTenancyRow> }) {
   const hasProofToVerify = tenancy.rentPayments.length > 0;
 
   return (
-    <div className="flex items-center justify-between px-4 py-3 hover:bg-gray-50 transition-colors">
+    <div className="flex items-center justify-between px-5 py-3.5 hover:bg-gray-50 transition-colors">
       <div className="flex-1 min-w-0">
-        <p className="text-sm font-medium text-gray-900 truncate">
-          {tenancy.tenant.name}
-        </p>
+        <p className="text-sm font-medium text-gray-900 truncate">{tenancy.tenant.name}</p>
         <p className="text-xs text-gray-500 mt-0.5 truncate">
           {tenancy.room.property.address}, {tenancy.room.property.city}
         </p>
       </div>
-      <div className="flex items-center gap-3 ml-4 flex-shrink-0">
+      <div className="flex items-center gap-3 ml-4 shrink-0">
         {hasProofToVerify && (
-          <span className="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-medium">
+          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-50 text-amber-700 ring-1 ring-amber-200 ring-inset">
             Proof to verify
           </span>
         )}
-        <span
-          className={`text-xs px-2 py-0.5 rounded-full font-medium ${
-            statusColors[tenancy.status] ?? 'bg-gray-100 text-gray-600'
-          }`}
-        >
+        <span className={STATUS_PILL[tenancy.status] ?? `${PILL_BASE} bg-gray-100 text-gray-500`}>
           {tenancy.status}
         </span>
-        <Link
-          href={`/dashboard/landlord/tenancies/${tenancy.id}`}
-          className="text-xs text-blue-600 hover:underline"
-        >
+        <Link href={`/dashboard/landlord/tenancies/${tenancy.id}`} className="text-xs text-blue-600 hover:underline">
           View
         </Link>
       </div>
@@ -312,7 +352,6 @@ function TenancyRow({
   );
 }
 
-// Type helper so TypeScript is happy with the tenancy shape in TenancyRow
 function buildTenancyRow(t: unknown) {
   return t as {
     id: string;

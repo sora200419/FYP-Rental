@@ -1,6 +1,5 @@
 // src/lib/gemini.ts
 import { GoogleGenerativeAI } from '@google/generative-ai';
-import { isMockGeminiEnabled, getMockAgreement, getMockTranslation } from './mockGemini';
 import type { AgreementPreferences } from '@prisma/client';
 import { buildWizardPolicyBlock } from './wizardFormatters';
 
@@ -46,6 +45,7 @@ export interface TenancyForAgreement {
     phone?: string | null;
   };
   negotiationContext?: string | null;
+  coTenants?: { name: string; icNumber?: string | null }[];
 }
 
 export interface GeneratedAgreement {
@@ -126,26 +126,6 @@ export async function generateTenancyAgreement(
   tenancy: TenancyForAgreement,
   preferences?: AgreementPreferences | null,
 ): Promise<GeneratedAgreement> {
-  // ── Mock mode short-circuit ───────────────────────────────────────────────
-  // When USE_MOCK_GEMINI=true is set in the environment, return a canned
-  // fixture response instead of calling the real Gemini API. This is the
-  // development mode that lets us iterate on wizard UI, viewer components,
-  // and PDF rendering without burning through free-tier quota or waiting
-  // 15 seconds per generation. See src/lib/mockGemini.ts for details on
-  // when to use this and when to turn it off.
-  //
-  // The check happens BEFORE any Gemini SDK initialization or prompt
-  // building so mock mode is fully free of real API dependencies. You can
-  // run the app with USE_MOCK_GEMINI=true and a blank GEMINI_API_KEY, and
-  // agreement generation will still work end-to-end.
-  if (isMockGeminiEnabled()) {
-    console.log(
-      '[Gemini] Mock mode active — returning canned fixture response. ' +
-        'Unset USE_MOCK_GEMINI to use the real API.',
-    );
-    return getMockAgreement();
-  }
-
   const model = genAI.getGenerativeModel({
     model: 'gemini-2.0-flash',
     generationConfig: {
@@ -186,6 +166,16 @@ export async function generateTenancyAgreement(
   const tenantIcLine = tenancy.tenant.icNumber
     ? `- Tenant IC Number: ${tenancy.tenant.icNumber}`
     : '- Tenant IC Number: Not provided (parties should verify identity separately)';
+
+  // Co-tenants block — only included if there are additional occupants
+  const coTenantsBlock =
+    tenancy.coTenants && tenancy.coTenants.length > 0
+      ? `
+── ADDITIONAL OCCUPANTS ──────────────────────────────────────────────────────
+The following persons will reside in the unit as co-occupants under the primary tenant's tenancy. They are NOT separate parties to this agreement but MUST be named in the Permitted Use and Occupancy clause:
+${tenancy.coTenants.map((ct) => `- ${ct.name} (IC: ${ct.icNumber ?? 'Not provided'})`).join('\n')}
+`
+      : '';
 
   // Optional room details section — only rendered if values are meaningful
   const optionalRoomDetails: string[] = [];
@@ -240,7 +230,7 @@ The agreement MUST include a dedicated Utilities clause that clearly states whic
 - Tenant Email: ${tenancy.tenant.email}
 - Tenant Phone: ${tenancy.tenant.phone ?? 'Not provided'}
 ${tenantIcLine}
-
+${coTenantsBlock}
 ── FINANCIAL TERMS ───────────────────────────────────────────────────────────
 - Tenancy Start Date: ${startDate}
 - Tenancy End Date: ${endDate}
@@ -326,10 +316,6 @@ export async function translateAgreementOutputs(
   plainLanguageSummary: string,
   redFlagsJson: string,
 ): Promise<TranslatedOutputs> {
-  if (isMockGeminiEnabled()) {
-    return getMockTranslation();
-  }
-
   const model = genAI.getGenerativeModel({
     model: 'gemini-2.0-flash',
     generationConfig: { responseMimeType: 'application/json' },

@@ -52,15 +52,23 @@ export default function ProfileForm({
     setSuccess(false);
 
     try {
+      const rawIc = icNumber.replace(/-/g, '');
+      const icChanged = rawIc !== (initialIcNumber ?? '');
+
+      const payload: Record<string, unknown> = {
+        name: name.trim(),
+        phone: phone.trim() || null,
+      };
+      // Only include icNumber when it has actually changed — sending an unchanged
+      // IC in every PATCH would incorrectly reset isVerified on the server.
+      if (icChanged) {
+        payload.icNumber = icNumber.trim() || null;
+      }
+
       const res = await fetch('/api/profile', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: name.trim(),
-          phone: phone.trim() || null,
-          // Send the raw value — the API strips hyphens before storing
-          icNumber: icNumber.trim() || null,
-        }),
+        body: JSON.stringify(payload),
       });
 
       const data = await res.json();
@@ -149,7 +157,7 @@ export default function ProfileForm({
             around secure document management and PDPA 2010 compliance. */}
         <div className="bg-blue-50 border border-blue-200 rounded-xl px-5 py-4 mb-4">
           <p className="text-blue-800 text-sm font-medium mb-1">
-            🔒 Why we collect your IC number
+            Why we collect your IC number
           </p>
           <p className="text-blue-700 text-xs leading-relaxed">
             Your Malaysian IC (MyKad) number is used solely to populate the
@@ -206,7 +214,7 @@ export default function ProfileForm({
                 : 'bg-green-100 text-green-700'
             }`}
           >
-            {role === 'LANDLORD' ? '🔑 Landlord' : '🏠 Tenant'}
+            {role === 'LANDLORD' ? 'Landlord' : 'Tenant'}
           </span>
           <p className="text-xs text-gray-400">
             {role === 'TENANT'
@@ -225,7 +233,7 @@ export default function ProfileForm({
 
       {success && (
         <div className="bg-green-50 border border-green-200 text-green-700 text-sm rounded-lg px-4 py-3">
-          ✓ Profile updated successfully.
+          Profile updated successfully.
           {icNumber &&
             ' Your IC number will appear in newly generated agreements.'}
         </div>
