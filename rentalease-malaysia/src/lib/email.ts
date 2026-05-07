@@ -215,3 +215,41 @@ export async function sendDepositSettlementEmail(
     ),
   );
 }
+
+export async function sendDepositRefundPaidEmail(
+  to: string,
+  tenantName: string,
+  amount: string,
+) {
+  await send(
+    to,
+    'Your deposit refund has been paid',
+    base(
+      'Deposit Refund Paid',
+      p(`Hi ${tenantName}, your landlord has transferred your deposit refund of <strong>RM ${amount}</strong>.`) +
+      p('Proof of payment has been uploaded to your tenancy page.'),
+      { label: 'View Tenancy', url: `${process.env.NEXTAUTH_URL}/dashboard/tenant/tenancy` },
+    ),
+  );
+}
+
+export async function sendTenancyEndingSoonEmail(
+  to: string,
+  recipientName: string,
+  propertyAddress: string,
+  daysLeft: number,
+  dashboardUrl: string,
+) {
+  await send(
+    to,
+    `Tenancy ending in ${daysLeft} days`,
+    base(
+      `Tenancy Ending in ${daysLeft} Days`,
+      p(`Hi ${recipientName}, the tenancy for <strong>${propertyAddress}</strong> ends in <strong>${daysLeft} days</strong>.`) +
+      p(daysLeft <= 7
+        ? 'Please prepare for the upcoming move-out and ensure all keys are returned.'
+        : 'Please plan ahead and discuss renewal or move-out arrangements with the other party.'),
+      { label: 'View Tenancy', url: dashboardUrl },
+    ),
+  );
+}

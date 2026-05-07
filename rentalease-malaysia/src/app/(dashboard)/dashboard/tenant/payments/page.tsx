@@ -45,7 +45,7 @@ export default async function TenantPaymentsPage() {
         include: {
           proofs: {
             orderBy: { createdAt: 'desc' },
-            select: { id: true, imageUrl: true, isReadByTenant: true },
+            select: { id: true, imageUrl: true },
           },
         },
       },
@@ -66,24 +66,6 @@ export default async function TenantPaymentsPage() {
   const formatRM = (amount: unknown) =>
     `RM ${Number(amount).toLocaleString('en-MY', { minimumFractionDigits: 2 })}`;
 
-  // Count how many landlord decisions the tenant hasn't seen yet
-  const unreadDecisions =
-    tenancy?.rentPayments.reduce(
-      (sum, p) => sum + p.proofs.filter((pr) => !pr.isReadByTenant).length,
-      0,
-    ) ?? 0;
-
-  // Fire-and-forget: mark all proofs as read now that tenant is viewing this page
-  if (unreadDecisions > 0 && tenancy) {
-    const paymentIds = tenancy.rentPayments.map((p) => p.id);
-    prisma.paymentProof
-      .updateMany({
-        where: { paymentId: { in: paymentIds }, isReadByTenant: false },
-        data: { isReadByTenant: true },
-      })
-      .catch(console.error);
-  }
-
   const today = new Date();
 
   return (
@@ -96,12 +78,6 @@ export default async function TenantPaymentsPage() {
               Upload proof of payment and track verification status.
             </p>
           </div>
-          {unreadDecisions > 0 && (
-            <span className="bg-red-500 text-white text-xs font-bold px-2.5 py-1 rounded-full">
-              {unreadDecisions} new{' '}
-              {unreadDecisions === 1 ? 'update' : 'updates'}
-            </span>
-          )}
         </div>
       </div>
 
@@ -222,7 +198,6 @@ export default async function TenantPaymentsPage() {
           {/* Payment rows */}
           <div className="space-y-4">
             {tenancy.rentPayments.map((payment) => {
-              const hasUnread = payment.proofs.some((p) => !p.isReadByTenant);
               const isOverdue =
                 payment.status === 'PENDING' &&
                 new Date(payment.dueDate) < today;
@@ -230,25 +205,17 @@ export default async function TenantPaymentsPage() {
               return (
                 <div
                   key={payment.id}
-                  className={`bg-white rounded-xl border p-5 ${
-                    hasUnread ? 'border-blue-300 shadow-sm' : 'border-gray-200'
-                  }`}
+                  className="bg-white rounded-xl border border-gray-200 p-5"
                 >
                   {/* Row header */}
                   <div className="flex items-center justify-between mb-4">
-                    <div className="flex items-center gap-2">
-                      <div>
-                        <p className="text-sm font-semibold text-gray-900">
-                          {formatDate(payment.dueDate)}
-                        </p>
-                        <p className="text-xs text-gray-400">
-                          {formatRM(payment.amount)}
-                        </p>
-                      </div>
-                      {/* Blue dot = landlord made a decision the tenant hasn't seen */}
-                      {hasUnread && (
-                        <span className="w-2 h-2 rounded-full bg-blue-500 flex-shrink-0" />
-                      )}
+                    <div>
+                      <p className="text-sm font-semibold text-gray-900">
+                        {formatDate(payment.dueDate)}
+                      </p>
+                      <p className="text-xs text-gray-400">
+                        {formatRM(payment.amount)}
+                      </p>
                     </div>
                     <span
                       className={`text-xs font-semibold px-2.5 py-1 rounded-full ${
@@ -263,15 +230,6 @@ export default async function TenantPaymentsPage() {
                         : (STATUS_LABEL[payment.status] ?? payment.status)}
                     </span>
                   </div>
-
-                  {/* Approval notification banner */}
-                  {payment.status === 'PAID' && hasUnread && (
-                    <div className="bg-green-50 border border-green-200 rounded-lg px-4 py-3 mb-3">
-                      <p className="text-green-800 text-sm font-semibold">
-                        Your payment proof has been approved by the landlord
-                      </p>
-                    </div>
-                  )}
 
                   {/* The interactive uploader — handles all upload/preview/retry logic */}
                   <PaymentProofUploader
