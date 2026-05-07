@@ -7,6 +7,7 @@ import AgreementViewer from '@/components/ui/AgreementViewer';
 import TenantAgreementActions from '@/components/ui/TenantAgreementActions';
 import TenantDepositReview from '@/components/ui/TenantDepositReview';
 import TenantInvitationActions from '@/components/ui/TenantInvitationActions';
+import TenantWithdrawButton from '@/components/ui/TenantWithdrawButton';
 import DepositProofUploader from '@/components/ui/DepositProofUploader';
 
 export default async function TenantTenancyPage() {
@@ -80,7 +81,9 @@ export default async function TenantTenancyPage() {
           </p>
         </div>
         <div className="text-center py-20 bg-white rounded-xl border border-gray-200">
-          <p className="text-4xl mb-4">🏠</p>
+          <svg className="w-12 h-12 text-gray-200 mb-4 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+          </svg>
           <p className="text-gray-700 font-semibold text-lg">No tenancy yet</p>
           <p className="text-gray-400 text-sm mt-1 max-w-sm mx-auto">
             Your tenancy details will appear here once your landlord creates an
@@ -194,16 +197,23 @@ export default async function TenantTenancyPage() {
         )}
 
         {/* ── Case 3: No agreement generated yet ────────────────────────────── */}
-        {tenancy.status !== 'INVITED' && !tenancy.agreement && (
-          <div className="text-center py-12 bg-white rounded-xl border border-gray-200">
-            <p className="text-4xl mb-3">📄</p>
-            <p className="text-gray-700 font-semibold">
-              Agreement not ready yet
-            </p>
-            <p className="text-gray-400 text-sm mt-1 max-w-sm mx-auto">
-              Your landlord is preparing the tenancy agreement. It will appear
-              here once they have finalised it.
-            </p>
+        {tenancy.status === 'PENDING' && !tenancy.agreement && (
+          <div className="bg-white rounded-xl border border-gray-200 p-6">
+            <div className="text-center py-6">
+              <svg className="w-10 h-10 text-gray-200 mb-3 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              <p className="text-gray-700 font-semibold">
+                Agreement not ready yet
+              </p>
+              <p className="text-gray-400 text-sm mt-1 max-w-sm mx-auto">
+                Your landlord is preparing the tenancy agreement. It will appear
+                here once they have finalised it.
+              </p>
+            </div>
+            <div className="border-t border-gray-100 pt-4 flex justify-end">
+              <TenantWithdrawButton tenancyId={tenancy.id} />
+            </div>
           </div>
         )}
 
@@ -225,7 +235,7 @@ export default async function TenantTenancyPage() {
           <>
             <div className="bg-blue-50 border border-blue-200 rounded-xl px-5 py-4">
               <p className="text-blue-800 font-semibold text-sm">
-                Change request sent ✓
+                Change request sent
               </p>
               <p className="text-blue-600 text-xs mt-1">
                 Your landlord has been notified. They will revise the agreement
@@ -261,7 +271,7 @@ export default async function TenantTenancyPage() {
           <>
             <div className="bg-green-50 border border-green-200 rounded-xl px-5 py-4">
               <p className="text-green-800 font-semibold text-sm">
-                ✓ Agreement signed — Tenancy is active
+                Agreement signed — Tenancy is active
               </p>
               <p className="text-green-600 text-xs mt-0.5">
                 You have accepted this agreement. Your tenancy is now live and
@@ -333,7 +343,7 @@ export default async function TenantTenancyPage() {
         {(tenancy.status === 'EXPIRED' || tenancy.status === 'TERMINATED') && !tenancy.depositRefund && (
           <div className="bg-gray-50 border border-gray-200 rounded-xl px-5 py-4">
             <p className="font-semibold text-gray-700 text-sm">
-              {tenancy.status === 'TERMINATED' ? '🔴 Tenancy Terminated' : '⏹ Tenancy Expired'}
+              {tenancy.status === 'TERMINATED' ? 'Tenancy Terminated' : 'Tenancy Expired'}
             </p>
             <p className="text-gray-400 text-xs mt-1">
               Your landlord will initiate the deposit settlement process. You will be notified when it is ready for your review.

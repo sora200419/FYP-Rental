@@ -13,12 +13,14 @@ const STATUS_LABEL: Record<string, string> = {
   WAIVED: 'Waived',
 };
 
+const PILL_BASE = 'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium';
+
 const STATUS_STYLE: Record<string, string> = {
-  PENDING: 'bg-amber-100 text-amber-700',
-  UNDER_REVIEW: 'bg-blue-100 text-blue-700',
-  PAID: 'bg-green-100 text-green-700',
-  LATE: 'bg-red-100 text-red-600',
-  WAIVED: 'bg-gray-100 text-gray-500',
+  PENDING:      `${PILL_BASE} bg-gray-100 text-gray-500 ring-1 ring-gray-200 ring-inset`,
+  UNDER_REVIEW: `${PILL_BASE} bg-blue-50 text-blue-700 ring-1 ring-blue-200 ring-inset`,
+  PAID:         `${PILL_BASE} bg-green-50 text-green-700 ring-1 ring-green-200 ring-inset`,
+  LATE:         `${PILL_BASE} bg-red-50 text-red-600 ring-1 ring-red-200 ring-inset`,
+  WAIVED:       `${PILL_BASE} bg-gray-100 text-gray-500 ring-1 ring-gray-200 ring-inset`,
 };
 
 export default async function TenantPaymentsPage() {
@@ -157,26 +159,19 @@ export default async function TenantPaymentsPage() {
 
       {/* No active tenancy */}
       {!tenancy && (
-        <div className="text-center py-20 bg-white rounded-xl border border-gray-200">
-          <p className="text-4xl mb-4">💳</p>
-          <p className="text-gray-700 font-semibold text-lg">
-            No active tenancy
-          </p>
-          <p className="text-gray-400 text-sm mt-1">
+        <div className="bg-white rounded-xl border border-gray-200 p-12 text-center">
+          <p className="text-gray-700 font-semibold">No active tenancy</p>
+          <p className="text-sm text-gray-400 mt-1">
             Payment tracking will be available once your tenancy is active.
           </p>
         </div>
       )}
 
       {tenancy && tenancy.rentPayments.length === 0 && (
-        <div className="text-center py-12 bg-white rounded-xl border border-gray-200">
-          <p className="text-4xl mb-4">📅</p>
-          <p className="text-gray-700 font-semibold text-lg">
-            No rent schedule yet
-          </p>
-          <p className="text-gray-400 text-sm mt-1">
-            Your monthly payment schedule will appear here once your agreement
-            is signed.
+        <div className="bg-white rounded-xl border border-gray-200 p-12 text-center">
+          <p className="text-gray-700 font-semibold">No rent schedule yet</p>
+          <p className="text-sm text-gray-400 mt-1">
+            Your monthly payment schedule will appear here once your agreement is signed.
           </p>
         </div>
       )}
@@ -273,7 +268,7 @@ export default async function TenantPaymentsPage() {
                   {payment.status === 'PAID' && hasUnread && (
                     <div className="bg-green-50 border border-green-200 rounded-lg px-4 py-3 mb-3">
                       <p className="text-green-800 text-sm font-semibold">
-                        ✓ Your payment proof has been approved by the landlord
+                        Your payment proof has been approved by the landlord
                       </p>
                     </div>
                   )}

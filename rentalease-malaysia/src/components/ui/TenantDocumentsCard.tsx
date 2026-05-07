@@ -68,7 +68,9 @@ export default function TenantDocumentsCard({ tenancyId, tenantName }: Props) {
           Tenant Documents
         </h2>
         <div className="flex items-start gap-2 bg-gray-50 border border-gray-200 rounded-lg px-4 py-3">
-          <span className="text-gray-400 text-base mt-0.5">🔒</span>
+          <svg className="w-4 h-4 text-gray-400 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+          </svg>
           <p className="text-xs text-gray-500 leading-relaxed">
             Document access has been revoked. Under PDPA data minimisation principles, landlords may only view tenant documents during an active tenancy relationship.
           </p>
@@ -96,7 +98,9 @@ export default function TenantDocumentsCard({ tenancyId, tenantName }: Props) {
 
       {docs.length === 0 ? (
         <div className="text-center py-6">
-          <p className="text-2xl mb-2">📂</p>
+          <svg className="w-8 h-8 text-gray-300 mb-2 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 7a2 2 0 012-2h4l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V7z" />
+          </svg>
           <p className="text-sm text-gray-500">{tenantName} has not uploaded any documents yet.</p>
           <p className="text-xs text-gray-400 mt-1">They can upload IC copy and income proof from their profile page.</p>
         </div>
@@ -123,7 +127,9 @@ export default function TenantDocumentsCard({ tenancyId, tenantName }: Props) {
               <div key={type} className="flex items-center justify-between py-2 border-b border-gray-50 last:border-0">
                 <div className="flex items-center gap-3 min-w-0">
                   {isPdf ? (
-                    <span className="text-2xl flex-shrink-0">📄</span>
+                    <svg className="w-6 h-6 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
                   ) : (
                     <a
                       href={doc.imageUrl}
@@ -163,7 +169,7 @@ export default function TenantDocumentsCard({ tenancyId, tenantName }: Props) {
       )}
 
       <p className="text-xs text-gray-300 mt-4">
-        🔒 PDPA: document access automatically revokes when this tenancy closes.
+        PDPA: document access automatically revokes when this tenancy closes.
       </p>
     </div>
   );

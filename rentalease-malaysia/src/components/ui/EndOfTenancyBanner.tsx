@@ -30,7 +30,7 @@ export function EndOfTenancyBanner({
   return (
     <div className={`border rounded-xl px-5 py-4 ${colorClasses}`}>
       <p className="font-bold text-sm mb-1">
-        ⏰ Tenancy ending in {daysLeft} day{daysLeft !== 1 ? 's' : ''}
+        Tenancy ending in {daysLeft} day{daysLeft !== 1 ? 's' : ''}
       </p>
       <p className="text-xs mb-3 opacity-80">
         Review your options below and prepare for the handover process.
@@ -44,13 +44,13 @@ export function EndOfTenancyBanner({
               href={`/dashboard/landlord/tenancies/${tenancyId}/renew`}
               className="text-xs font-semibold bg-white/60 hover:bg-white border border-current rounded-lg px-3 py-1.5 transition-colors"
             >
-              🔄 Renew Tenancy
+              Renew Tenancy
             </Link>
             <Link
               href={`/dashboard/landlord/tenancies/${tenancyId}/terminate`}
               className="text-xs font-semibold bg-white/60 hover:bg-white border border-current rounded-lg px-3 py-1.5 transition-colors"
             >
-              🤝 End by Mutual Agreement
+              End by Mutual Agreement
             </Link>
           </>
         )}
@@ -64,7 +64,7 @@ export function EndOfTenancyBanner({
             }
             className="text-xs font-semibold bg-white/60 hover:bg-white border border-current rounded-lg px-3 py-1.5 transition-colors"
           >
-            📷 Create Move-Out Report
+            Create Move-Out Report
           </Link>
         )}
 
@@ -73,7 +73,7 @@ export function EndOfTenancyBanner({
             href={`/dashboard/landlord/tenancies/${tenancyId}/deposit-settlement`}
             className="text-xs font-semibold bg-white/60 hover:bg-white border border-current rounded-lg px-3 py-1.5 transition-colors"
           >
-            💰 Start Deposit Settlement
+            Start Deposit Settlement
           </Link>
         )}
       </div>

@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { createNotification } from '@/lib/notifications';
+import { sendKycApprovedEmail } from '@/lib/email';
 
 export async function PATCH(
   _request: NextRequest,
@@ -24,10 +25,17 @@ export async function PATCH(
   if (!user || user.role === 'ADMIN')
     return NextResponse.json({ error: 'User not found' }, { status: 404 });
 
+  const fullUser = await prisma.user.findUnique({
+    where: { id },
+    select: { email: true },
+  });
+
   await prisma.user.update({
     where: { id },
     data: { isVerified: true, kycRejectedReason: null },
   });
+
+  if (fullUser) sendKycApprovedEmail(fullUser.email, user.name);
 
   await createNotification(
     id,

@@ -82,7 +82,9 @@ export async function PATCH(
     'CONDITION_REPORT_ACKNOWLEDGED',
     'Condition report acknowledged',
     `${acknowledgerName} acknowledged your condition report for ${propertyAddress}.`,
-    `/dashboard/${creatorDashboardRole}/condition-reports/${report.id}`,
+    report.createdBy.role === 'LANDLORD'
+      ? `/dashboard/landlord/tenancies/${report.tenancyId}/conditions`
+      : `/dashboard/tenant/conditions`,
   );
 
   return NextResponse.json({ ok: true });

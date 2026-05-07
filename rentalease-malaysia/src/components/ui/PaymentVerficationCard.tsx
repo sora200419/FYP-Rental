@@ -120,14 +120,14 @@ export default function PaymentVerificationCard({
             disabled={isLoading}
             className="flex-1 bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white text-sm font-semibold py-2 rounded-lg transition-colors"
           >
-            {isLoading ? 'Processing…' : '✓ Approve'}
+            {isLoading ? 'Processing…' : 'Approve'}
           </button>
           <button
             onClick={() => setMode('rejecting')}
             disabled={isLoading}
             className="flex-1 border border-red-300 text-red-600 hover:bg-red-50 disabled:opacity-50 text-sm font-semibold py-2 rounded-lg transition-colors"
           >
-            ✗ Reject
+            Reject
           </button>
         </div>
       )}

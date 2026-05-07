@@ -16,21 +16,11 @@ const loginSchema = z.object({
 
 type LoginFormData = z.infer<typeof loginSchema>;
 
-/*
- * The inner form component reads query parameters to detect if the user
- * just arrived from registration. React 19 + Next.js 16 require any
- * component that calls useSearchParams() to be wrapped in a Suspense
- * boundary, otherwise production builds fail with a pre-render error.
- *
- * By isolating the query-param logic into this inner component, we keep
- * the Suspense boundary narrow — only the banner is inside it. The form
- * itself, which doesn't need query params, lives in the outer component
- * and renders without any suspense delay.
- */
 function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const justRegistered = searchParams.get('registered') === 'true';
+  const justReset = searchParams.get('reset') === 'true';
 
   const [serverError, setServerError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -39,9 +29,7 @@ function LoginForm() {
     register,
     handleSubmit,
     formState: { errors },
-  } = useForm<LoginFormData>({
-    resolver: zodResolver(loginSchema),
-  });
+  } = useForm<LoginFormData>({ resolver: zodResolver(loginSchema) });
 
   const onSubmit = async (data: LoginFormData) => {
     setIsLoading(true);
@@ -67,36 +55,58 @@ function LoginForm() {
   return (
     <>
       {justRegistered && (
-        <div className="bg-green-50 border border-green-200 text-green-700 text-sm rounded-lg px-4 py-3 mb-5">
-          ✅ Account created! Please sign in.
+        <div className="flex items-start gap-3 bg-green-50 border border-green-200 rounded-lg px-4 py-3 text-sm text-green-800 font-medium mb-6">
+          <svg className="w-4 h-4 text-green-500 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+          </svg>
+          Account created. Please sign in.
+        </div>
+      )}
+
+      {justReset && (
+        <div className="flex items-start gap-3 bg-green-50 border border-green-200 rounded-lg px-4 py-3 text-sm text-green-800 font-medium mb-6">
+          <svg className="w-4 h-4 text-green-500 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+          </svg>
+          Password reset successfully. Please sign in with your new password.
         </div>
       )}
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className="block text-sm font-medium text-gray-700 mb-1.5">
             Email Address
           </label>
           <input
             {...register('email')}
             type="email"
             placeholder="you@example.com"
-            className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full border border-gray-300 rounded-lg px-3.5 py-2.5 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-shadow"
           />
           {errors.email && (
-            <p className="text-red-500 text-xs mt-1">{errors.email.message}</p>
+            <p className="text-xs text-red-500 mt-1">{errors.email.message}</p>
           )}
         </div>
 
-        <PasswordInput
-          registration={register('password')}
-          label="Password"
-          placeholder="Your password"
-          error={errors.password?.message}
-        />
+        <div>
+          <PasswordInput
+            registration={register('password')}
+            label="Password"
+            placeholder="Your password"
+            error={errors.password?.message}
+          />
+          <div className="mt-1.5 text-right">
+            <Link href="/forgot-password" className="text-xs text-blue-600 hover:underline">
+              Forgot password?
+            </Link>
+          </div>
+        </div>
 
         {serverError && (
-          <div className="bg-red-50 border border-red-200 text-red-600 text-sm rounded-lg px-4 py-3">
+          <div className="flex items-start gap-3 bg-red-50 border border-red-200 rounded-lg px-4 py-3 text-sm text-red-800">
+            <svg className="w-4 h-4 text-red-500 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
             {serverError}
           </div>
         )}
@@ -104,56 +114,68 @@ function LoginForm() {
         <button
           type="submit"
           disabled={isLoading}
-          className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 text-white font-semibold py-3 rounded-lg transition-colors text-sm"
+          className="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-medium py-2.5 rounded-lg transition-colors text-sm"
         >
-          {isLoading ? 'Signing in...' : 'Sign In'}
+          {isLoading ? 'Signing in…' : 'Sign In'}
         </button>
       </form>
     </>
   );
 }
 
-/*
- * The outer page component is what Next.js renders for the /login route.
- * It provides the page chrome (header, layout, sign-up link) and wraps
- * the inner form in a Suspense boundary so the build-time pre-render
- * succeeds even though useSearchParams is called inside.
- *
- * The fallback is a minimal skeleton matching the form's dimensions so
- * the page doesn't visually jump when Suspense resolves. In practice the
- * resolution is instant on a real browser because the query params are
- * available immediately on first client render.
- */
 export default function LoginPage() {
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center py-12 px-4">
-      <div className="max-w-md w-full bg-white rounded-xl shadow-md p-8">
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">RentalEase</h1>
-          <p className="text-gray-500 mt-2">Sign in to your account</p>
-        </div>
-
-        <Suspense
-          fallback={
-            <div className="space-y-5 animate-pulse">
-              <div className="h-10 bg-gray-100 rounded-lg" />
-              <div className="h-10 bg-gray-100 rounded-lg" />
-              <div className="h-12 bg-gray-100 rounded-lg" />
-            </div>
-          }
-        >
-          <LoginForm />
-        </Suspense>
-
-        <p className="text-center text-sm text-gray-500 mt-6">
-          Don&apos;t have an account?{' '}
-          <Link
-            href="/register"
-            className="text-blue-600 hover:underline font-medium"
-          >
-            Create one
-          </Link>
+    <div className="min-h-screen flex">
+      {/* Left panel — branding */}
+      <div className="hidden lg:flex w-5/12 bg-gray-900 flex-col items-center justify-center p-12">
+        <span className="text-4xl font-bold text-white tracking-tight">RentalEase</span>
+        <p className="text-gray-400 mt-3 text-center text-sm leading-relaxed max-w-xs">
+          AI-Assisted Digital Tenancy Platform for Malaysian Residential Rentals
         </p>
+        <ul className="mt-10 space-y-3 text-sm text-gray-400 max-w-xs w-full">
+          {[
+            'AI-powered agreement generation',
+            'Blockchain-verified contracts',
+            'Bilingual EN / BM support',
+          ].map((item) => (
+            <li key={item} className="flex items-center gap-2.5">
+              <svg className="w-4 h-4 text-blue-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              </svg>
+              {item}
+            </li>
+          ))}
+        </ul>
+      </div>
+
+      {/* Right panel — form */}
+      <div className="flex-1 flex items-center justify-center bg-white px-6 py-12">
+        <div className="w-full max-w-sm">
+          {/* Mobile logo */}
+          <p className="lg:hidden text-2xl font-bold text-gray-900 mb-1">RentalEase</p>
+
+          <h2 className="text-2xl font-bold text-gray-900 mb-1">Sign in</h2>
+          <p className="text-sm text-gray-500 mb-8">Welcome back</p>
+
+          <Suspense
+            fallback={
+              <div className="space-y-5 animate-pulse">
+                <div className="h-10 bg-gray-100 rounded-lg" />
+                <div className="h-10 bg-gray-100 rounded-lg" />
+                <div className="h-10 bg-gray-100 rounded-lg" />
+              </div>
+            }
+          >
+            <LoginForm />
+          </Suspense>
+
+          <p className="text-center text-sm text-gray-500 mt-6">
+            Don&apos;t have an account?{' '}
+            <Link href="/register" className="text-blue-600 hover:underline font-medium">
+              Create one
+            </Link>
+          </p>
+        </div>
       </div>
     </div>
   );

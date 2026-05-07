@@ -99,7 +99,7 @@ export default function VerifyButton({ userId, disabled = false }: Props) {
       <button
         onClick={handleVerify}
         disabled={loading || disabled}
-        title={disabled ? 'Cannot verify — user has not uploaded their IC photo yet' : undefined}
+        title={disabled ? 'Cannot verify — user has not provided their IC number or uploaded their IC photo' : undefined}
         className="bg-green-600 hover:bg-green-700 disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm font-semibold px-4 py-1.5 rounded-lg transition-colors"
       >
         Verify

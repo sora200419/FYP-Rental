@@ -4,6 +4,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { generateTenancyAgreement, translateAgreementOutputs } from '@/lib/gemini';
+import { agreementGenerateLimit } from '@/lib/ratelimit';
 import { z } from 'zod';
 
 const bodySchema = z.object({
@@ -21,6 +22,17 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     const { tenancyId } = bodySchema.parse(body);
+
+    // Rate limit: 5 agreement generations per tenancy per hour (IMP-02)
+    const { success, remaining } = await agreementGenerateLimit.limit(
+      `${session.user.id}:${tenancyId}`,
+    );
+    if (!success) {
+      return NextResponse.json(
+        { error: `Too many requests. You can generate ${remaining} more time(s). Please wait before regenerating.` },
+        { status: 429 },
+      );
+    }
 
     // Authorization chain: Tenancy → Room → Property → landlordId
     const tenancy = await prisma.tenancy.findFirst({
@@ -57,10 +69,13 @@ export async function POST(request: NextRequest) {
 
     if (tenancy.status === 'INVITED')
       return NextResponse.json(
-        {
-          error:
-            'The tenant has not yet accepted the invitation. Please wait for them to accept before generating an agreement.',
-        },
+        { error: 'The tenant has not yet accepted the invitation. Please wait for them to accept before generating an agreement.' },
+        { status: 409 },
+      );
+
+    if (!['PENDING', 'ACTIVE'].includes(tenancy.status))
+      return NextResponse.json(
+        { error: 'Agreement cannot be generated for a tenancy that has ended.' },
         { status: 409 },
       );
 

@@ -1,6 +1,5 @@
 // src/lib/gemini.ts
 import { GoogleGenerativeAI } from '@google/generative-ai';
-import { isMockGeminiEnabled, getMockAgreement, getMockTranslation } from './mockGemini';
 import type { AgreementPreferences } from '@prisma/client';
 import { buildWizardPolicyBlock } from './wizardFormatters';
 
@@ -127,26 +126,6 @@ export async function generateTenancyAgreement(
   tenancy: TenancyForAgreement,
   preferences?: AgreementPreferences | null,
 ): Promise<GeneratedAgreement> {
-  // ── Mock mode short-circuit ───────────────────────────────────────────────
-  // When USE_MOCK_GEMINI=true is set in the environment, return a canned
-  // fixture response instead of calling the real Gemini API. This is the
-  // development mode that lets us iterate on wizard UI, viewer components,
-  // and PDF rendering without burning through free-tier quota or waiting
-  // 15 seconds per generation. See src/lib/mockGemini.ts for details on
-  // when to use this and when to turn it off.
-  //
-  // The check happens BEFORE any Gemini SDK initialization or prompt
-  // building so mock mode is fully free of real API dependencies. You can
-  // run the app with USE_MOCK_GEMINI=true and a blank GEMINI_API_KEY, and
-  // agreement generation will still work end-to-end.
-  if (isMockGeminiEnabled()) {
-    console.log(
-      '[Gemini] Mock mode active — returning canned fixture response. ' +
-        'Unset USE_MOCK_GEMINI to use the real API.',
-    );
-    return getMockAgreement();
-  }
-
   const model = genAI.getGenerativeModel({
     model: 'gemini-2.0-flash',
     generationConfig: {
@@ -337,10 +316,6 @@ export async function translateAgreementOutputs(
   plainLanguageSummary: string,
   redFlagsJson: string,
 ): Promise<TranslatedOutputs> {
-  if (isMockGeminiEnabled()) {
-    return getMockTranslation();
-  }
-
   const model = genAI.getGenerativeModel({
     model: 'gemini-2.0-flash',
     generationConfig: { responseMimeType: 'application/json' },

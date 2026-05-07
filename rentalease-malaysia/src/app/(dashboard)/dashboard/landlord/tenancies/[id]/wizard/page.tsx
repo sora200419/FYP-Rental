@@ -67,7 +67,7 @@ export default async function WizardPage({
         </p>
         {tenancy.agreementPreferences && !tenancy.agreementPreferences.isComplete && (
           <div className="mt-3 bg-amber-50 border border-amber-200 rounded-lg px-4 py-3 text-sm text-amber-800">
-            📝 You have a draft in progress. Continue where you left off or start over by adjusting your answers.
+            You have a draft in progress. Continue where you left off or start over by adjusting your answers.
           </div>
         )}
       </div>

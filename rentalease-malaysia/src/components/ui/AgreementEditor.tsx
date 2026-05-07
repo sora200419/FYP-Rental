@@ -132,7 +132,7 @@ export default function AgreementEditor({
       {negotiationNotes && (
         <div className="bg-blue-50 border border-blue-200 rounded-xl px-5 py-4">
           <p className="text-blue-800 font-semibold text-sm mb-2">
-            💬 Tenant requested these changes
+            Tenant requested these changes
           </p>
           <div className="bg-white border border-blue-200 rounded-lg px-4 py-3">
             <p className="text-sm text-gray-700 whitespace-pre-wrap">
@@ -148,7 +148,6 @@ export default function AgreementEditor({
       {/* ── AI Assist panel ─────────────────────────────────────────────── */}
       <div className="bg-purple-50 border border-purple-200 rounded-xl p-5">
         <div className="flex items-center gap-2 mb-3">
-          <span className="text-lg">✨</span>
           <p className="text-sm font-semibold text-purple-900">AI Assist</p>
           <span className="text-xs text-purple-500 font-medium">optional</span>
         </div>
@@ -193,7 +192,7 @@ export default function AgreementEditor({
           <div className="border border-purple-300 rounded-lg overflow-hidden">
             <div className="bg-purple-100 px-4 py-2 flex items-center justify-between">
               <p className="text-xs font-semibold text-purple-800">
-                ✨ AI Suggestion — review before applying
+                AI Suggestion — review before applying
               </p>
               <div className="flex gap-2">
                 <button
@@ -269,7 +268,7 @@ export default function AgreementEditor({
           {saveError && <p className="text-red-600 text-xs">{saveError}</p>}
           {saveSuccess && (
             <p className="text-green-600 text-xs font-medium">
-              ✓ Saved — agreement reset to Draft. Re-finalize to send to tenant.
+              Saved — agreement reset to Draft. Re-finalize to send to tenant.
             </p>
           )}
           {!saveError && !saveSuccess && isDirty && (

@@ -84,7 +84,7 @@ export default function DepositProofUploader({
       <div className="bg-green-50 border border-green-200 rounded-xl p-4">
         <div className="flex items-center gap-2 mb-3">
           <span className="text-green-600 font-bold text-sm">
-            ✓ Deposit Confirmed
+            Deposit Confirmed
           </span>
           <span className="text-xs text-gray-400">{depositAmount}</span>
         </div>

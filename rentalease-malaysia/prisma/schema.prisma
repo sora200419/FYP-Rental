@@ -34,8 +34,9 @@ model User {
 
   kycRejectedReason String? @db.Text // set by admin on KYC rejection; cleared on approval
 
-  notifications   Notification[]
-  tenantDocuments TenantDocument[]
+  notifications        Notification[]
+  tenantDocuments      TenantDocument[]
+  passwordResetTokens  PasswordResetToken[]
 }
 
 enum Role {
@@ -177,8 +178,8 @@ model Tenancy {
   tenant   User   @relation("TenantTenancies", fields: [tenantId], references: [id])
 
   // Deposit payment tracking
-  depositStatus          String  @default("PENDING") // PENDING | UNDER_REVIEW | PAID | REJECTED
-  depositRejectionReason String? @db.Text
+  depositStatus          DepositStatus @default(PENDING)
+  depositRejectionReason String?       @db.Text
 
   agreement            Agreement?
   rentPayments         RentPayment[]
@@ -212,6 +213,13 @@ enum TenancyStatus {
   TERMINATED // Ended early
 }
 
+enum DepositStatus {
+  PENDING      // Awaiting tenant to upload proof
+  UNDER_REVIEW // Proof uploaded; landlord reviewing
+  PAID         // Landlord confirmed receipt
+  REJECTED     // Landlord rejected proof; tenant must re-upload
+}
+
 // ─── AGREEMENT ───────────────────────────────────────────────────────────────
 model Agreement {
   id                   String          @id @default(cuid())
@@ -240,7 +248,7 @@ model Agreement {
   updatedAt DateTime @updatedAt
 
   tenancyId String  @unique
-  tenancy   Tenancy @relation(fields: [tenancyId], references: [id])
+  tenancy   Tenancy @relation(fields: [tenancyId], references: [id], onDelete: Cascade)
 }
 
 enum AgreementStatus {
@@ -264,7 +272,7 @@ model RentPayment {
   createdAt       DateTime      @default(now())
 
   tenancyId String
-  tenancy   Tenancy @relation(fields: [tenancyId], references: [id])
+  tenancy   Tenancy @relation(fields: [tenancyId], references: [id], onDelete: Cascade)
 
   proofs PaymentProof[]
 }
@@ -343,7 +351,7 @@ model Message {
   createdAt DateTime @default(now())
 
   tenancyId String
-  tenancy   Tenancy @relation(fields: [tenancyId], references: [id])
+  tenancy   Tenancy @relation(fields: [tenancyId], references: [id], onDelete: Cascade)
 
   senderId String
   sender   User   @relation("SentMessages", fields: [senderId], references: [id])
@@ -402,7 +410,7 @@ enum NotificationType {
 model AgreementPreferences {
   id        String  @id @default(cuid())
   tenancyId String  @unique
-  tenancy   Tenancy @relation(fields: [tenancyId], references: [id])
+  tenancy   Tenancy @relation(fields: [tenancyId], references: [id], onDelete: Cascade)
 
   // Step 1 — House Rules and Occupancy
   petsPolicy           String // "NONE"|"CATS_ONLY"|"DOGS_ONLY"|"APPROVAL"|"UNRESTRICTED"
@@ -508,7 +516,7 @@ model DepositProof {
 model DepositRefund {
   id            String       @id @default(cuid())
   tenancyId     String       @unique
-  tenancy       Tenancy      @relation(fields: [tenancyId], references: [id])
+  tenancy       Tenancy      @relation(fields: [tenancyId], references: [id], onDelete: Cascade)
   originalAmount Decimal     @db.Decimal(10, 2)
   refundAmount  Decimal      @db.Decimal(10, 2)
   status        RefundStatus @default(PROPOSED)
@@ -550,4 +558,15 @@ enum DeductionStatus {
   ACCEPTED // Tenant accepted
   DISPUTED // Tenant contested
   WITHDRAWN // Landlord removed
+}
+
+// ─── PASSWORD RESET TOKEN ─────────────────────────────────────────────────────
+model PasswordResetToken {
+  id        String    @id @default(cuid())
+  token     String    @unique
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
 }

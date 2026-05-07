@@ -6,6 +6,7 @@ import { prisma } from '@/lib/prisma';
 import { createNotification } from '@/lib/notifications';
 import { sendSystemMessage } from '@/lib/messages';
 import { anchorHashToBlockchain } from '@/lib/blockchain';
+import { sendAgreementSignedEmail } from '@/lib/email';
 import crypto from 'crypto';
 
 export async function PATCH(
@@ -45,6 +46,8 @@ export async function PATCH(
               },
             },
           },
+          // IMP-03: Fetch rentDueDay so the payment schedule uses the correct day of month
+          agreementPreferences: { select: { rentDueDay: true } },
         },
       },
     },
@@ -82,21 +85,39 @@ export async function PATCH(
       .update(agreement.rawContent)
       .digest('hex');
 
-    // Generate monthly rent payment schedule for the tenancy duration
+    // Generate monthly rent payment schedule using the wizard's rentDueDay (IMP-03).
+    // Each due date is set to rentDueDay of each month, clamped to the last day of
+    // the month for short months (e.g. day 31 in February → Feb 28/29).
     const { startDate, endDate, monthlyRent } = agreement.tenancy;
-    const payments: {
-      dueDate: Date;
-      amount: typeof monthlyRent;
-      tenancyId: string;
-    }[] = [];
-    const cursor = new Date(startDate);
-    while (cursor <= new Date(endDate)) {
-      payments.push({
-        dueDate: new Date(cursor),
-        amount: monthlyRent,
-        tenancyId: agreement.tenancyId,
-      });
-      cursor.setMonth(cursor.getMonth() + 1);
+    const rentDueDay = agreement.tenancy.agreementPreferences?.rentDueDay ?? new Date(startDate).getDate();
+
+    function dueDateForMonth(year: number, month: number): Date {
+      const daysInMonth = new Date(year, month + 1, 0).getDate();
+      return new Date(year, month, Math.min(rentDueDay, daysInMonth));
+    }
+
+    const startDateObj = new Date(startDate);
+    const endDateObj = new Date(endDate);
+
+    // First due date: first occurrence of rentDueDay on or after startDate
+    let year = startDateObj.getFullYear();
+    let month = startDateObj.getMonth();
+    let firstDue = dueDateForMonth(year, month);
+    if (firstDue < startDateObj) {
+      month += 1;
+      if (month > 11) { month = 0; year += 1; }
+      firstDue = dueDateForMonth(year, month);
+    }
+
+    const payments: { dueDate: Date; amount: typeof monthlyRent; tenancyId: string }[] = [];
+    let curYear = firstDue.getFullYear();
+    let curMonth = firstDue.getMonth();
+    while (true) {
+      const dueDate = dueDateForMonth(curYear, curMonth);
+      if (dueDate > endDateObj) break;
+      payments.push({ dueDate, amount: monthlyRent, tenancyId: agreement.tenancyId });
+      curMonth += 1;
+      if (curMonth > 11) { curMonth = 0; curYear += 1; }
     }
 
     await prisma.$transaction([
@@ -124,6 +145,21 @@ export async function PATCH(
       `${tenantName} signed the tenancy agreement for ${propertyAddress}. The tenancy is now active.`,
       `/dashboard/landlord/tenancies/${agreement.tenancyId}`,
     );
+
+    // Email landlord (non-blocking)
+    const landlordUser = await prisma.user.findUnique({
+      where: { id: landlordId },
+      select: { email: true, name: true },
+    });
+    if (landlordUser) {
+      sendAgreementSignedEmail(
+        landlordUser.email,
+        landlordUser.name,
+        tenantName,
+        propertyAddress,
+        agreement.tenancyId,
+      );
+    }
 
     // Anchor the content hash to Sepolia — best-effort, must not block signing
     anchorHashToBlockchain(contentHash)

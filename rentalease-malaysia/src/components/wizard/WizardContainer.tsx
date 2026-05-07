@@ -226,7 +226,11 @@ export function WizardContainer({ tenancyId, roomMeta, existingPreferences }: Wi
                         : 'bg-gray-100 text-gray-400'
                   }`}
                 >
-                  {done && stepNum < currentStep ? '✓' : stepNum}
+                  {done && stepNum < currentStep ? (
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                    </svg>
+                  ) : stepNum}
                 </div>
                 <p className={`text-[10px] mt-1 hidden sm:block font-medium ${current ? 'text-blue-700' : 'text-gray-400'}`}>
                   {title.split(' ')[0]}
@@ -300,7 +304,7 @@ export function WizardContainer({ tenancyId, roomMeta, existingPreferences }: Wi
                 Saving…
               </>
             ) : (
-              '✨ Complete & Generate Agreement'
+              'Complete & Generate Agreement'
             )}
           </button>
         )}

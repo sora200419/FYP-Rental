@@ -77,7 +77,9 @@ export default function PaymentProofUploader({
     return (
       <div className="space-y-3">
         <div className="flex items-center gap-2 text-green-600 text-sm font-medium">
-          <span>✓</span>
+          <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+          </svg>
           <span>Payment verified by landlord</span>
         </div>
         {existingProofs.length > 0 && (
@@ -111,7 +113,7 @@ export default function PaymentProofUploader({
       {currentStatus === 'PENDING' && rejectionReason && (
         <div className="bg-red-50 border border-red-200 rounded-lg px-4 py-3">
           <p className="text-red-800 text-sm font-semibold mb-1">
-            ⚠ Proof rejected — please re-upload
+            Proof rejected — please re-upload
           </p>
           <p className="text-red-600 text-xs">{rejectionReason}</p>
         </div>
@@ -120,7 +122,6 @@ export default function PaymentProofUploader({
       {/* Already submitted indicator */}
       {currentStatus === 'UNDER_REVIEW' && (
         <div className="flex items-center gap-2 text-amber-600 text-sm">
-          <span>⏳</span>
           <span>Proof submitted — awaiting landlord verification</span>
         </div>
       )}
@@ -196,7 +197,6 @@ export default function PaymentProofUploader({
             </>
           ) : (
             <>
-              📎{' '}
               {currentStatus === 'UNDER_REVIEW'
                 ? 'Add more proof'
                 : 'Upload payment proof'}

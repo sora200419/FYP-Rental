@@ -23,9 +23,9 @@ export function Step2Utilities({ data, onChange, roomMeta }: Props) {
       <div className="bg-blue-50 border border-blue-200 rounded-lg px-4 py-3 text-sm text-blue-800">
         <p className="font-semibold mb-1">Utilities included in rent (from room setup):</p>
         <ul className="list-disc list-inside text-blue-700 space-y-0.5">
-          <li>WiFi / Internet: {roomMeta.wifiIncluded ? '✓ Included' : '✗ Not included'}</li>
-          <li>Water: {roomMeta.waterIncluded ? '✓ Included' : '✗ Not included'}</li>
-          <li>Electricity: {roomMeta.electricIncluded ? '✓ Included' : '✗ Not included'}</li>
+          <li>WiFi / Internet: {roomMeta.wifiIncluded ? 'Included' : 'Not included'}</li>
+          <li>Water: {roomMeta.waterIncluded ? 'Included' : 'Not included'}</li>
+          <li>Electricity: {roomMeta.electricIncluded ? 'Included' : 'Not included'}</li>
         </ul>
       </div>
 

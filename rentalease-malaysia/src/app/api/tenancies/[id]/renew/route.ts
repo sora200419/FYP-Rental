@@ -48,19 +48,25 @@ export async function POST(
   if (new Date(endDate) <= new Date(startDate))
     return NextResponse.json({ error: 'End date must be after start date' }, { status: 400 });
 
-  const renewal = await prisma.tenancy.create({
-    data: {
-      roomId: tenancy.roomId,
-      tenantId: tenancy.tenantId,
-      startDate: new Date(startDate),
-      endDate: new Date(endDate),
-      monthlyRent,
-      depositAmount,
-      status: 'INVITED',
-      renewalOfTenancyId: tenancy.id,
-    },
-    select: { id: true },
-  });
+  const [renewal] = await prisma.$transaction([
+    prisma.tenancy.create({
+      data: {
+        roomId: tenancy.roomId,
+        tenantId: tenancy.tenantId,
+        startDate: new Date(startDate),
+        endDate: new Date(endDate),
+        monthlyRent,
+        depositAmount,
+        status: 'INVITED',
+        renewalOfTenancyId: tenancy.id,
+      },
+      select: { id: true },
+    }),
+    prisma.room.update({
+      where: { id: tenancy.roomId },
+      data: { isAvailable: false },
+    }),
+  ]);
 
   // Notify tenant of renewal invitation (non-blocking)
   createNotification(

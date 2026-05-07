@@ -28,10 +28,27 @@ interface Props {
   language?: string; // 'en' | 'ms' — user's language preference
 }
 
-const SEVERITY_STYLES: Record<string, string> = {
-  HIGH: 'bg-red-100   text-red-700   border-red-200',
-  MEDIUM: 'bg-amber-100 text-amber-700 border-amber-200',
-  LOW: 'bg-blue-100  text-blue-700  border-blue-200',
+const PILL_BASE = 'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium';
+
+const STATUS_PILL: Record<string, string> = {
+  DRAFT:           `${PILL_BASE} bg-gray-100 text-gray-500 ring-1 ring-gray-200 ring-inset`,
+  FINALIZED:       `${PILL_BASE} bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200 ring-inset`,
+  SIGNED:          `${PILL_BASE} bg-green-50 text-green-700 ring-1 ring-green-200 ring-inset`,
+  NEGOTIATING:     `${PILL_BASE} bg-purple-50 text-purple-700 ring-1 ring-purple-200 ring-inset`,
+  PENDING_TENANT:  `${PILL_BASE} bg-yellow-50 text-yellow-700 ring-1 ring-yellow-200 ring-inset`,
+  PENDING_LANDLORD:`${PILL_BASE} bg-orange-50 text-orange-700 ring-1 ring-orange-200 ring-inset`,
+};
+
+const SEVERITY_CARD: Record<string, string> = {
+  HIGH:   'bg-red-50 border border-red-200 text-red-900',
+  MEDIUM: 'bg-amber-50 border border-amber-200 text-amber-900',
+  LOW:    'bg-blue-50 border border-blue-200 text-blue-900',
+};
+
+const SEVERITY_PILL: Record<string, string> = {
+  HIGH:   `${PILL_BASE} bg-red-50 text-red-600 ring-1 ring-red-200 ring-inset`,
+  MEDIUM: `${PILL_BASE} bg-amber-50 text-amber-700 ring-1 ring-amber-200 ring-inset`,
+  LOW:    `${PILL_BASE} bg-blue-50 text-blue-700 ring-1 ring-blue-200 ring-inset`,
 };
 
 type Tab = 'agreement' | 'summary' | 'redflags';
@@ -93,9 +110,9 @@ export default function AgreementViewer({
   };
 
   const tabs: { key: Tab; label: string; badge?: number }[] = [
-    { key: 'agreement', label: '📄 Full Agreement' },
-    { key: 'summary', label: '💬 Plain Language' },
-    { key: 'redflags', label: '⚠️ Red Flags', badge: redFlags.length },
+    { key: 'agreement', label: 'Full Agreement' },
+    { key: 'summary', label: 'Plain Language' },
+    { key: 'redflags', label: 'Red Flags', badge: redFlags.length },
   ];
 
   return (
@@ -112,47 +129,39 @@ export default function AgreementViewer({
         </div>
 
         <div className="flex items-center gap-3 shrink-0">
-          <span
-            className={`text-xs font-semibold px-3 py-1.5 rounded-full ${
-              status === 'FINALIZED'
-                ? 'bg-green-100 text-green-700'
-                : status === 'SIGNED'
-                  ? 'bg-blue-100 text-blue-700'
-                  : status === 'NEGOTIATING'
-                    ? 'bg-purple-100 text-purple-700'
-                    : 'bg-amber-100 text-amber-700'
-            }`}
-          >
-            {status.charAt(0) + status.slice(1).toLowerCase()}
+          <span className={STATUS_PILL[status] ?? `${PILL_BASE} bg-gray-100 text-gray-500`}>
+            {status.replace(/_/g, ' ')}
           </span>
 
           <a
             href={`/api/agreements/${agreementId}/pdf`}
             download
-            className="text-sm font-semibold px-4 py-2 border border-gray-300 text-gray-600 hover:bg-gray-50 rounded-lg transition-colors"
+            className="border border-gray-300 bg-white hover:bg-gray-50 text-gray-700 text-sm font-medium px-4 py-2.5 rounded-lg transition-colors"
           >
-            ⬇ Download
+            Download PDF
           </a>
 
           {showFinalizeButton && (
             <button
               onClick={handleFinalize}
               disabled={isFinalizing}
-              className="text-sm font-semibold px-4 py-2 bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white rounded-lg transition-colors"
+              className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-sm font-medium px-4 py-2.5 rounded-lg transition-colors"
             >
-              {isFinalizing ? 'Finalizing…' : '✓ Mark as Finalized'}
+              {isFinalizing ? 'Finalizing…' : 'Mark as Finalized'}
             </button>
           )}
         </div>
       </div>
 
       {highCount > 0 && isDraft && !readOnly && (
-        <div className="bg-red-50 border border-red-200 rounded-xl px-5 py-4 mb-5 flex items-start gap-3">
-          <span className="text-red-500 text-xl mt-0.5">⚠️</span>
+        <div className="flex items-start gap-3 bg-red-50 border border-red-200 rounded-lg px-4 py-3 mb-5 text-sm text-red-800">
+          <svg className="w-4 h-4 text-red-500 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+              d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+          </svg>
           <div>
-            <p className="text-red-800 font-semibold text-sm">
-              {highCount} high-severity {highCount === 1 ? 'issue' : 'issues'}{' '}
-              detected
+            <p className="font-semibold">
+              {highCount} high-severity {highCount === 1 ? 'issue' : 'issues'} detected
             </p>
             <p className="text-red-600 text-xs mt-0.5">
               Review the Red Flags tab before finalizing this agreement.
@@ -168,20 +177,20 @@ export default function AgreementViewer({
       )}
 
       {/* ── Tab navigation ──────────────────────────────────────────────── */}
-      <div className="flex gap-1 bg-gray-100 p-1 rounded-xl mb-5">
+      <div className="flex border-b border-gray-200 mb-0">
         {tabs.map((tab) => (
           <button
             key={tab.key}
             onClick={() => setActiveTab(tab.key)}
-            className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+            className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 -mb-px transition-colors ${
               activeTab === tab.key
-                ? 'bg-white text-gray-900 shadow-sm'
-                : 'text-gray-500 hover:text-gray-700'
+                ? 'text-blue-600 border-blue-600'
+                : 'text-gray-500 border-transparent hover:text-gray-700 hover:border-gray-300'
             }`}
           >
             {tab.label}
             {tab.badge !== undefined && tab.badge > 0 && (
-              <span className="bg-red-500 text-white text-xs font-bold px-1.5 py-0.5 rounded-full leading-none">
+              <span className="bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full leading-none">
                 {tab.badge}
               </span>
             )}
@@ -233,11 +242,15 @@ export default function AgreementViewer({
 
             {displayRedFlags.length === 0 ? (
               <div className="text-center py-12">
-                <p className="text-4xl mb-3">✅</p>
+                <div className="w-10 h-10 rounded-full bg-green-50 flex items-center justify-center mx-auto mb-3">
+                  <svg className="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                </div>
                 <p className="text-gray-700 font-semibold">
                   {isMalay ? 'Tiada bendera merah dikesan' : 'No red flags detected'}
                 </p>
-                <p className="text-gray-400 text-sm mt-1">
+                <p className="text-sm text-gray-400 mt-1">
                   {isMalay
                     ? 'Analisis AI tidak menemui sebarang isu ketara dengan perjanjian ini.'
                     : 'The AI analysis found no significant issues with this agreement.'}
@@ -246,13 +259,10 @@ export default function AgreementViewer({
             ) : (
               <div className="space-y-4">
                 {displayRedFlags.map((flag, index) => (
-                  <div
-                    key={index}
-                    className={`border rounded-xl p-5 ${SEVERITY_STYLES[flag.severity]}`}
-                  >
-                    <div className="flex items-center justify-between mb-2">
+                  <div key={index} className={`rounded-xl p-5 ${SEVERITY_CARD[flag.severity]}`}>
+                    <div className="flex items-center justify-between mb-2 gap-3">
                       <p className="font-semibold text-sm">{flag.clause}</p>
-                      <span className="text-xs font-bold uppercase tracking-wide opacity-70">
+                      <span className={SEVERITY_PILL[flag.severity]}>
                         {flag.severity}
                       </span>
                     </div>
@@ -284,7 +294,7 @@ export default function AgreementViewer({
           <div className="space-y-3 text-xs text-gray-500">
             {signedAt && (
               <div className="flex items-start gap-3">
-                <span className="text-gray-400 shrink-0 mt-0.5">🕐</span>
+                <svg className="w-3.5 h-3.5 text-gray-400 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                 <div>
                   <p className="font-medium text-gray-600 mb-0.5">Signed at</p>
                   <p>
@@ -303,7 +313,7 @@ export default function AgreementViewer({
 
             {signedByIp && (
               <div className="flex items-start gap-3">
-                <span className="text-gray-400 shrink-0 mt-0.5">🌐</span>
+                <svg className="w-3.5 h-3.5 text-gray-400 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9" /></svg>
                 <div>
                   <p className="font-medium text-gray-600 mb-0.5">
                     Signed from IP
@@ -315,7 +325,7 @@ export default function AgreementViewer({
 
             {/* SHA-256 hash — the document fingerprint */}
             <div className="flex items-start gap-3">
-              <span className="text-gray-400 shrink-0 mt-0.5">🔒</span>
+              <svg className="w-3.5 h-3.5 text-gray-400 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
               <div className="min-w-0">
                 <p className="font-medium text-gray-600 mb-0.5">
                   Document SHA-256 fingerprint
@@ -333,7 +343,7 @@ export default function AgreementViewer({
 
             {/* Blockchain anchor — the on-chain proof */}
             <div className="flex items-start gap-3">
-              <span className="text-gray-400 shrink-0 mt-0.5">⛓️</span>
+              <svg className="w-3.5 h-3.5 text-gray-400 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" /></svg>
               <div className="min-w-0">
                 <p className="font-medium text-gray-600 mb-0.5">
                   Blockchain anchor (Ethereum Sepolia testnet)

@@ -29,10 +29,7 @@ CLOUDINARY_API_SECRET="..."
 CLOUDINARY_UPLOAD_PRESET="rentalease_payments"
 BLOCKCHAIN_PRIVATE_KEY="0x..."   # Sepolia testnet wallet
 SEPOLIA_RPC_URL="https://..."
-USE_MOCK_GEMINI=true             # Skip real Gemini calls during dev
 ```
-
-Set `USE_MOCK_GEMINI=true` during UI development. Turn it off for integration testing and demos.
 
 ## Architecture
 
@@ -49,7 +46,7 @@ src/app/
 
 ### Auth
 
-NextAuth.js v4 with a Credentials provider. JWT tokens carry `id`, `email`, `role`, and `language`. Config lives in `src/lib/auth.ts`. Passwords are bcrypt-hashed. Role is an enum: `LANDLORD | TENANT`.
+NextAuth.js v4 with a Credentials provider. JWT tokens carry `id`, `email`, `role`, and `language`. Config lives in `src/lib/auth.ts`. Passwords are bcrypt-hashed. Role is an enum: `LANDLORD | TENANT | ADMIN`. Admin accounts are created via `scripts/create-admin.ts`; they have their own dashboard at `/dashboard/admin` and are blocked from landlord/tenant routes by middleware.
 
 ### Data Model (Prisma + PostgreSQL)
 
@@ -70,7 +67,7 @@ Two-step Gemini call sequence for each agreement:
 1. **`generateTenancyAgreement(tenancy, preferences)`** — calls `gemini-2.0-flash` in JSON mode. Returns `rawContent` (full legal text), `plainLanguageSummary` (English clause explanations), and `redFlags` (array of `{severity, clause, issue, recommendation}`).
 2. **`translateAgreementOutputs(...)`** — separate call to translate `plainLanguageSummary` and `redFlags` into formal Bahasa Malaysia (`plainLanguageSummaryMs`, `redFlagsMs`).
 
-Enum values are converted to human-readable strings before being sent to Gemini (see `src/lib/wizardFormatters.ts`). Mock fixtures live in `src/lib/mockGemini.ts`.
+Enum values are converted to human-readable strings before being sent to Gemini (see `src/lib/wizardFormatters.ts`).
 
 API integration points: `POST /api/agreements/generate`, `POST /api/agreements/[id]/assist`.
 

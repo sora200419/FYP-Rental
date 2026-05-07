@@ -4,6 +4,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { createNotification } from '@/lib/notifications';
+import { sendInvitationEmail } from '@/lib/email';
 
 export async function GET() {
   const session = await getServerSession(authOptions);
@@ -93,6 +94,21 @@ export async function POST(request: Request) {
     );
   }
 
+  const today = new Date().toISOString().split('T')[0];
+  if (startDate < today) {
+    return NextResponse.json(
+      { error: 'Start date cannot be in the past' },
+      { status: 400 },
+    );
+  }
+
+  if (endDate <= startDate) {
+    return NextResponse.json(
+      { error: 'End date must be after start date' },
+      { status: 400 },
+    );
+  }
+
   // Verify the landlord owns this room
   const room = await prisma.room.findUnique({
     where: { id: roomId },
@@ -169,7 +185,19 @@ export async function POST(request: Request) {
     'INVITATION_RECEIVED',
     'New tenancy invitation',
     `You have received a tenancy invitation for ${room.property.address}, ${room.property.city}.`,
-    '/dashboard/tenant',
+    '/dashboard/tenant/tenancy',
+  );
+
+  // Send email (non-blocking)
+  const landlordUser = await prisma.user.findUnique({
+    where: { id: session.user.id },
+    select: { name: true },
+  });
+  sendInvitationEmail(
+    tenant.email,
+    tenant.name ?? 'Tenant',
+    `${room.property.address}, ${room.property.city}`,
+    landlordUser?.name ?? 'Your landlord',
   );
 
   return NextResponse.json(tenancy, { status: 201 });

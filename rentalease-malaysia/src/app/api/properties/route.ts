@@ -29,7 +29,7 @@ export async function POST(request: NextRequest) {
   });
   if (!currentUser?.isVerified) {
     return NextResponse.json(
-      { error: 'Your account must be verified before you can list properties. Please upload your IC on your Profile page and wait for admin approval.' },
+      { error: 'Your account must be verified before you can list properties. Please wait for admin approval of your identity documents.' },
       { status: 403 },
     );
   }

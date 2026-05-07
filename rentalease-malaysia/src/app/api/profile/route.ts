@@ -116,6 +116,18 @@ export async function PATCH(request: NextRequest) {
         { error: error.issues[0].message },
         { status: 400 },
       );
+    // Prisma unique constraint violation (e.g. IC number already registered)
+    if (
+      typeof error === 'object' &&
+      error !== null &&
+      'code' in error &&
+      (error as { code: string }).code === 'P2002'
+    ) {
+      return NextResponse.json(
+        { error: 'This IC number is already registered to another account.' },
+        { status: 409 },
+      );
+    }
     console.error('Profile update error:', error);
     return NextResponse.json(
       { error: 'Failed to update profile.' },

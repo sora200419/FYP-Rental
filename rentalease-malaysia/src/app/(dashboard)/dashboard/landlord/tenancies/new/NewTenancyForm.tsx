@@ -40,6 +40,10 @@ const tenancySchema = z
       .positive('Monthly rent must be greater than 0'),
     depositAmount: z.coerce.number().min(0, 'Deposit must be 0 or more'),
   })
+  .refine(
+    (data) => data.startDate >= new Date().toISOString().split('T')[0],
+    { message: 'Start date cannot be in the past', path: ['startDate'] },
+  )
   .refine((data) => new Date(data.endDate) > new Date(data.startDate), {
     message: 'End date must be after the start date',
     path: ['endDate'],
@@ -64,6 +68,7 @@ export default function NewTenancyForm({
   propertyAddress: string;
 }) {
   const router = useRouter();
+  const today = new Date().toISOString().split('T')[0];
   const [serverError, setServerError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [tenantLookup, setTenantLookup] = useState<TenantLookup>({
@@ -179,7 +184,9 @@ export default function NewTenancyForm({
 
             {tenantLookup.status === 'found' && (
               <div className="bg-green-50 border border-green-200 rounded-lg px-4 py-3 flex items-center gap-3">
-                <span className="text-green-600 text-lg">✓</span>
+                <svg className="w-5 h-5 text-green-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
                 <div>
                   <p className="text-sm font-semibold text-green-800">
                     {tenantLookup.name}
@@ -212,6 +219,7 @@ export default function NewTenancyForm({
                 <input
                   {...register('startDate')}
                   type="date"
+                  min={today}
                   className={inputClass}
                 />
               </Field>
@@ -219,6 +227,7 @@ export default function NewTenancyForm({
                 <input
                   {...register('endDate')}
                   type="date"
+                  min={today}
                   className={inputClass}
                 />
               </Field>

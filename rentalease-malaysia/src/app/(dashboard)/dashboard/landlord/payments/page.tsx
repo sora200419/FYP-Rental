@@ -162,7 +162,7 @@ export default async function LandlordPaymentsPage() {
                 formatRM={formatRM}
               >
                 <div className="mt-4 border-t border-gray-100 pt-4">
-                  <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-red-100 text-red-600">
+                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-50 text-red-600 ring-1 ring-red-200 ring-inset">
                     Rejected — awaiting re-upload from tenant
                   </span>
                   {t.depositRejectionReason && (
@@ -182,7 +182,7 @@ export default async function LandlordPaymentsPage() {
                 formatRM={formatRM}
               >
                 <div className="mt-4 border-t border-gray-100 pt-4 flex items-center gap-2">
-                  <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-green-100 text-green-700">
+                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-50 text-green-700 ring-1 ring-green-200 ring-inset">
                     Confirmed
                   </span>
                   {t.depositProofs.length > 0 && (
@@ -203,10 +203,9 @@ export default async function LandlordPaymentsPage() {
       )}
 
       {allPayments.length === 0 && allDepositTenancies.length === 0 && (
-        <div className="text-center py-20 bg-white rounded-xl border border-gray-200">
-          <p className="text-4xl mb-4">💳</p>
-          <p className="text-gray-700 font-semibold text-lg">No payments yet</p>
-          <p className="text-gray-400 text-sm mt-1">
+        <div className="bg-white rounded-xl border border-gray-200 p-12 text-center">
+          <p className="text-gray-700 font-semibold">No payments yet</p>
+          <p className="text-sm text-gray-400 mt-1">
             Payment schedules are generated when tenants sign their agreements.
           </p>
         </div>
@@ -248,10 +247,10 @@ export default async function LandlordPaymentsPage() {
               >
                 <div className="mt-2">
                   <span
-                    className={`text-xs font-semibold px-2.5 py-1 rounded-full ${
+                    className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ring-1 ring-inset ${
                       isOverdue
-                        ? 'bg-red-100 text-red-600'
-                        : 'bg-amber-100 text-amber-700'
+                        ? 'bg-red-50 text-red-600 ring-red-200'
+                        : 'bg-gray-100 text-gray-500 ring-gray-200'
                     }`}
                   >
                     {isOverdue ? 'Overdue' : 'Pending'}
@@ -277,7 +276,7 @@ export default async function LandlordPaymentsPage() {
               formatRM={formatRM}
             >
               <div className="mt-2 flex items-center gap-2">
-                <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-green-100 text-green-700">
+                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-50 text-green-700 ring-1 ring-green-200 ring-inset">
                   {payment.status === 'WAIVED' ? 'Waived' : 'Paid'}
                 </span>
                 <span className="text-xs text-gray-400">

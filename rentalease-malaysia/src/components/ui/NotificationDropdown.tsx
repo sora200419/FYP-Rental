@@ -31,45 +31,14 @@ interface NotificationDropdownProps {
   onCountChanged: () => void;
 }
 
-/*
- * Emoji mapping for each notification type.
- *
- * Why this lives in the UI component and not on the backend
- * ----------------------------------------------------------
- * The emoji is a pure presentation concern — a different UI might prefer
- * an icon font, a colored circle, or no visual indicator at all. Putting
- * the mapping in the component that actually renders the indicator keeps
- * the concern localized. The backend's job is to store the semantic type
- * (e.g., 'PAYMENT_APPROVED'); how that type looks is up to the UI.
- *
- * When adding a new NotificationType in a future phase, add the emoji
- * entry here at the same time. If you forget, the fallback 🔔 icon
- * will be shown instead of crashing.
- */
-const TYPE_EMOJI: Record<NotificationType, string> = {
-  INVITATION_RECEIVED: '📨',
-  INVITATION_RESPONDED: '✉️',
-  AGREEMENT_READY: '📝',
-  AGREEMENT_CHANGES_REQUESTED: '✏️',
-  AGREEMENT_SIGNED: '✅',
-  PAYMENT_PROOF_UPLOADED: '💰',
-  PAYMENT_APPROVED: '✔️',
-  PAYMENT_REJECTED: '❌',
-  CONDITION_REPORT_CREATED: '📷',
-  CONDITION_REPORT_ACKNOWLEDGED: '👍',
-  DEPOSIT_DEDUCTION_FILED: '🔖',
-  DEPOSIT_REFUND_PAID: '💸',
-  TENANCY_ENDING_SOON: '⏰',
-  MUTUAL_TERMINATION_PROPOSED: '🤝',
-  MUTUAL_TERMINATION_RESPONDED: '📋',
-  DEPOSIT_PROOF_UPLOADED: '🏦',
-  DEPOSIT_PROOF_APPROVED: '✔️',
-  DEPOSIT_PROOF_REJECTED: '❌',
-  ACCOUNT_VERIFIED: '✅',
-  ACCOUNT_KYC_REJECTED: '🚫',
-  PROPERTY_VERIFICATION_APPROVED: '🏠',
-  PROPERTY_VERIFICATION_REJECTED: '🚫',
-};
+function NotificationIcon() {
+  return (
+    <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
+        d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+    </svg>
+  );
+}
 
 /*
  * Format an ISO timestamp as a relative time string like "5m ago" or
@@ -327,8 +296,8 @@ export function NotificationDropdown({
               `}
             >
               <div className="flex gap-3">
-                <div className="text-xl flex-shrink-0">
-                  {TYPE_EMOJI[n.type] ?? '🔔'}
+                <div className="flex-shrink-0 mt-0.5">
+                  <NotificationIcon />
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-start justify-between gap-2">

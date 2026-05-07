@@ -4,6 +4,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { createNotification } from '@/lib/notifications';
+import { sendPaymentApprovedEmail, sendPaymentRejectedEmail } from '@/lib/email';
 
 export async function PATCH(
   request: Request,
@@ -66,14 +67,18 @@ export async function PATCH(
   const tenantId = payment.tenancy.tenant.id;
   const propertyAddress = payment.tenancy.room.property.address;
 
+  const tenantUser = await prisma.user.findUnique({
+    where: { id: tenantId },
+    select: { email: true, name: true },
+  });
+
+  const amountStr = Number(payment.amount).toFixed(2);
+  const monthStr = new Date(payment.dueDate).toLocaleDateString('en-MY', { month: 'long', year: 'numeric' });
+
   if (action === 'APPROVE') {
     await prisma.rentPayment.update({
       where: { id: paymentId },
-      data: {
-        status: 'PAID',
-        paidDate: new Date(),
-        rejectionReason: null,
-      },
+      data: { status: 'PAID', paidDate: new Date(), rejectionReason: null },
     });
 
     await createNotification(
@@ -84,16 +89,15 @@ export async function PATCH(
       `/dashboard/tenant/payments`,
     );
 
+    if (tenantUser) sendPaymentApprovedEmail(tenantUser.email, tenantUser.name, amountStr, monthStr);
+
     return NextResponse.json({ ok: true, status: 'PAID' });
   }
 
   // REJECT
   await prisma.rentPayment.update({
     where: { id: paymentId },
-    data: {
-      status: 'PENDING',
-      rejectionReason,
-    },
+    data: { status: 'PENDING', rejectionReason },
   });
 
   await createNotification(
@@ -103,6 +107,8 @@ export async function PATCH(
     `Your payment proof for ${propertyAddress} was rejected: ${rejectionReason}. Please re-upload.`,
     `/dashboard/tenant/payments`,
   );
+
+  if (tenantUser) sendPaymentRejectedEmail(tenantUser.email, tenantUser.name, amountStr, monthStr, rejectionReason);
 
   return NextResponse.json({ ok: true, status: 'PENDING' });
 }

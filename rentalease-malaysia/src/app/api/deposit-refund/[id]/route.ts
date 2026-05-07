@@ -5,6 +5,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { createNotification } from '@/lib/notifications';
+import { sendDepositSettlementEmail } from '@/lib/email';
 import { z } from 'zod';
 
 // Note: the [id] segment here is the tenancyId. It shares the same dynamic
@@ -19,7 +20,7 @@ async function verifyAccess(tenancyId: string, userId: string, role: string) {
         ? { room: { property: { landlordId: userId } } }
         : { tenantId: userId }),
     },
-    select: { id: true, depositAmount: true, status: true, tenantId: true },
+    select: { id: true, depositAmount: true, status: true, tenantId: true, depositStatus: true },
   });
 }
 
@@ -64,8 +65,25 @@ export async function POST(
   const tenancy = await verifyAccess(tenancyId, session.user.id, session.user.role);
   if (!tenancy) return NextResponse.json({ error: 'Not found' }, { status: 404 });
 
-  if (!['EXPIRED', 'TERMINATED'].includes(tenancy.status))
+  // BUG-05: Auto-expire any ACTIVE tenancy whose endDate has already passed,
+  // so deposit settlement is not blocked just because the cron hasn't run yet.
+  let effectiveStatus = tenancy.status;
+  if (tenancy.status === 'ACTIVE') {
+    const tenancyFull = await prisma.tenancy.findUnique({
+      where: { id: tenancyId },
+      select: { endDate: true },
+    });
+    if (tenancyFull && tenancyFull.endDate < new Date()) {
+      await prisma.tenancy.update({ where: { id: tenancyId }, data: { status: 'EXPIRED' } });
+      effectiveStatus = 'EXPIRED';
+    }
+  }
+
+  if (!['EXPIRED', 'TERMINATED'].includes(effectiveStatus))
     return NextResponse.json({ error: 'Deposit settlement only available after tenancy ends' }, { status: 409 });
+
+  if (tenancy.depositStatus !== 'PAID')
+    return NextResponse.json({ error: 'Deposit has not been confirmed as received. Please verify the deposit payment before initiating settlement.' }, { status: 409 });
 
   const existing = await prisma.depositRefund.findUnique({ where: { tenancyId } });
   if (existing) return NextResponse.json({ error: 'Deposit refund already created' }, { status: 409 });
@@ -106,6 +124,23 @@ export async function POST(
     `Your landlord has initiated the deposit settlement. Review the proposed deductions and respond.`,
     `/dashboard/tenant/tenancy`,
   );
+
+  // Send email (non-blocking)
+  const tenantUser = await prisma.user.findUnique({
+    where: { id: tenancy.tenantId },
+    select: { email: true, name: true },
+  });
+  const tenancyForAddress = await prisma.tenancy.findUnique({
+    where: { id: tenancyId },
+    select: { room: { include: { property: { select: { address: true } } } } },
+  });
+  if (tenantUser && tenancyForAddress) {
+    sendDepositSettlementEmail(
+      tenantUser.email,
+      tenantUser.name,
+      tenancyForAddress.room.property.address,
+    );
+  }
 
   return NextResponse.json({ refund }, { status: 201 });
 }

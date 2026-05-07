@@ -368,7 +368,6 @@ export default function TopNav() {
                 }}
                 className="block w-full text-left px-4 py-2.5 text-sm font-medium text-gray-600 hover:bg-gray-50 rounded-lg mx-1 transition-colors"
               >
-                🌐{' '}
                 {language === 'en'
                   ? 'Switch to Bahasa Malaysia'
                   : 'Switch to English'}

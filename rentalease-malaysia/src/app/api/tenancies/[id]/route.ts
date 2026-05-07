@@ -18,6 +18,43 @@ const editSchema = z
     path: ['endDate'],
   });
 
+// IMP-10: Single tenancy fetch endpoint
+export async function GET(
+  _request: NextRequest,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  const session = await getServerSession(authOptions);
+  if (!session) return NextResponse.json({ error: 'Unauthorised' }, { status: 401 });
+
+  const { id: tenancyId } = await params;
+
+  const tenancy = await prisma.tenancy.findFirst({
+    where: {
+      id: tenancyId,
+      OR: [
+        { room: { property: { landlordId: session.user.id } } },
+        { tenantId: session.user.id },
+      ],
+    },
+    include: {
+      tenant: { select: { id: true, name: true, email: true, phone: true } },
+      room: {
+        include: {
+          property: { select: { id: true, address: true, city: true, state: true } },
+        },
+      },
+      agreement: { select: { id: true, status: true } },
+      rentPayments: {
+        select: { id: true, status: true, dueDate: true, amount: true },
+        orderBy: { dueDate: 'asc' },
+      },
+    },
+  });
+
+  if (!tenancy) return NextResponse.json({ error: 'Tenancy not found or access denied' }, { status: 404 });
+  return NextResponse.json(tenancy);
+}
+
 export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
@@ -58,18 +95,18 @@ export async function PATCH(
     );
   }
 
-  // If an agreement has already been generated (even as a DRAFT),
-  // block editing because the agreement text was built from the old values.
+  // Allow edits when agreement is in DRAFT or NEGOTIATING status.
+  // Block only when the agreement is FINALIZED or SIGNED (BUG-06).
   const existingAgreement = await prisma.agreement.findUnique({
     where: { tenancyId },
-    select: { id: true },
+    select: { id: true, status: true },
   });
 
-  if (existingAgreement) {
+  if (existingAgreement && ['FINALIZED', 'SIGNED'].includes(existingAgreement.status)) {
     return NextResponse.json(
       {
         error:
-          'An agreement has already been generated for this tenancy. Regenerate the agreement after making changes — the new values will be used.',
+          'The agreement has already been finalised. Terms cannot be changed at this stage.',
       },
       { status: 409 },
     );

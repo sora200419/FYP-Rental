@@ -104,6 +104,33 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Access denied' }, { status: 403 });
   }
 
+  // BUG-11: Guard on tenancy status — must be at least PENDING before creating reports
+  const allowedStatuses =
+    type === 'MOVE_OUT'
+      ? ['ACTIVE', 'EXPIRED', 'TERMINATED']
+      : ['PENDING', 'ACTIVE', 'EXPIRED', 'TERMINATED'];
+
+  if (!allowedStatuses.includes(tenancy.status)) {
+    return NextResponse.json(
+      { error: 'A condition report cannot be created for a tenancy that has not yet been accepted.' },
+      { status: 409 },
+    );
+  }
+
+  // IMP-04: Prevent duplicate reports of the same non-INSPECTION type
+  if (type !== 'INSPECTION') {
+    const existing = await prisma.conditionReport.findFirst({
+      where: { tenancyId, type },
+      select: { id: true },
+    });
+    if (existing) {
+      return NextResponse.json(
+        { error: `A ${type.toLowerCase().replace('_', '-')} report already exists for this tenancy.` },
+        { status: 409 },
+      );
+    }
+  }
+
   const report = await prisma.conditionReport.create({
     data: {
       tenancyId,
@@ -128,7 +155,7 @@ export async function POST(request: Request) {
       'CONDITION_REPORT_CREATED',
       `${reportTypeLabel} condition report ready to review`,
       `Your landlord created a ${reportTypeLabel.toLowerCase()} condition report for ${tenancy.room.property.address}. Please review and acknowledge.`,
-      `/dashboard/tenant/condition-reports/${report.id}`,
+      `/dashboard/tenant/conditions`,
     );
   } else {
     // Tenant created it — notify the landlord
@@ -137,7 +164,7 @@ export async function POST(request: Request) {
       'CONDITION_REPORT_CREATED',
       `${reportTypeLabel} condition report ready to review`,
       `${tenancy.tenant.name} created a ${reportTypeLabel.toLowerCase()} condition report for ${tenancy.room.property.address}. Please review and acknowledge.`,
-      `/dashboard/landlord/condition-reports/${report.id}`,
+      `/dashboard/landlord/tenancies/${tenancyId}/conditions`,
     );
   }
 

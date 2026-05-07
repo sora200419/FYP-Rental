@@ -3,7 +3,12 @@ import { Inter } from 'next/font/google';
 import './globals.css';
 import AuthSessionProvider from '@/components/providers/SessionProvider';
 
-const inter = Inter({ subsets: ['latin'] });
+const inter = Inter({
+  subsets: ['latin'],
+  weight: ['400', '500', '600', '700'],
+  variable: '--font-inter',
+  display: 'swap',
+});
 
 export const metadata: Metadata = {
   title: 'RentalEase Malaysia',
@@ -17,7 +22,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
+    <html lang="en" className={inter.variable}>
       <body className={inter.className}>
         <AuthSessionProvider>{children}</AuthSessionProvider>
       </body>

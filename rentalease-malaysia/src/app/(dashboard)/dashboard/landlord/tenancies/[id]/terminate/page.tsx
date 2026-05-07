@@ -53,7 +53,7 @@ export default async function TerminatePage({
       </div>
 
       <div className="bg-red-50 border border-red-200 rounded-xl px-5 py-4 mb-6">
-        <p className="text-red-800 font-semibold text-sm">⚠ This is a legal notice of termination</p>
+        <p className="text-red-800 font-semibold text-sm">This is a legal notice of termination</p>
         <p className="text-red-600 text-xs mt-1 leading-relaxed">
           Ensure you have provided the required notice period as stated in the tenancy agreement before proceeding. The tenancy status will be changed to Terminated immediately.
         </p>

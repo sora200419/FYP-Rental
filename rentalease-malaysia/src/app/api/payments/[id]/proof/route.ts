@@ -54,8 +54,9 @@ export async function POST(
     );
   }
 
-  // If this is a re-upload after rejection, delete the old rejected proofs first
-  if (payment.status === 'PENDING' && payment.rejectionReason && payment.proofs.length > 0) {
+  // Always delete any existing proofs before uploading a new one so there
+  // is never more than one proof per payment at any given time.
+  if (payment.proofs.length > 0) {
     await Promise.allSettled(
       payment.proofs.map((p) =>
         cloudinary.uploader.destroy(p.publicId).catch(() => null),
