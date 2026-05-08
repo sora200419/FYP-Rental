@@ -4,12 +4,17 @@
 // Never throws — a failed email must not fail the primary action.
 import { Resend } from 'resend';
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+// Lazy-initialised so the module loads safely at build time without the key present.
+let _resend: Resend | null = null;
+function getResend(): Resend {
+  if (!_resend) _resend = new Resend(process.env.RESEND_API_KEY!);
+  return _resend;
+}
 const FROM = process.env.EMAIL_FROM ?? 'RentalEase <onboarding@resend.dev>';
 
 async function send(to: string, subject: string, html: string) {
   try {
-    await resend.emails.send({ from: FROM, to, subject, html });
+    await getResend().emails.send({ from: FROM, to, subject, html });
   } catch (err) {
     console.error('[email] Failed to send:', { to, subject, err });
   }
