@@ -1,9 +1,14 @@
 {
   "permissions": {
     "allow": [
-      "Bash(mkdir -p \"C:/Users/ONG/OneDrive/Desktop/FYP Rental/rentalease-malaysia/src/app/api/admin/users/[id]/reject\")",
-      "Bash(mkdir -p \"C:/Users/ONG/OneDrive/Desktop/FYP Rental/rentalease-malaysia/src/app/api/admin/properties/[id]/reject\")",
-      "Bash(npx prisma *)"
+      "Bash(pandoc \"New FYP Structure Guidelines - Copy \\(2\\).docx\" -t plain)",
+      "Read(//c/tmp/**)",
+      "Bash(unzip -q \"C:\\\\Users\\\\ONG\\\\OneDrive\\\\Desktop\\\\FYP Rental\\\\New FYP Structure Guidelines - Copy \\(2\\).docx\" -d docx_extracted)",
+      "Bash(git merge *)",
+      "Bash(git stash *)",
+      "Bash(git commit *)",
+      "Bash(git push *)",
+      "Bash(git *)"
     ]
   }
 }
