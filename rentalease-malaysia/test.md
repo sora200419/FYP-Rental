@@ -82,19 +82,21 @@
 
 ---
 
-### Property 3 — Siti Nurhaliza (Pending Verification)
+### Property 3 — Ahmad Razif (Admin Rejected)
 
-| Field       | Value                                   |
-|-------------|-----------------------------------------|
-| Address     | 8, Jalan PJU 5/5, Dataran Sunway        |
-| City        | Petaling Jaya                           |
-| State       | Selangor                                |
-| Postcode    | 47810                                   |
-| Type        | CONDO                                   |
-| Description | Luxury condo with full facilities, near Sunway Pyramid. |
-| Status      | Pending Admin Verification              |
+| Field       | Value                                        |
+|-------------|----------------------------------------------|
+| Address     | 22, Jalan Duta Kiara, Mont Kiara             |
+| City        | Kuala Lumpur                                 |
+| State       | Wilayah Persekutuan                          |
+| Postcode    | 50480                                        |
+| Type        | CONDO                                        |
+| Description | Condo unit.                                  |
+| Status      | Rejected by Admin                            |
 
-> Note: Cannot create tenancy invitations until admin verifies this property.
+> Admin rejected this property because the description is too brief and no photos were uploaded. L1 must update the listing and resubmit. This property is used only to test the admin property-rejection flow — no tenancies are linked to it.
+
+> **Note on L2 (Siti Nurhaliza):** L2's KYC was rejected in Scenario 2. Because L2 is unverified, the "Add Property" button is disabled on L2's dashboard. L2 cannot create any property until admin approves L2's KYC. This is tested in Scenario 2, Step 10 — no separate property data exists for L2.
 
 ---
 
@@ -323,33 +325,36 @@ Run these in order — each scenario builds on the previous state.
 
 **Goal**: Verified landlord creates properties; admin verifies them.
 
-| Step | Action                                                       | Expected Result                                          |
-|------|--------------------------------------------------------------|----------------------------------------------------------|
-| 1    | Login as L1, go to Properties → "Add Property"              | Form loads                                               |
-| 2    | Enter Property 1 details (see Section 2), submit            | Status = Pending Verification shown on property card     |
-| 3    | Login as Admin → `/dashboard/admin/properties`              | Property 1 in queue; L1 shown as "Verified"             |
-| 4    | Approve Property 1                                          | Property.isVerified=true                                 |
-| 5    | L1 creates Property 2 (terrace) — admin approves            | Both properties verified in L1's list                    |
-| 6    | Login as L2, create Property 3                              | Status = Pending Verification                            |
-| 7    | Admin views Property 3 — L2 shown as "Not Verified"         | Warning visible                                          |
-| 8    | Admin rejects Property 3: "Landlord KYC not yet verified."  | Property.rejectedReason saved                            |
-| 9    | L2 logs in — rejection reason shown on property card        | Visible                                                  |
+| Step | Action                                                                    | Expected Result                                                    |
+|------|---------------------------------------------------------------------------|--------------------------------------------------------------------|
+| 1    | Login as L1, go to Properties → "Add Property"                           | Form loads                                                         |
+| 2    | Enter Property 1 details (see Section 2), submit                         | Status = Pending Verification shown on property card               |
+| 3    | Login as Admin → `/dashboard/admin/properties`                           | Property 1 in queue; L1 shown as "Verified"                       |
+| 4    | Approve Property 1                                                        | Property.isVerified=true                                           |
+| 5    | L1 creates Property 2 (terrace) — admin approves                         | Both properties verified in L1's list                              |
+| 6    | L1 creates Property 3 (Mont Kiara condo) with only "Condo unit." as description and no photos | Property created; status = Pending Verification   |
+| 7    | Admin views Property 3 — L1 shown as "Verified" but listing is incomplete | Warning / thin content visible to admin                           |
+| 8    | Admin rejects Property 3: "Description is too brief and no photos uploaded. Please add more details and at least one photo." | Property.rejectedReason saved |
+| 9    | L1 logs in — rejection reason shown on Property 3 card                   | Visible; L1 can edit and resubmit                                  |
+| 10   | *(L2 is already blocked from adding properties — KYC rejected in Scenario 2 Step 10. No property data exists for L2.)* | Confirmed |
 
 ---
 
 ### Scenario 4 — Room Setup
 
-**Goal**: Landlord adds rooms to verified properties.
+**Goal**: Landlord adds rooms to properties. Rooms can be added before or after admin approval — this is by design so the landlord can prepare the full listing while admin reviews. Tenant invitations are blocked separately until the property is verified.
 
 | Step | Action                                                         | Expected Result                              |
 |------|----------------------------------------------------------------|----------------------------------------------|
-| 1    | L1 → Property 1 detail page                                   | "Add Room" button available                  |
-| 2    | Add Master Room: type=MASTER, bathroom=ATTACHED, rent=1200, furnish=FULLY, gender=ANY, utilities=WiFi+Water+Elec | Room created |
+| 1    | L1 → Property 1 detail page (still Pending Verification at this point) | "Add Room" button available — adding rooms does not require admin approval |
+| 2    | Add Master Room: type=MASTER, bathroom=ATTACHED, rent=1200, furnish=FULLY, gender=ANY, utilities=WiFi+Water+Elec | Room created successfully |
 | 3    | Add Medium Room: type=MEDIUM, bathroom=SHARED, rent=800, furnish=PARTIALLY, gender=FEMALE_ONLY, utilities=WiFi | Room created |
 | 4    | Add Small Room: type=SMALL, bathroom=SHARED, rent=600, furnish=UNFURNISHED, gender=MALE_ONLY | Room created |
 | 5    | Property 1 card now shows "0/3 Occupied"                      | Occupancy pill updated                       |
-| 6    | Add Master Suite + Middle Bedroom to Property 2               | Rooms listed on Property 2 detail            |
-| 7    | Upload 2 photos to Property 1                                 | Cloudinary upload; thumbnails visible        |
+| 6    | L1 attempts to invite a tenant to Master Room (property still pending) | **Blocked** — "Property not yet verified" error (checked in `POST /api/tenancies`) |
+| 7    | Add Master Suite + Middle Bedroom to Property 2 (also before approval) | Rooms listed on Property 2 detail |
+| 8    | Upload 2 photos to Property 1                                 | Cloudinary upload; thumbnails visible        |
+| 9    | Admin approves Properties 1 and 2 (Scenario 3 steps 3–5)     | L1 can now invite tenants to rooms in both properties |
 
 ---
 
