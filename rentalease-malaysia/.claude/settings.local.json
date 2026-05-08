@@ -55,7 +55,16 @@
       "Bash(Write-Output \"created\")",
       "Bash(Sort-Object FullName)",
       "Bash(Select-Object Name, PSIsContainer)",
-      "Bash(Test-Path *)"
+      "Bash(Test-Path *)",
+      "Bash(node -e \"console.log\\(require\\('./package.json'\\).dependencies.next\\)\")",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)",
+      "Bash(git push *)",
+      "Bash(git -c http.sslVerify=false push origin claude/allow-ic-number-changes-1pUWr)",
+      "Bash(git checkout *)",
+      "Bash(git merge *)",
+      "Bash(git -c http.sslVerify=false push origin main)",
+      "Bash(git -c http.sslVerify=false push origin claude/allow-ic-number-changes-1pUWr:main)"
     ]
   }
 }
