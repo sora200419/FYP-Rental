@@ -82,19 +82,21 @@
 
 ---
 
-### Property 3 — Siti Nurhaliza (Pending Verification)
+### Property 3 — Ahmad Razif (Admin Rejected)
 
-| Field       | Value                                                   |
-| ----------- | ------------------------------------------------------- |
-| Address     | 8, Jalan PJU 5/5, Dataran Sunway                        |
-| City        | Petaling Jaya                                           |
-| State       | Selangor                                                |
-| Postcode    | 47810                                                   |
-| Type        | CONDO                                                   |
-| Description | Luxury condo with full facilities, near Sunway Pyramid. |
-| Status      | Pending Admin Verification                              |
+| Field       | Value                            |
+| ----------- | -------------------------------- |
+| Address     | 22, Jalan Duta Kiara, Mont Kiara |
+| City        | Kuala Lumpur                     |
+| State       | Wilayah Persekutuan              |
+| Postcode    | 50480                            |
+| Type        | CONDO                            |
+| Description | Condo unit.                      |
+| Status      | Rejected by Admin                |
 
-> Note: Cannot create tenancy invitations until admin verifies this property.
+> Admin rejected this property because the description is too brief and no photos were uploaded. L1 must update the listing and resubmit. This property is used only to test the admin property-rejection flow — no tenancies are linked to it.
+
+> **Note on L2 (Siti Nurhaliza):** L2's KYC was rejected in Scenario 2. Because L2 is unverified, the "Add Property" button is disabled on L2's dashboard. L2 cannot create any property until admin approves L2's KYC. This is tested in Scenario 2, Step 10 — no separate property data exists for L2.
 
 ---
 
@@ -323,17 +325,18 @@ Run these in order — each scenario builds on the previous state.
 
 **Goal**: Verified landlord creates properties; admin verifies them.
 
-| Step | Action                                                     | Expected Result                                      |
-| ---- | ---------------------------------------------------------- | ---------------------------------------------------- |
-| 1    | Login as L1, go to Properties → "Add Property"             | Form loads                                           |
-| 2    | Enter Property 1 details (see Section 2), submit           | Status = Pending Verification shown on property card |
-| 3    | Login as Admin → `/dashboard/admin/properties`             | Property 1 in queue; L1 shown as "Verified"          |
-| 4    | Approve Property 1                                         | Property.isVerified=true                             |
-| 5    | L1 creates Property 2 (terrace) — admin approves           | Both properties verified in L1's list                |
-| 6    | Login as L2, create Property 3                             | Status = Pending Verification                        |
-| 7    | Admin views Property 3 — L2 shown as "Not Verified"        | Warning visible                                      |
-| 8    | Admin rejects Property 3: "Landlord KYC not yet verified." | Property.rejectedReason saved                        |
-| 9    | L2 logs in — rejection reason shown on property card       | Visible                                              |
+| Step | Action                                                                                                                       | Expected Result                                      |
+| ---- | ---------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------- |
+| 1    | Login as L1, go to Properties → "Add Property"                                                                               | Form loads                                           |
+| 2    | Enter Property 1 details (see Section 2), submit                                                                             | Status = Pending Verification shown on property card |
+| 3    | Login as Admin → `/dashboard/admin/properties`                                                                               | Property 1 in queue; L1 shown as "Verified"          |
+| 4    | Approve Property 1                                                                                                           | Property.isVerified=true                             |
+| 5    | L1 creates Property 2 (terrace) — admin approves                                                                             | Both properties verified in L1's list                |
+| 6    | L1 creates Property 3 (Mont Kiara condo) with only "Condo unit." as description and no photos                                | Property created; status = Pending Verification      |
+| 7    | Admin views Property 3 — L1 shown as "Verified" but listing is incomplete                                                    | Warning / thin content visible to admin              |
+| 8    | Admin rejects Property 3: "Description is too brief and no photos uploaded. Please add more details and at least one photo." | Property.rejectedReason saved                        |
+| 9    | L1 logs in — rejection reason shown on Property 3 card                                                                       | Visible; L1 can edit and resubmit                    |
+| 10   | _(L2 is already blocked from adding properties — KYC rejected in Scenario 2 Step 10. No property data exists for L2.)_       | Confirmed                                            |
 
 ---
 
