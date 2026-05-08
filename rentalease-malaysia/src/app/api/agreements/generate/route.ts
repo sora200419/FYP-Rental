@@ -95,6 +95,15 @@ export async function POST(request: NextRequest) {
       select: { negotiationNotes: true, negotiationRound: true },
     });
 
+    // BUG-15: Cap negotiation rounds to prevent unlimited regeneration
+    const MAX_NEGOTIATION_ROUNDS = 5;
+    if (existingAgreement && existingAgreement.negotiationRound >= MAX_NEGOTIATION_ROUNDS) {
+      return NextResponse.json(
+        { error: `Maximum negotiation rounds (${MAX_NEGOTIATION_ROUNDS}) reached. Please contact support if further changes are needed.` },
+        { status: 409 },
+      );
+    }
+
     // Load wizard preferences — required for generation
     const preferences = await prisma.agreementPreferences.findUnique({
       where: { tenancyId },

@@ -42,7 +42,7 @@ src/app/
 └── api/              # 17+ API routes
 ```
 
-`src/middleware.ts` wraps all `/dashboard/*` routes with NextAuth's `withAuth`, and redirects users to their role-appropriate sub-path (LANDLORD → `/dashboard/landlord`, TENANT → `/dashboard/tenant`).
+`src/proxy.ts` wraps all `/dashboard/*` routes with NextAuth's `withAuth`, and redirects users to their role-appropriate sub-path (LANDLORD → `/dashboard/landlord`, TENANT → `/dashboard/tenant`). Renamed from `middleware.ts` — Next.js 16 deprecated the `middleware` file convention in favour of `proxy`.
 
 ### Auth
 

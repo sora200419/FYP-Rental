@@ -2,6 +2,7 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import type { AgreementPreferences } from '@prisma/client';
 import { buildWizardPolicyBlock } from './wizardFormatters';
+import { z } from 'zod';
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
 
@@ -162,9 +163,12 @@ export async function generateTenancyAgreement(
     tenancy.room.electricIncluded,
   );
 
-  // Tenant IC — only included in the prompt if the tenant has entered it
+  // Mask IC numbers before sending to Gemini — only last 4 digits exposed (IMP-15 / PDPA)
+  const maskIc = (ic?: string | null) =>
+    ic ? `****-**-${ic.slice(-4)}` : 'Not provided';
+
   const tenantIcLine = tenancy.tenant.icNumber
-    ? `- Tenant IC Number: ${tenancy.tenant.icNumber}`
+    ? `- Tenant IC Number: ${maskIc(tenancy.tenant.icNumber)} (last 4 digits only)`
     : '- Tenant IC Number: Not provided (parties should verify identity separately)';
 
   // Co-tenants block — only included if there are additional occupants
@@ -173,7 +177,7 @@ export async function generateTenancyAgreement(
       ? `
 ── ADDITIONAL OCCUPANTS ──────────────────────────────────────────────────────
 The following persons will reside in the unit as co-occupants under the primary tenant's tenancy. They are NOT separate parties to this agreement but MUST be named in the Permitted Use and Occupancy clause:
-${tenancy.coTenants.map((ct) => `- ${ct.name} (IC: ${ct.icNumber ?? 'Not provided'})`).join('\n')}
+${tenancy.coTenants.map((ct) => `- ${ct.name} (IC: ${maskIc(ct.icNumber)})`).join('\n')}
 `
       : '';
 
@@ -278,23 +282,29 @@ For "plainLanguageSummary": For each numbered clause, write 2-3 sentences in pla
 For "redFlags": Analyse the agreement and identify clauses that could disadvantage either party or create legal ambiguity under Malaysian law. Pay particular attention to: deposit refund conditions, utility responsibility ambiguity, occupancy limit enforcement, and subletting prohibition scope. Return as a JSON array (can be empty []).
 `;
 
+  const geminiResponseSchema = z.object({
+    rawContent: z.string().min(200, 'Agreement content is too short'),
+    plainLanguageSummary: z.string().min(50, 'Summary is too short'),
+    redFlags: z.array(
+      z.object({
+        severity: z.enum(['HIGH', 'MEDIUM', 'LOW']),
+        clause: z.string(),
+        issue: z.string(),
+        recommendation: z.string(),
+      }),
+    ),
+  });
+
   try {
     const result = await model.generateContent(prompt);
     const text = result.response.text();
-    const parsed = JSON.parse(text);
-
-    if (
-      !parsed.rawContent ||
-      !parsed.plainLanguageSummary ||
-      !Array.isArray(parsed.redFlags)
-    ) {
-      throw new Error('Gemini response missing required fields');
-    }
+    const raw = JSON.parse(text);
+    const validated = geminiResponseSchema.parse(raw);
 
     return {
-      rawContent: parsed.rawContent,
-      plainLanguageSummary: parsed.plainLanguageSummary,
-      redFlags: JSON.stringify(parsed.redFlags),
+      rawContent: validated.rawContent,
+      plainLanguageSummary: validated.plainLanguageSummary,
+      redFlags: JSON.stringify(validated.redFlags),
     };
   } catch (error) {
     console.error('Gemini generation error:', error);

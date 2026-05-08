@@ -1,62 +1,67 @@
-// POST /api/tenancies/[id]/withdraw
-// Tenant withdraws from a PENDING tenancy (accepted invite but not yet signed).
-// Frees the room and notifies the landlord. (FEAT-05)
+// DELETE /api/tenancies/[id]/withdraw
+// Tenant withdraws from a PENDING tenancy (accepted the invite but has not yet
+// signed the agreement). The INVITED → DECLINE path is handled by /respond.
+//
+// Effects:
+//   - Deletes the tenancy (cascades delete Agreement, RentPayment, Message,
+//     ConditionReport, CoTenant rows automatically)
+//   - Frees the room (isAvailable = true)
+//   - Notifies the landlord
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { createNotification } from '@/lib/notifications';
 
-export async function POST(
+export async function DELETE(
   _request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
   const session = await getServerSession(authOptions);
-  if (!session?.user?.id || session.user.role !== 'TENANT') {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
+  if (!session) return NextResponse.json({ error: 'Unauthorised' }, { status: 401 });
+  if (session.user.role !== 'TENANT')
+    return NextResponse.json({ error: 'Only tenants can withdraw from a tenancy' }, { status: 403 });
 
   const { id } = await params;
 
   const tenancy = await prisma.tenancy.findFirst({
-    where: { id, tenantId: session.user.id },
-    include: {
-      tenant: { select: { name: true } },
+    where: { id, tenantId: session.user.id, status: 'PENDING' },
+    select: {
+      id: true,
+      roomId: true,
       room: {
-        include: {
-          property: { select: { landlordId: true, address: true } },
+        select: {
+          property: { select: { landlordId: true, address: true, city: true } },
         },
       },
-      agreement: { select: { id: true } },
+      tenant: { select: { name: true } },
     },
   });
 
-  if (!tenancy) return NextResponse.json({ error: 'Tenancy not found' }, { status: 404 });
-
-  if (tenancy.status !== 'PENDING') {
+  if (!tenancy)
     return NextResponse.json(
-      { error: 'Only pending tenancies can be withdrawn. Use the termination flow for active tenancies.' },
-      { status: 409 },
+      { error: 'Tenancy not found or cannot be withdrawn (must be in PENDING status)' },
+      { status: 404 },
     );
-  }
 
   const landlordId = tenancy.room.property.landlordId;
+  const propertyAddress = `${tenancy.room.property.address}, ${tenancy.room.property.city}`;
 
-  await prisma.$transaction(async (tx) => {
-    // Delete the draft agreement if one exists
-    if (tenancy.agreement) {
-      await tx.agreement.delete({ where: { id: tenancy.agreement.id } });
-    }
-    await tx.tenancy.delete({ where: { id } });
-    await tx.room.update({ where: { id: tenancy.roomId }, data: { isAvailable: true } });
-  });
+  await prisma.$transaction([
+    prisma.tenancy.delete({ where: { id } }),
+    prisma.room.update({
+      where: { id: tenancy.roomId },
+      data: { isAvailable: true },
+    }),
+  ]);
 
-  await createNotification(
+  // Notify landlord (non-blocking)
+  createNotification(
     landlordId,
     'INVITATION_RESPONDED',
     'Tenant withdrew from tenancy',
-    `${tenancy.tenant.name} withdrew from the pending tenancy for ${tenancy.room.property.address}. The room is now available again.`,
-    '/dashboard/landlord/tenancies',
+    `${tenancy.tenant.name} has withdrawn from the pending tenancy at ${propertyAddress}. The room is now available again.`,
+    '/dashboard/landlord',
   );
 
   return NextResponse.json({ ok: true });

@@ -10,6 +10,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { createNotification } from '@/lib/notifications';
+import { sendTenancyEndingSoonEmail } from '@/lib/email';
 
 export async function GET(request: NextRequest) {
   const secret = process.env.CRON_SECRET;
@@ -34,16 +35,28 @@ export async function GET(request: NextRequest) {
   const in29Days = new Date(now);
   in29Days.setDate(in29Days.getDate() + 29);
 
+  const tenancyEndingSelect = {
+    id: true,
+    tenantId: true,
+    room: {
+      select: {
+        property: {
+          select: {
+            landlordId: true,
+            address: true,
+          },
+        },
+      },
+    },
+    tenant: { select: { name: true, email: true } },
+  } as const;
+
   const ending30 = await prisma.tenancy.findMany({
     where: {
       status: 'ACTIVE',
       endDate: { gte: in29Days, lt: in30Days },
     },
-    select: {
-      id: true,
-      tenantId: true,
-      room: { select: { property: { select: { landlordId: true } } } },
-    },
+    select: tenancyEndingSelect,
   });
 
   // 3. TENANCY_ENDING_SOON — notify 7 days before end (FEAT-10)
@@ -57,17 +70,18 @@ export async function GET(request: NextRequest) {
       status: 'ACTIVE',
       endDate: { gte: in6Days, lt: in7Days },
     },
-    select: {
-      id: true,
-      tenantId: true,
-      room: { select: { property: { select: { landlordId: true } } } },
-    },
+    select: tenancyEndingSelect,
   });
 
   const notifyPromises: Promise<unknown>[] = [];
 
   for (const t of ending30) {
     const landlordId = t.room.property.landlordId;
+    const address = t.room.property.address;
+    const landlordUser = await prisma.user.findUnique({
+      where: { id: landlordId },
+      select: { name: true, email: true },
+    });
     notifyPromises.push(
       createNotification(landlordId, 'TENANCY_ENDING_SOON', 'Tenancy ending in 30 days',
         'A tenancy you manage is ending in 30 days. Consider offering a renewal.',
@@ -76,10 +90,25 @@ export async function GET(request: NextRequest) {
         'Your tenancy is ending in 30 days. Contact your landlord about renewal.',
         '/dashboard/tenant/tenancy'),
     );
+    if (landlordUser) {
+      notifyPromises.push(
+        sendTenancyEndingSoonEmail(landlordUser.email, landlordUser.name, address, 30,
+          `${process.env.NEXTAUTH_URL}/dashboard/landlord/tenancies/${t.id}/renew`),
+      );
+    }
+    notifyPromises.push(
+      sendTenancyEndingSoonEmail(t.tenant.email, t.tenant.name, address, 30,
+        `${process.env.NEXTAUTH_URL}/dashboard/tenant/tenancy`),
+    );
   }
 
   for (const t of ending7) {
     const landlordId = t.room.property.landlordId;
+    const address = t.room.property.address;
+    const landlordUser = await prisma.user.findUnique({
+      where: { id: landlordId },
+      select: { name: true, email: true },
+    });
     notifyPromises.push(
       createNotification(landlordId, 'TENANCY_ENDING_SOON', 'Tenancy ending in 7 days',
         'A tenancy you manage is ending in 7 days. Please prepare for move-out.',
@@ -87,6 +116,16 @@ export async function GET(request: NextRequest) {
       createNotification(t.tenantId, 'TENANCY_ENDING_SOON', 'Your tenancy ends in 7 days',
         'Your tenancy is ending in 7 days. Please prepare for move-out.',
         '/dashboard/tenant/tenancy'),
+    );
+    if (landlordUser) {
+      notifyPromises.push(
+        sendTenancyEndingSoonEmail(landlordUser.email, landlordUser.name, address, 7,
+          `${process.env.NEXTAUTH_URL}/dashboard/landlord/tenancies/${t.id}`),
+      );
+    }
+    notifyPromises.push(
+      sendTenancyEndingSoonEmail(t.tenant.email, t.tenant.name, address, 7,
+        `${process.env.NEXTAUTH_URL}/dashboard/tenant/tenancy`),
     );
   }
 

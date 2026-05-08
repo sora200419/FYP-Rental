@@ -6,6 +6,7 @@ import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { uploadRefundProof } from '@/lib/cloudinary';
 import { createNotification } from '@/lib/notifications';
+import { sendDepositRefundPaidEmail } from '@/lib/email';
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024;
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'];
@@ -64,14 +65,25 @@ export async function POST(
     },
   });
 
+  const amountStr = Number(refund.refundAmount).toFixed(2);
+
   // Notify tenant that the deposit has been refunded (non-blocking)
   createNotification(
     refund.tenancy.tenantId,
     'DEPOSIT_REFUND_PAID',
     'Deposit refund paid',
-    `Your landlord has transferred your deposit refund of RM ${Number(refund.refundAmount).toFixed(2)}. Proof of payment has been uploaded.`,
+    `Your landlord has transferred your deposit refund of RM ${amountStr}. Proof of payment has been uploaded.`,
     `/dashboard/tenant/tenancy`,
   );
+
+  // Send email to tenant (non-blocking)
+  const tenantUser = await prisma.user.findUnique({
+    where: { id: refund.tenancy.tenantId },
+    select: { email: true, name: true },
+  });
+  if (tenantUser) {
+    sendDepositRefundPaidEmail(tenantUser.email, tenantUser.name, amountStr);
+  }
 
   return NextResponse.json({ message: 'Deposit refund marked as paid' });
 }
