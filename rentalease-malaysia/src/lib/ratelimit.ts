@@ -1,5 +1,5 @@
 // src/lib/ratelimit.ts
-// Upstash Redis-backed rate limiting for expensive endpoints (Gemini AI calls).
+// Upstash Redis-backed rate limiting for expensive endpoints and auth.
 import { Ratelimit } from '@upstash/ratelimit';
 import { Redis } from '@upstash/redis';
 
@@ -21,5 +21,13 @@ export const agreementAssistLimit = new Ratelimit({
   redis,
   limiter: Ratelimit.slidingWindow(10, '1 h'),
   prefix: 'rl:agreement:assist',
+  analytics: true,
+});
+
+// Login: 5 attempts per email per 15 minutes (IMP-14)
+export const loginRateLimit = new Ratelimit({
+  redis,
+  limiter: Ratelimit.slidingWindow(5, '15 m'),
+  prefix: 'rl:login',
   analytics: true,
 });

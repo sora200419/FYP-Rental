@@ -290,7 +290,6 @@ model PaymentProof {
   id             String   @id @default(cuid())
   imageUrl       String
   publicId       String
-  isReadByTenant Boolean  @default(false)
   createdAt      DateTime @default(now())
 
   paymentId String
@@ -310,7 +309,7 @@ model ConditionReport {
   updatedAt      DateTime   @updatedAt
 
   tenancyId String
-  tenancy   Tenancy @relation(fields: [tenancyId], references: [id])
+  tenancy   Tenancy @relation(fields: [tenancyId], references: [id], onDelete: Cascade)
 
   createdById String
   createdBy   User   @relation("CreatedReports", fields: [createdById], references: [id])
@@ -337,7 +336,7 @@ model ConditionPhoto {
   createdAt DateTime @default(now())
 
   reportId String
-  report   ConditionReport @relation(fields: [reportId], references: [id])
+  report   ConditionReport @relation(fields: [reportId], references: [id], onDelete: Cascade)
 
   uploadedById String
   uploadedBy   User   @relation("UploadedConditionPhotos", fields: [uploadedById], references: [id])

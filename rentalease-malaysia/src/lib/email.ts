@@ -4,12 +4,17 @@
 // Never throws — a failed email must not fail the primary action.
 import { Resend } from 'resend';
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+// Lazy-initialised so the module loads safely at build time without the key present.
+let _resend: Resend | null = null;
+function getResend(): Resend {
+  if (!_resend) _resend = new Resend(process.env.RESEND_API_KEY!);
+  return _resend;
+}
 const FROM = process.env.EMAIL_FROM ?? 'RentalEase <onboarding@resend.dev>';
 
 async function send(to: string, subject: string, html: string) {
   try {
-    await resend.emails.send({ from: FROM, to, subject, html });
+    await getResend().emails.send({ from: FROM, to, subject, html });
   } catch (err) {
     console.error('[email] Failed to send:', { to, subject, err });
   }
@@ -212,6 +217,44 @@ export async function sendDepositSettlementEmail(
       p(`Hi ${tenantName}, your landlord has initiated the deposit settlement process for <strong>${propertyAddress}</strong>.`) +
       p('Please review the proposed deductions and respond to each one.'),
       { label: 'Review Settlement', url: `${process.env.NEXTAUTH_URL}/dashboard/tenant/tenancy` },
+    ),
+  );
+}
+
+export async function sendDepositRefundPaidEmail(
+  to: string,
+  tenantName: string,
+  amount: string,
+) {
+  await send(
+    to,
+    'Your deposit refund has been paid',
+    base(
+      'Deposit Refund Paid',
+      p(`Hi ${tenantName}, your landlord has transferred your deposit refund of <strong>RM ${amount}</strong>.`) +
+      p('Proof of payment has been uploaded to your tenancy page.'),
+      { label: 'View Tenancy', url: `${process.env.NEXTAUTH_URL}/dashboard/tenant/tenancy` },
+    ),
+  );
+}
+
+export async function sendTenancyEndingSoonEmail(
+  to: string,
+  recipientName: string,
+  propertyAddress: string,
+  daysLeft: number,
+  dashboardUrl: string,
+) {
+  await send(
+    to,
+    `Tenancy ending in ${daysLeft} days`,
+    base(
+      `Tenancy Ending in ${daysLeft} Days`,
+      p(`Hi ${recipientName}, the tenancy for <strong>${propertyAddress}</strong> ends in <strong>${daysLeft} days</strong>.`) +
+      p(daysLeft <= 7
+        ? 'Please prepare for the upcoming move-out and ensure all keys are returned.'
+        : 'Please plan ahead and discuss renewal or move-out arrangements with the other party.'),
+      { label: 'View Tenancy', url: dashboardUrl },
     ),
   );
 }

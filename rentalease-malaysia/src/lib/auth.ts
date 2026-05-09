@@ -2,6 +2,7 @@ import { NextAuthOptions } from 'next-auth';
 import CredentialsProvider from 'next-auth/providers/credentials';
 import { prisma } from './prisma';
 import bcrypt from 'bcryptjs';
+import { loginRateLimit } from './ratelimit';
 
 export const authOptions: NextAuthOptions = {
   session: {
@@ -18,6 +19,18 @@ export const authOptions: NextAuthOptions = {
         // Make sure email and password are provided
         if (!credentials?.email || !credentials?.password) {
           throw new Error('Email and password are required');
+        }
+
+        // Rate limit: 5 attempts per email per 15 minutes (IMP-14)
+        try {
+          const { success } = await loginRateLimit.limit(credentials.email.toLowerCase());
+          if (!success) {
+            throw new Error('Too many login attempts. Please try again in 15 minutes.');
+          }
+        } catch (err) {
+          if (err instanceof Error && err.message.includes('Too many')) throw err;
+          // If Redis is unavailable, log and continue — don't block auth entirely
+          console.error('[auth] Rate limit check failed (non-blocking):', err);
         }
 
         // Find the user by email

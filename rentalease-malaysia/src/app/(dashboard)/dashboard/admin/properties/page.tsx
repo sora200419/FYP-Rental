@@ -14,6 +14,7 @@ export default async function AdminPropertiesPage() {
     include: {
       landlord: { select: { name: true, email: true, icNumber: true, isVerified: true } },
       rooms: { select: { id: true } },
+      photos: { select: { imageUrl: true, caption: true }, orderBy: { order: 'asc' } },
     },
     orderBy: { createdAt: 'asc' },
   });
@@ -79,6 +80,22 @@ export default async function AdminPropertiesPage() {
                       year: 'numeric',
                     })}
                   </p>
+
+                  {property.photos.length > 0 ? (
+                    <div className="mt-3 flex gap-2 flex-wrap">
+                      {property.photos.map((photo, i) => (
+                        <a key={i} href={photo.imageUrl} target="_blank" rel="noopener noreferrer">
+                          <img
+                            src={photo.imageUrl}
+                            alt={photo.caption ?? `Photo ${i + 1}`}
+                            className="w-20 h-16 object-cover rounded-lg border border-gray-200 hover:opacity-80 transition-opacity"
+                          />
+                        </a>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="mt-2 text-xs text-amber-600 font-medium">No photos uploaded</p>
+                  )}
 
                   <div className="mt-2 pt-2 border-t border-gray-100">
                     <p className="text-xs text-gray-600 font-medium">
