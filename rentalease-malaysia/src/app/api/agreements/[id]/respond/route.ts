@@ -3,6 +3,11 @@ import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import {
+  buildAgreementEvent,
+  formatChangeRequestSummary,
+  normalizeChangeRequest,
+} from '@/lib/agreements/history';
 import { createNotification } from '@/lib/notifications';
 import { sendSystemMessage } from '@/lib/messages';
 import { anchorHashToBlockchain } from '@/lib/blockchain';
@@ -20,15 +25,44 @@ export async function PATCH(
 
   const { id } = await params;
   const body = await request.json();
-  const { action, negotiationNotes } = body; // action: 'SIGN' | 'REQUEST_CHANGES'
+  const { action, negotiationNotes, signedAcknowledged, changeRequests } = body;
 
   if (!['SIGN', 'REQUEST_CHANGES'].includes(action)) {
     return NextResponse.json({ error: 'Invalid action' }, { status: 400 });
   }
 
-  if (action === 'REQUEST_CHANGES' && !negotiationNotes?.trim()) {
+  if (action === 'SIGN' && signedAcknowledged !== true) {
     return NextResponse.json(
-      { error: 'Please describe the changes you are requesting' },
+      { error: 'Please acknowledge the agreement before signing.' },
+      { status: 400 },
+    );
+  }
+
+  const normalizedRequests =
+    action === 'REQUEST_CHANGES' && Array.isArray(changeRequests)
+      ? changeRequests
+          .map((request) =>
+            normalizeChangeRequest({
+              category: String(request?.category ?? ''),
+              requestedChange: String(request?.requestedChange ?? ''),
+              reason: String(request?.reason ?? ''),
+              note:
+                request?.note === undefined || request?.note === null
+                  ? null
+                  : String(request.note),
+            }),
+          )
+          .filter(
+            (request) =>
+              request.category &&
+              request.requestedChange &&
+              request.reason,
+          )
+      : [];
+
+  if (action === 'REQUEST_CHANGES' && normalizedRequests.length === 0) {
+    return NextResponse.json(
+      { error: 'Add at least one structured change request before sending.' },
       { status: 400 },
     );
   }
@@ -128,7 +162,7 @@ export async function PATCH(
           contentHash,
           signedAt: new Date(),
           signedByIp,
-          signedAcknowledged: true,
+          signedAcknowledged,
         },
       }),
       prisma.tenancy.update({
@@ -136,6 +170,15 @@ export async function PATCH(
         data: { status: 'ACTIVE' },
       }),
       prisma.rentPayment.createMany({ data: payments }),
+      prisma.agreementEvent.create({
+        data: buildAgreementEvent({
+          agreementId: id,
+          type: 'SIGNED',
+          actorRole: 'TENANT',
+          actorUserId: session.user.id,
+          summary: 'Tenant signed the agreement electronically.',
+        }),
+      }),
     ]);
 
     await createNotification(
@@ -172,14 +215,40 @@ export async function PATCH(
   }
 
   // ── REQUEST_CHANGES ────────────────────────────────────────────────────────
-  await prisma.agreement.update({
-    where: { id },
-    data: {
-      status: 'NEGOTIATING',
-      negotiationNotes,
-      negotiationRound: { increment: 1 },
-    },
-  });
+  const compiledNotes = formatChangeRequestSummary(
+    normalizedRequests,
+    typeof negotiationNotes === 'string' ? negotiationNotes : null,
+  );
+
+  await prisma.$transaction([
+    prisma.agreement.update({
+      where: { id },
+      data: {
+        status: 'NEGOTIATING',
+        negotiationNotes: compiledNotes,
+        negotiationRound: { increment: 1 },
+      },
+    }),
+    prisma.agreementChangeRequest.createMany({
+      data: normalizedRequests.map((changeRequest) => ({
+        agreementId: id,
+        category: changeRequest.category,
+        requestedChange: changeRequest.requestedChange,
+        reason: changeRequest.reason,
+        note: changeRequest.note,
+        createdByUserId: session.user.id,
+      })),
+    }),
+    prisma.agreementEvent.create({
+      data: buildAgreementEvent({
+        agreementId: id,
+        type: 'REQUESTED_CHANGES',
+        actorRole: 'TENANT',
+        actorUserId: session.user.id,
+        summary: `Tenant requested ${normalizedRequests.length} structured agreement change(s).`,
+      }),
+    }),
+  ]);
 
   // Send a system message so the negotiation notes are visible in the
   // message thread alongside the conversation history
@@ -187,7 +256,7 @@ export async function PATCH(
     agreement.tenancyId,
     session.user.id, // senderId — the tenant sending the note
     landlordId, // receiverId — the landlord who needs to see it
-    `📝 Tenant requested agreement changes (Round ${agreement.negotiationRound + 1}):\n\n${negotiationNotes}`,
+    `📝 Tenant requested agreement changes (Round ${agreement.negotiationRound + 1}):\n\n${compiledNotes}`,
   );
 
   await createNotification(

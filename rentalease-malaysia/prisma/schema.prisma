@@ -9,17 +9,17 @@ datasource db {
 
 // ─── USER ────────────────────────────────────────────────────────────────────
 model User {
-  id        String   @id @default(cuid())
-  name      String
-  email     String   @unique
-  password  String // bcrypt hash, never plaintext
-  role      Role     @default(TENANT)
-  phone     String?
+  id         String   @id @default(cuid())
+  name       String
+  email      String   @unique
+  password   String // bcrypt hash, never plaintext
+  role       Role     @default(TENANT)
+  phone      String?
   icNumber   String?  @unique // Malaysian IC — sensitive, PDPA 2010 protected
   isVerified Boolean  @default(false) // set to true by admin after IC review
   language   String   @default("en") // "en" or "ms" — bilingual preference
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 
   ownedProperties         Property[]        @relation("LandlordProperties")
   tenancies               Tenancy[]         @relation("TenantTenancies")
@@ -34,9 +34,9 @@ model User {
 
   kycRejectedReason String? @db.Text // set by admin on KYC rejection; cleared on approval
 
-  notifications        Notification[]
-  tenantDocuments      TenantDocument[]
-  passwordResetTokens  PasswordResetToken[]
+  notifications       Notification[]
+  tenantDocuments     TenantDocument[]
+  passwordResetTokens PasswordResetToken[]
 }
 
 enum Role {
@@ -50,17 +50,17 @@ enum Role {
 // bathrooms) now live on the Room model so a single property can host
 // multiple tenants in separate rooms under separate agreements.
 model Property {
-  id          String   @id @default(cuid())
-  address     String
-  city        String
-  state       String
-  postcode    String
-  type        String // "Apartment", "Terrace House", "Condo", etc.
-  description String?
-  isVerified      Boolean  @default(false) // set to true by admin after ownership review
-  rejectedReason  String?  @db.Text       // set by admin on rejection; cleared on approval
-  createdAt       DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id             String   @id @default(cuid())
+  address        String
+  city           String
+  state          String
+  postcode       String
+  type           String // "Apartment", "Terrace House", "Condo", etc.
+  description    String?
+  isVerified     Boolean  @default(false) // set to true by admin after ownership review
+  rejectedReason String?  @db.Text // set by admin on rejection; cleared on approval
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 
   landlordId String
   landlord   User   @relation("LandlordProperties", fields: [landlordId], references: [id])
@@ -138,11 +138,11 @@ model PropertyPhoto {
   order     Int      @default(0)
   createdAt DateTime @default(now())
 
-  propertyId   String
-  property     Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  propertyId String
+  property   Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
 
   uploadedById String
-  uploadedBy   User     @relation("UploadedPropertyPhotos", fields: [uploadedById], references: [id])
+  uploadedBy   User   @relation("UploadedPropertyPhotos", fields: [uploadedById], references: [id])
 }
 
 // ─── TENANCY ─────────────────────────────────────────────────────────────────
@@ -214,24 +214,24 @@ enum TenancyStatus {
 }
 
 enum DepositStatus {
-  PENDING      // Awaiting tenant to upload proof
+  PENDING // Awaiting tenant to upload proof
   UNDER_REVIEW // Proof uploaded; landlord reviewing
-  PAID         // Landlord confirmed receipt
-  REJECTED     // Landlord rejected proof; tenant must re-upload
+  PAID // Landlord confirmed receipt
+  REJECTED // Landlord rejected proof; tenant must re-upload
 }
 
 // ─── AGREEMENT ───────────────────────────────────────────────────────────────
 model Agreement {
-  id                   String          @id @default(cuid())
-  rawContent           String          @db.Text
-  plainLanguageSummary String          @db.Text
-  plainLanguageSummaryMs String?       @db.Text // Bahasa Malaysia version
-  redFlags             String?         @db.Text
-  redFlagsMs           String?         @db.Text // Bahasa Malaysia version
-  negotiationNotes     String?         @db.Text
-  negotiationRound     Int             @default(0)
-  status               AgreementStatus @default(DRAFT)
-  fileUrl              String?
+  id                     String          @id @default(cuid())
+  rawContent             String          @db.Text
+  plainLanguageSummary   String          @db.Text
+  plainLanguageSummaryMs String?         @db.Text // Bahasa Malaysia version
+  redFlags               String?         @db.Text
+  redFlagsMs             String?         @db.Text // Bahasa Malaysia version
+  negotiationNotes       String?         @db.Text
+  negotiationRound       Int             @default(0)
+  status                 AgreementStatus @default(DRAFT)
+  fileUrl                String?
 
   contentHash        String? // SHA-256 hex digest of rawContent at signing time
   signedAt           DateTime? // exact server-side timestamp of acceptance
@@ -249,6 +249,10 @@ model Agreement {
 
   tenancyId String  @unique
   tenancy   Tenancy @relation(fields: [tenancyId], references: [id], onDelete: Cascade)
+
+  events         AgreementEvent[]
+  revisions      AgreementRevision[]
+  changeRequests AgreementChangeRequest[]
 }
 
 enum AgreementStatus {
@@ -287,10 +291,10 @@ enum PaymentStatus {
 
 // ─── PAYMENT PROOF ───────────────────────────────────────────────────────────
 model PaymentProof {
-  id             String   @id @default(cuid())
-  imageUrl       String
-  publicId       String
-  createdAt      DateTime @default(now())
+  id        String   @id @default(cuid())
+  imageUrl  String
+  publicId  String
+  createdAt DateTime @default(now())
 
   paymentId String
   payment   RentPayment @relation(fields: [paymentId], references: [id])
@@ -513,12 +517,12 @@ model DepositProof {
 // Deposit settlement workflow after tenancy ends. Landlord proposes deductions,
 // tenant reviews each one, and both reach AGREED before refund is paid.
 model DepositRefund {
-  id            String       @id @default(cuid())
-  tenancyId     String       @unique
-  tenancy       Tenancy      @relation(fields: [tenancyId], references: [id], onDelete: Cascade)
-  originalAmount Decimal     @db.Decimal(10, 2)
-  refundAmount  Decimal      @db.Decimal(10, 2)
-  status        RefundStatus @default(PROPOSED)
+  id             String       @id @default(cuid())
+  tenancyId      String       @unique
+  tenancy        Tenancy      @relation(fields: [tenancyId], references: [id], onDelete: Cascade)
+  originalAmount Decimal      @db.Decimal(10, 2)
+  refundAmount   Decimal      @db.Decimal(10, 2)
+  status         RefundStatus @default(PROPOSED)
 
   paidProofUrl      String?
   paidProofPublicId String?
@@ -539,14 +543,14 @@ enum RefundStatus {
 }
 
 model DepositDeduction {
-  id               String          @id @default(cuid())
-  refundId         String
-  refund           DepositRefund   @relation(fields: [refundId], references: [id])
-  reason           String          @db.Text
-  amount           Decimal         @db.Decimal(10, 2)
-  status           DeductionStatus @default(PROPOSED)
-  tenantDisputeNote String?        @db.Text
-  photoIds         String          @db.Text // JSON array of ConditionPhoto IDs
+  id                String          @id @default(cuid())
+  refundId          String
+  refund            DepositRefund   @relation(fields: [refundId], references: [id])
+  reason            String          @db.Text
+  amount            Decimal         @db.Decimal(10, 2)
+  status            DeductionStatus @default(PROPOSED)
+  tenantDisputeNote String?         @db.Text
+  photoIds          String          @db.Text // JSON array of ConditionPhoto IDs
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -568,4 +572,64 @@ model PasswordResetToken {
   expiresAt DateTime
   usedAt    DateTime?
   createdAt DateTime  @default(now())
+}
+
+model AgreementEvent {
+  id          String             @id @default(cuid())
+  agreementId String
+  agreement   Agreement          @relation(fields: [agreementId], references: [id], onDelete: Cascade)
+  type        AgreementEventType
+  actorRole   Role
+  actorUserId String?
+  summary     String
+  metadata    String?            @db.Text
+  createdAt   DateTime           @default(now())
+
+  @@index([agreementId, createdAt])
+}
+
+model AgreementRevision {
+  id                     String    @id @default(cuid())
+  agreementId            String
+  agreement              Agreement @relation(fields: [agreementId], references: [id], onDelete: Cascade)
+  versionNumber          Int
+  rawContent             String    @db.Text
+  plainLanguageSummary   String    @db.Text
+  plainLanguageSummaryMs String?   @db.Text
+  redFlags               String?   @db.Text
+  redFlagsMs             String?   @db.Text
+  createdByUserId        String?
+  createdAt              DateTime  @default(now())
+
+  @@unique([agreementId, versionNumber])
+}
+
+model AgreementChangeRequest {
+  id              String              @id @default(cuid())
+  agreementId     String
+  agreement       Agreement           @relation(fields: [agreementId], references: [id], onDelete: Cascade)
+  category        String
+  requestedChange String              @db.Text
+  reason          String              @db.Text
+  note            String?             @db.Text
+  status          ChangeRequestStatus @default(PENDING)
+  createdByUserId String
+  resolvedAt      DateTime?
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+
+  @@index([agreementId, status])
+}
+
+enum AgreementEventType {
+  GENERATED
+  EDITED
+  FINALIZED
+  REQUESTED_CHANGES
+  SIGNED
+}
+
+enum ChangeRequestStatus {
+  PENDING
+  RESOLVED
 }

@@ -88,9 +88,10 @@ export default async function TenancyDetailPage({
 
   const totalReports = tenancy.conditionReports.length;
   const pendingAckReports = tenancy.conditionReports.filter((r) => !r.acknowledgedAt).length;
+  const now = new Date();
 
   const daysUntilEnd = Math.ceil(
-    (new Date(tenancy.endDate).getTime() - Date.now()) / (1000 * 60 * 60 * 24),
+    (new Date(tenancy.endDate).getTime() - now.getTime()) / (1000 * 60 * 60 * 24),
   );
   const isEndingSoon = tenancy.status === 'ACTIVE' && daysUntilEnd <= 30 && daysUntilEnd > 0;
 
@@ -100,7 +101,7 @@ export default async function TenancyDetailPage({
   );
 
   const isOverdue = (dueDate: Date, status: string) =>
-    status === 'PENDING' && new Date(dueDate) < new Date();
+    status === 'PENDING' && new Date(dueDate) < now;
 
   return (
     <div className="max-w-3xl">
@@ -143,6 +144,27 @@ export default async function TenancyDetailPage({
             acknowledgedMoveOut={!!acknowledgedMoveOut}
             depositRefundStatus={tenancy.depositRefund?.status ?? null}
           />
+        )}
+
+        {tenancy.status === 'ACTIVE' && !isEndingSoon && (
+          <div className="flex items-start justify-between gap-4 rounded-xl border border-amber-200 bg-amber-50 px-5 py-4">
+            <div>
+              <p className="text-sm font-semibold text-amber-900">
+                Active tenancy actions
+              </p>
+              <p className="text-xs text-amber-700 mt-1 leading-relaxed">
+                If both parties agree to end this tenancy early, or formal
+                notice needs to be served before the end date, you can record
+                the termination here.
+              </p>
+            </div>
+            <Link
+              href={`/dashboard/landlord/tenancies/${id}/terminate`}
+              className="shrink-0 rounded-lg border border-amber-300 bg-white px-4 py-2 text-sm font-semibold text-amber-800 hover:bg-amber-100 transition-colors"
+            >
+              Serve Notice to Quit
+            </Link>
+          </div>
         )}
 
         {/* EXPIRED/TERMINATED — next steps */}

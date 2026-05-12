@@ -30,7 +30,13 @@ export default async function TenantTenancyPage() {
           },
         },
       },
-      agreement: true, // full include — contentHash, signedAt, signedByIp all present
+      agreement: {
+        include: {
+          events: { orderBy: { createdAt: 'desc' } },
+          revisions: { orderBy: { versionNumber: 'desc' } },
+          changeRequests: { orderBy: { createdAt: 'desc' } },
+        },
+      },
       depositProofs: {
         orderBy: { createdAt: 'desc' },
         select: { id: true, imageUrl: true },
@@ -67,8 +73,6 @@ export default async function TenantTenancyPage() {
   if (tenancy?.agreement?.redFlagsMs) {
     try { redFlagsMs = JSON.parse(tenancy.agreement.redFlagsMs); } catch { redFlagsMs = null; }
   }
-
-  const language = session.user.language ?? 'en';
 
   // ── Case 1: No PENDING/ACTIVE tenancy for this tenant ─────────────────────
   if (!tenancy) {
@@ -260,8 +264,10 @@ export default async function TenantTenancyPage() {
               redFlagsMs={redFlagsMs}
               tenantName={session.user.name ?? 'Tenant'}
               propertyAddress={fullAddress}
-              language={language}
               readOnly
+              events={tenancy.agreement.events}
+              revisions={tenancy.agreement.revisions}
+              changeRequests={tenancy.agreement.changeRequests}
             />
           </>
         )}
@@ -288,12 +294,14 @@ export default async function TenantTenancyPage() {
               redFlagsMs={redFlagsMs}
               tenantName={session.user.name ?? 'Tenant'}
               propertyAddress={fullAddress}
-              language={language}
               readOnly
               contentHash={tenancy.agreement.contentHash}
               signedAt={tenancy.agreement.signedAt}
               signedByIp={tenancy.agreement.signedByIp}
               txHash={tenancy.agreement.txHash}
+              events={tenancy.agreement.events}
+              revisions={tenancy.agreement.revisions}
+              changeRequests={tenancy.agreement.changeRequests}
             />
           </>
         )}
@@ -311,10 +319,15 @@ export default async function TenantTenancyPage() {
               redFlagsMs={redFlagsMs}
               tenantName={session.user.name ?? 'Tenant'}
               propertyAddress={fullAddress}
-              language={language}
               readOnly
+              events={tenancy.agreement.events}
+              revisions={tenancy.agreement.revisions}
+              changeRequests={tenancy.agreement.changeRequests}
             />
-            <TenantAgreementActions agreementId={tenancy.agreement.id} />
+            <TenantAgreementActions
+              agreementId={tenancy.agreement.id}
+              currentVersion={tenancy.agreement.revisions[0]?.versionNumber ?? 1}
+            />
           </div>
         )}
 

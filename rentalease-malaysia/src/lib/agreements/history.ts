@@ -14,7 +14,7 @@ export type AgreementChecklistInput = {
   isFinalizableStatus: boolean;
 };
 
-export type AgreementActorRole = 'LANDLORD' | 'TENANT' | 'SYSTEM';
+export type AgreementActorRole = 'LANDLORD' | 'TENANT' | 'ADMIN';
 
 export type AgreementChecklistItem = {
   key:
@@ -67,6 +67,43 @@ export type AgreementRevision = {
 
 export function buildAgreementRevision(input: AgreementRevision): AgreementRevision {
   return input;
+}
+
+export type AgreementChangeRequest = {
+  category: string;
+  requestedChange: string;
+  reason: string;
+  note: string | null;
+};
+
+export function normalizeChangeRequest(input: {
+  category: string;
+  requestedChange: string;
+  reason: string;
+  note?: string | null;
+}): AgreementChangeRequest {
+  return {
+    category: input.category.trim(),
+    requestedChange: input.requestedChange.trim(),
+    reason: input.reason.trim(),
+    note: input.note?.trim() || null,
+  };
+}
+
+export function formatChangeRequestSummary(
+  requests: AgreementChangeRequest[],
+  note?: string | null,
+): string {
+  const lines = requests.map(
+    (request, index) =>
+      `${index + 1}. ${request.category}: ${request.requestedChange}\nReason: ${request.reason}${request.note ? `\nAdditional note: ${request.note}` : ''}`,
+  );
+
+  if (note?.trim()) {
+    lines.push(`General note: ${note.trim()}`);
+  }
+
+  return lines.join('\n\n');
 }
 
 export type AgreementChecklistResult = {

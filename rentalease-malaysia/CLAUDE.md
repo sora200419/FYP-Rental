@@ -46,7 +46,7 @@ src/app/
 
 ### Auth
 
-NextAuth.js v4 with a Credentials provider. JWT tokens carry `id`, `email`, `role`, and `language`. Config lives in `src/lib/auth.ts`. Passwords are bcrypt-hashed. Role is an enum: `LANDLORD | TENANT | ADMIN`. Admin accounts are created via `scripts/create-admin.ts`; they have their own dashboard at `/dashboard/admin` and are blocked from landlord/tenant routes by middleware.
+NextAuth.js v4 with a Credentials provider. JWT tokens carry `id`, `email`, `role`, and `language`. Config lives in `src/lib/auth.ts`. Passwords are bcrypt-hashed. Role is an enum: `LANDLORD | TENANT | ADMIN`. Admin accounts are auto-bootstrapped from `.env` when the app is opened, with `POST /api/internal/bootstrap-admin` kept as a protected manual fallback; they have their own dashboard at `/dashboard/admin` and are blocked from landlord/tenant routes by middleware.
 
 ### Data Model (Prisma + PostgreSQL)
 

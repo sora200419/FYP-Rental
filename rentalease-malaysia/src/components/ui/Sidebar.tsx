@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter, usePathname } from 'next/navigation';
 import { signOut, useSession } from 'next-auth/react';
@@ -71,14 +71,6 @@ function FileTextIcon({ className }: { className?: string }) {
     </svg>
   );
 }
-function GlobeIcon({ className }: { className?: string }) {
-  return (
-    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-        d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9" />
-    </svg>
-  );
-}
 function LogOutIcon({ className }: { className?: string }) {
   return (
     <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -120,12 +112,11 @@ interface SidebarContentProps {
 }
 
 export function SidebarContent({ onClose }: SidebarContentProps) {
-  const { data: session, update: updateSession } = useSession();
+  const { data: session } = useSession();
   const pathname = usePathname();
   const router = useRouter();
 
   const role = session?.user?.role;
-  const language = session?.user?.language ?? 'en';
 
   const navLinks =
     role === 'LANDLORD' ? landlordLinks :
@@ -134,21 +125,6 @@ export function SidebarContent({ onClose }: SidebarContentProps) {
   const handleSignOut = async () => {
     await signOut({ redirect: false });
     router.push('/login');
-  };
-
-  const toggleLanguage = async () => {
-    const newLang = language === 'en' ? 'ms' : 'en';
-    try {
-      await fetch('/api/profile', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ language: newLang }),
-      });
-      await updateSession({ language: newLang });
-      window.location.reload();
-    } catch {
-      // Silent — language toggle is non-critical
-    }
   };
 
   const isActive = (href: string) =>
@@ -190,19 +166,8 @@ export function SidebarContent({ onClose }: SidebarContentProps) {
         })}
       </nav>
 
-      {/* Bottom — language, user, sign out */}
+      {/* Bottom — user, sign out */}
       <div className="border-t border-gray-800 p-3 space-y-0.5 shrink-0">
-        {/* Language toggle — not for ADMIN */}
-        {role !== 'ADMIN' && (
-          <button
-            onClick={toggleLanguage}
-            className="flex w-full items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-gray-400 hover:bg-gray-800 hover:text-white transition-colors"
-          >
-            <GlobeIcon className="w-4 h-4 shrink-0" />
-            <span>{language === 'en' ? 'EN → BM' : 'BM → EN'}</span>
-          </button>
-        )}
-
         {/* User info — admin gets a non-clickable display, others link to profile */}
         {role === 'ADMIN' ? (
           <div className="flex items-center gap-3 px-3 py-2.5 rounded-lg">

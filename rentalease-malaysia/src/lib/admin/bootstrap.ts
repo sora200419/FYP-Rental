@@ -1,3 +1,6 @@
+import bcrypt from 'bcryptjs';
+import { prisma } from '@/lib/prisma';
+
 export type AdminBootstrapEnv = {
   ADMIN_EMAIL?: string;
   ADMIN_PASSWORD?: string;
@@ -64,4 +67,61 @@ export function buildAdminBootstrapDecision(input: {
     email,
     name,
   };
+}
+
+export type AdminBootstrapResult =
+  | { ok: false; action: 'missing-env' }
+  | { ok: true; action: 'created' | 'promoted' | 'noop'; email: string };
+
+export async function ensureAdminBootstrap(): Promise<AdminBootstrapResult> {
+  const email = process.env.ADMIN_EMAIL?.trim().toLowerCase() ?? '';
+  const existingUser = email
+    ? await prisma.user.findUnique({
+        where: { email },
+        select: { id: true, role: true, name: true },
+      })
+    : null;
+
+  const decision = buildAdminBootstrapDecision({
+    env: {
+      ADMIN_EMAIL: process.env.ADMIN_EMAIL,
+      ADMIN_PASSWORD: process.env.ADMIN_PASSWORD,
+      ADMIN_NAME: process.env.ADMIN_NAME,
+    },
+    existingUser,
+  });
+
+  if (decision.status === 'missing-env') {
+    return { ok: false, action: 'missing-env' };
+  }
+
+  if (decision.status === 'noop') {
+    return { ok: true, action: 'noop', email: decision.email };
+  }
+
+  if (decision.status === 'promote') {
+    await prisma.user.update({
+      where: { id: decision.userId },
+      data: {
+        role: 'ADMIN',
+        name: decision.name,
+        isVerified: true,
+      },
+    });
+
+    return { ok: true, action: 'promoted', email: decision.email };
+  }
+
+  const passwordHash = await bcrypt.hash(decision.password, 12);
+  await prisma.user.create({
+    data: {
+      name: decision.name,
+      email: decision.email,
+      password: passwordHash,
+      role: 'ADMIN',
+      isVerified: true,
+    },
+  });
+
+  return { ok: true, action: 'created', email: decision.email };
 }
