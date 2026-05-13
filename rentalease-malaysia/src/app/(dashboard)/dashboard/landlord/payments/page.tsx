@@ -5,6 +5,7 @@ import { prisma } from '@/lib/prisma';
 import Link from 'next/link';
 import PaymentVerificationCard from '@/components/ui/PaymentVerficationCard';
 import DepositVerificationCard from '@/components/ui/DepositVerificationCard';
+import { PageHeader, StatCard, SectionCard } from '@/components/ui/RedesignPrimitives';
 
 export default async function LandlordPaymentsPage() {
   const session = await getServerSession(authOptions);
@@ -92,113 +93,90 @@ export default async function LandlordPaymentsPage() {
 
   return (
     <div>
-      {/* Header */}
-      <div className="mb-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">Payments</h1>
-            <p className="text-gray-500 mt-1 text-sm">
-              Full payment overview across all your tenancies.
-            </p>
-          </div>
-          {totalAwaiting > 0 && (
-            <span className="bg-amber-500 text-white text-xs font-bold px-2.5 py-1 rounded-full">
-              {totalAwaiting} awaiting review
-            </span>
-          )}
-        </div>
-      </div>
+      <PageHeader
+        eyebrow="Payment ledger"
+        title="Payments"
+        description="Review rent and deposit proof across all active and pending tenancies."
+        action={totalAwaiting > 0
+          ? <span className="rounded-full bg-amber-500 px-2.5 py-1 text-xs font-bold text-white">{totalAwaiting} awaiting review</span>
+          : undefined}
+      />
 
-      {/* Summary stats */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
-        {[
-          { label: 'Rent Total', value: allPayments.length, color: 'text-gray-900' },
-          { label: 'Rent Under Review', value: underReview.length, color: 'text-amber-600' },
-          { label: 'Overdue', value: overdue.length, color: 'text-red-600' },
-          { label: 'Rent Paid', value: paid.length, color: 'text-green-600' },
-        ].map((stat) => (
-          <div
-            key={stat.label}
-            className="bg-white rounded-xl border border-gray-200 p-4 text-center"
-          >
-            <p className={`text-2xl font-bold ${stat.color}`}>{stat.value}</p>
-            <p className="text-xs text-gray-400 mt-1">{stat.label}</p>
-          </div>
-        ))}
+      <div className="mb-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
+        <StatCard label="Rent total" value={allPayments.length} />
+        <StatCard label="Under review" value={underReview.length} tone="amber" />
+        <StatCard label="Overdue" value={overdue.length} tone={overdue.length > 0 ? 'red' : 'default'} />
+        <StatCard label="Confirmed" value={paid.length} tone="green" />
       </div>
 
       {/* ── Security Deposits ────────────────────────────────────────────────── */}
       {allDepositTenancies.length > 0 && (
         <div className="mb-8">
-          <div className="flex items-center gap-2 mb-3">
-            <span className="w-2 h-2 rounded-full bg-blue-400" />
-            <h2 className="text-sm font-semibold text-gray-700 uppercase tracking-wider">
-              Security Deposits
-            </h2>
-          </div>
-          <div className="space-y-4">
-            {/* Under review — approve/reject */}
-            {depositsUnderReview.map((t) => (
-              <DepositRow
-                key={t.id}
-                tenancy={t}
-                formatRM={formatRM}
-              >
-                <DepositVerificationCard
-                  tenancyId={t.id}
-                  depositAmount={formatRM(t.depositAmount)}
-                  depositStatus={t.depositStatus}
-                  proofs={t.depositProofs}
-                  rejectionReason={t.depositRejectionReason}
-                />
-              </DepositRow>
-            ))}
+          <SectionCard title="Security Deposits">
+            <div className="space-y-4">
+              {/* Under review — approve/reject */}
+              {depositsUnderReview.map((t) => (
+                <DepositRow
+                  key={t.id}
+                  tenancy={t}
+                  formatRM={formatRM}
+                >
+                  <DepositVerificationCard
+                    tenancyId={t.id}
+                    depositAmount={formatRM(t.depositAmount)}
+                    depositStatus={t.depositStatus}
+                    proofs={t.depositProofs}
+                    rejectionReason={t.depositRejectionReason}
+                  />
+                </DepositRow>
+              ))}
 
-            {/* Rejected — waiting for tenant re-upload */}
-            {depositsRejected.map((t) => (
-              <DepositRow
-                key={t.id}
-                tenancy={t}
-                formatRM={formatRM}
-              >
-                <div className="mt-4 border-t border-gray-100 pt-4">
-                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-50 text-red-600 ring-1 ring-red-200 ring-inset">
-                    Rejected — awaiting re-upload from tenant
-                  </span>
-                  {t.depositRejectionReason && (
-                    <p className="text-xs text-gray-400 mt-1.5">
-                      Reason: {t.depositRejectionReason}
-                    </p>
-                  )}
-                </div>
-              </DepositRow>
-            ))}
+              {/* Rejected — waiting for tenant re-upload */}
+              {depositsRejected.map((t) => (
+                <DepositRow
+                  key={t.id}
+                  tenancy={t}
+                  formatRM={formatRM}
+                >
+                  <div className="mt-4 border-t border-gray-100 pt-4">
+                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-50 text-red-600 ring-1 ring-red-200 ring-inset">
+                      Rejected — awaiting re-upload from tenant
+                    </span>
+                    {t.depositRejectionReason && (
+                      <p className="text-xs text-gray-400 mt-1.5">
+                        Reason: {t.depositRejectionReason}
+                      </p>
+                    )}
+                  </div>
+                </DepositRow>
+              ))}
 
-            {/* Confirmed */}
-            {depositsConfirmed.map((t) => (
-              <DepositRow
-                key={t.id}
-                tenancy={t}
-                formatRM={formatRM}
-              >
-                <div className="mt-4 border-t border-gray-100 pt-4 flex items-center gap-2">
-                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-50 text-green-700 ring-1 ring-green-200 ring-inset">
-                    Confirmed
-                  </span>
-                  {t.depositProofs.length > 0 && (
-                    <a
-                      href={t.depositProofs[0].imageUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-xs text-blue-600 hover:underline"
-                    >
-                      View proof
-                    </a>
-                  )}
-                </div>
-              </DepositRow>
-            ))}
-          </div>
+              {/* Confirmed */}
+              {depositsConfirmed.map((t) => (
+                <DepositRow
+                  key={t.id}
+                  tenancy={t}
+                  formatRM={formatRM}
+                >
+                  <div className="mt-4 border-t border-gray-100 pt-4 flex items-center gap-2">
+                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-50 text-green-700 ring-1 ring-green-200 ring-inset">
+                      Confirmed
+                    </span>
+                    {t.depositProofs.length > 0 && (
+                      <a
+                        href={t.depositProofs[0].imageUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-xs text-blue-600 hover:underline"
+                      >
+                        View proof
+                      </a>
+                    )}
+                  </div>
+                </DepositRow>
+              ))}
+            </div>
+          </SectionCard>
         </div>
       )}
 
@@ -213,122 +191,107 @@ export default async function LandlordPaymentsPage() {
 
       {/* ── Rent: Awaiting Review ────────────────────────────────────────────── */}
       {underReview.length > 0 && (
-        <Section title="Rent — Awaiting Review" accent="amber">
-          {underReview.map((payment) => (
-            <PaymentRow
-              key={payment.id}
-              payment={payment}
-              formatDate={formatDate}
-              formatRM={formatRM}
-            >
-              <PaymentVerificationCard
-                paymentId={payment.id}
-                dueDate={formatDate(payment.dueDate)}
-                amount={formatRM(payment.amount)}
-                status={payment.status}
-                proofs={payment.proofs}
-              />
-            </PaymentRow>
-          ))}
-        </Section>
+        <div className="mb-8">
+          <SectionCard title="Rent — Awaiting Review">
+            <div className="space-y-4">
+              {underReview.map((payment) => (
+                <PaymentRow
+                  key={payment.id}
+                  payment={payment}
+                  formatDate={formatDate}
+                  formatRM={formatRM}
+                >
+                  <PaymentVerificationCard
+                    paymentId={payment.id}
+                    dueDate={formatDate(payment.dueDate)}
+                    amount={formatRM(payment.amount)}
+                    status={payment.status}
+                    proofs={payment.proofs}
+                  />
+                </PaymentRow>
+              ))}
+            </div>
+          </SectionCard>
+        </div>
       )}
 
       {/* ── Rent: Pending / Overdue ──────────────────────────────────────────── */}
       {pending.length > 0 && (
-        <Section title="Rent — Pending" accent="gray">
-          {pending.map((payment) => {
-            const isOverdue = new Date(payment.dueDate) < today;
-            return (
-              <PaymentRow
-                key={payment.id}
-                payment={payment}
-                formatDate={formatDate}
-                formatRM={formatRM}
-              >
-                <div className="mt-2">
-                  <span
-                    className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ring-1 ring-inset ${
-                      isOverdue
-                        ? 'bg-red-50 text-red-600 ring-red-200'
-                        : 'bg-gray-100 text-gray-500 ring-gray-200'
-                    }`}
+        <div className="mb-8">
+          <SectionCard title="Rent — Pending">
+            <div className="space-y-4">
+              {pending.map((payment) => {
+                const isOverdue = new Date(payment.dueDate) < today;
+                return (
+                  <PaymentRow
+                    key={payment.id}
+                    payment={payment}
+                    formatDate={formatDate}
+                    formatRM={formatRM}
                   >
-                    {isOverdue ? 'Overdue' : 'Pending'}
-                  </span>
-                  <span className="text-xs text-gray-400 ml-2">
-                    Due {formatDate(payment.dueDate)}
-                  </span>
-                </div>
-              </PaymentRow>
-            );
-          })}
-        </Section>
+                    <div className="mt-2">
+                      <span
+                        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ring-1 ring-inset ${
+                          isOverdue
+                            ? 'bg-red-50 text-red-600 ring-red-200'
+                            : 'bg-gray-100 text-gray-500 ring-gray-200'
+                        }`}
+                      >
+                        {isOverdue ? 'Overdue' : 'Pending'}
+                      </span>
+                      <span className="text-xs text-gray-400 ml-2">
+                        Due {formatDate(payment.dueDate)}
+                      </span>
+                    </div>
+                  </PaymentRow>
+                );
+              })}
+            </div>
+          </SectionCard>
+        </div>
       )}
 
       {/* ── Rent: Paid ──────────────────────────────────────────────────────── */}
       {paid.length > 0 && (
-        <Section title="Rent — Paid" accent="green">
-          {paid.map((payment) => (
-            <PaymentRow
-              key={payment.id}
-              payment={payment}
-              formatDate={formatDate}
-              formatRM={formatRM}
-            >
-              <div className="mt-2 flex items-center gap-2">
-                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-50 text-green-700 ring-1 ring-green-200 ring-inset">
-                  {payment.status === 'WAIVED' ? 'Waived' : 'Paid'}
-                </span>
-                <span className="text-xs text-gray-400">
-                  Due {formatDate(payment.dueDate)}
-                </span>
-                {payment.proofs.length > 0 && (
-                  <a
-                    href={payment.proofs[0].imageUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-xs text-blue-600 hover:underline"
-                  >
-                    View proof
-                  </a>
-                )}
-              </div>
-            </PaymentRow>
-          ))}
-        </Section>
+        <div className="mb-8">
+          <SectionCard title="Rent — Paid">
+            <div className="space-y-4">
+              {paid.map((payment) => (
+                <PaymentRow
+                  key={payment.id}
+                  payment={payment}
+                  formatDate={formatDate}
+                  formatRM={formatRM}
+                >
+                  <div className="mt-2 flex items-center gap-2">
+                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-50 text-green-700 ring-1 ring-green-200 ring-inset">
+                      {payment.status === 'WAIVED' ? 'Waived' : 'Paid'}
+                    </span>
+                    <span className="text-xs text-gray-400">
+                      Due {formatDate(payment.dueDate)}
+                    </span>
+                    {payment.proofs.length > 0 && (
+                      <a
+                        href={payment.proofs[0].imageUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-xs text-blue-600 hover:underline"
+                      >
+                        View proof
+                      </a>
+                    )}
+                  </div>
+                </PaymentRow>
+              ))}
+            </div>
+          </SectionCard>
+        </div>
       )}
     </div>
   );
 }
 
 // ── Sub-components ────────────────────────────────────────────────────────────
-
-function Section({
-  title,
-  accent,
-  children,
-}: {
-  title: string;
-  accent: 'amber' | 'green' | 'gray';
-  children: React.ReactNode;
-}) {
-  const dot: Record<string, string> = {
-    amber: 'bg-amber-400',
-    green: 'bg-green-400',
-    gray: 'bg-gray-300',
-  };
-  return (
-    <div className="mb-8">
-      <div className="flex items-center gap-2 mb-3">
-        <span className={`w-2 h-2 rounded-full ${dot[accent]}`} />
-        <h2 className="text-sm font-semibold text-gray-700 uppercase tracking-wider">
-          {title}
-        </h2>
-      </div>
-      <div className="space-y-4">{children}</div>
-    </div>
-  );
-}
 
 type PaymentWithRelations = {
   id: string;

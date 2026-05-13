@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation';
 import { prisma } from '@/lib/prisma';
 import PaymentProofUploader from '@/components/ui/PaymentProofUploader';
 import DepositProofUploader from '@/components/ui/DepositProofUploader';
+import { PageHeader } from '@/components/ui/RedesignPrimitives';
 
 const STATUS_LABEL: Record<string, string> = {
   PENDING: 'Pending',
@@ -70,16 +71,11 @@ export default async function TenantPaymentsPage() {
 
   return (
     <div>
-      <div className="mb-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">Payments</h1>
-            <p className="text-gray-500 mt-1 text-sm">
-              Upload proof of payment and track verification status.
-            </p>
-          </div>
-        </div>
-      </div>
+      <PageHeader
+        eyebrow="My payments"
+        title="Payments"
+        description="Track your rent and deposit payments."
+      />
 
       {/* ── Deposit card — pinned at top when tenancy exists ───────────────── */}
       {tenancy && (

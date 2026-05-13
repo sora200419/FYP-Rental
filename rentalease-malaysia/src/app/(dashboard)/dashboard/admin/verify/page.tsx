@@ -7,6 +7,7 @@ import Image from 'next/image';
 import VerifyButton from '@/components/ui/VerifyButton';
 import RevokeButton from '@/components/ui/RevokeButton';
 import AdminTabBar from '@/components/ui/AdminTabBar';
+import { PageHeader, StatCard } from '@/components/ui/RedesignPrimitives';
 
 export default async function AdminVerifyPage({
   searchParams,
@@ -19,7 +20,7 @@ export default async function AdminVerifyPage({
   const { tab } = await searchParams;
   const activeTab = tab === 'verified' ? 'verified' : 'pending';
 
-  const [pendingUsers, verifiedCount] = await Promise.all([
+  const [pendingUsers, verifiedCount, totalCount] = await Promise.all([
     prisma.user.findMany({
       where: {
         isVerified: false,
@@ -35,6 +36,7 @@ export default async function AdminVerifyPage({
       orderBy: { createdAt: 'asc' },
     }),
     prisma.user.count({ where: { isVerified: true, role: { not: 'ADMIN' } } }),
+    prisma.user.count({ where: { role: { not: 'ADMIN' } } }),
   ]);
 
   const verifiedUsers =
@@ -55,16 +57,16 @@ export default async function AdminVerifyPage({
 
   return (
     <div className="max-w-3xl">
-      <div className="flex items-center gap-2 text-sm text-gray-400 mb-5">
-        <Link href="/dashboard/admin" className="hover:text-blue-600 transition-colors">
-          Admin
-        </Link>
-        <span>/</span>
-        <span className="text-gray-700 font-medium">KYC Verification</span>
-      </div>
+      <PageHeader
+        eyebrow="Admin"
+        title="KYC Verification"
+        description="Review identity documents submitted by users."
+      />
 
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">KYC Verification</h1>
+      <div className="mb-6 grid grid-cols-2 gap-4 lg:grid-cols-3">
+        <StatCard label="Pending" value={pendingUsers.length} tone="amber" />
+        <StatCard label="Verified" value={verifiedCount} tone="green" />
+        <StatCard label="Total users" value={totalCount} />
       </div>
 
       <AdminTabBar
