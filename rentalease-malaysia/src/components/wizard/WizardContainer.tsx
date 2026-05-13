@@ -219,11 +219,11 @@ export function WizardContainer({ tenancyId, roomMeta, existingPreferences }: Wi
               <div key={i} className="flex flex-col items-center">
                 <div
                   className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-colors ${
-                    done
+                    done && stepNum < currentStep
                       ? 'bg-blue-600 text-white'
                       : current
-                        ? 'bg-blue-100 text-blue-700 border-2 border-blue-600'
-                        : 'bg-gray-100 text-gray-400'
+                        ? 'border-2 border-blue-600 text-blue-600 bg-white'
+                        : 'border border-gray-300 text-gray-400 bg-white'
                   }`}
                 >
                   {done && stepNum < currentStep ? (

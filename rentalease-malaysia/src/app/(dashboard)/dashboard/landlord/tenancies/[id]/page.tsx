@@ -11,6 +11,9 @@ import DepositVerificationCard from '@/components/ui/DepositVerificationCard';
 import CoTenantManager from '@/components/ui/CoTenantManager';
 import LandlordAgreementSignatureProofReview from '@/components/ui/LandlordAgreementSignatureProofReview';
 import CorporateOccupantRosterManager from '@/components/ui/CorporateOccupantRosterManager';
+import PropertyCover from '@/components/ui/PropertyCover';
+import { PageHeader } from '@/components/ui/RedesignPrimitives';
+import { getPropertyCover } from '@/lib/uiRedesign';
 
 const PILL_BASE = 'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium';
 
@@ -39,6 +42,24 @@ const PAYMENT_PILL = {
   OVERDUE:      `${PILL_BASE} bg-red-50 text-red-600 ring-1 ring-red-200 ring-inset`,
 };
 
+const TENANCY_STEPS = ['Invite', 'Agreement', 'Deposit', 'Condition', 'Active'];
+
+function getTenancyStep(status: string, agreementStatus?: string | null, depositStatus?: string | null) {
+  if (status === 'INVITED') return 0;
+  if (!agreementStatus || ['DRAFT', 'NEGOTIATING', 'PENDING_TENANT', 'PENDING_LANDLORD'].includes(agreementStatus)) return 1;
+  if (depositStatus !== 'PAID') return 2;
+  if (status !== 'ACTIVE') return 3;
+  return 4;
+}
+
+const STATUS_HEADLINE: Record<string, { headline: string; description: string }> = {
+  INVITED:    { headline: 'Invitation sent', description: 'Waiting for tenant to accept the invitation.' },
+  PENDING:    { headline: 'Agreement in progress', description: 'Review and finalize the tenancy agreement.' },
+  ACTIVE:     { headline: 'Tenancy active', description: 'Tenancy is running. Monitor payments and condition reports.' },
+  EXPIRED:    { headline: 'Tenancy ended', description: 'This tenancy has expired.' },
+  TERMINATED: { headline: 'Tenancy terminated', description: 'This tenancy was terminated early.' },
+};
+
 export default async function TenancyDetailPage({
   params,
 }: {
@@ -52,7 +73,19 @@ export default async function TenancyDetailPage({
   const tenancy = await prisma.tenancy.findFirst({
     where: { id, room: { property: { landlordId: session.user.id } } },
     include: {
-      room: { include: { property: true } },
+      room: {
+        include: {
+          property: {
+            include: {
+              photos: {
+                select: { imageUrl: true, caption: true, order: true, createdAt: true },
+                orderBy: [{ order: 'asc' }, { createdAt: 'asc' }],
+                take: 1,
+              },
+            },
+          },
+        },
+      },
       tenant: { select: { name: true, email: true, phone: true } },
       authorizedSignatoryUser: {
         select: { id: true, name: true, email: true },
@@ -134,10 +167,14 @@ export default async function TenancyDetailPage({
   const isOverdue = (dueDate: Date, status: string) =>
     status === 'PENDING' && new Date(dueDate) < now;
 
+  const cover = getPropertyCover(tenancy.room.property.photos ?? []);
+  const activeStep = getTenancyStep(tenancy.status, tenancy.agreement?.status, tenancy.depositStatus);
+  const statusInfo = STATUS_HEADLINE[tenancy.status] ?? { headline: tenancy.status, description: '' };
+
   return (
-    <div className="max-w-3xl">
+    <div className="max-w-5xl">
       {/* Breadcrumb */}
-      <div className="flex items-center gap-2 text-sm text-gray-400 mb-6">
+      <div className="flex items-center gap-2 text-sm text-gray-400 mb-4">
         <Link href="/dashboard/landlord/tenancies" className="hover:text-blue-600 transition-colors">
           Tenancies
         </Link>
@@ -149,19 +186,125 @@ export default async function TenancyDetailPage({
         </span>
       </div>
 
-      {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Tenancy Details</h1>
-          <p className="text-sm text-gray-500 mt-1">
-            {tenancy.room.property.address}, {tenancy.room.property.city}
-            {' · '}
-            <span className="font-medium">{tenancy.room.label}</span>
-          </p>
-        </div>
-        <span className={STATUS_PILL[tenancy.status] ?? `${PILL_BASE} bg-gray-100 text-gray-500`}>
-          {tenancy.status.charAt(0) + tenancy.status.slice(1).toLowerCase()}
-        </span>
+      <PageHeader
+        eyebrow="Tenancy detail"
+        title={tenancy.room.property.address}
+        description={`Room ${tenancy.room.label} · ${tenancy.tenant.name}`}
+      />
+
+      {/* 5-step progress timeline */}
+      <div className="mb-6 grid gap-2 sm:grid-cols-5">
+        {TENANCY_STEPS.map((step, index) => (
+          <div
+            key={step}
+            className={`rounded-lg border px-3 py-2 text-center text-xs font-semibold ${
+              index <= activeStep
+                ? 'border-blue-200 bg-blue-50 text-blue-700'
+                : 'border-gray-200 bg-gray-50 text-gray-400'
+            }`}
+          >
+            {step}
+          </div>
+        ))}
+      </div>
+
+      {/* Two-column guided layout */}
+      <div className="mb-6 grid gap-5 xl:grid-cols-[1.4fr_0.8fr]">
+        {/* Left: property cover + status */}
+        <section className="overflow-hidden rounded-2xl border border-gray-200 bg-white">
+          <PropertyCover
+            address={tenancy.room.property.address}
+            imageUrl={cover?.imageUrl}
+            caption={cover?.caption}
+            className="rounded-none border-0"
+            heightClassName="h-56"
+          />
+          <div className="p-5">
+            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-gray-400">Current status</p>
+            <div className="mt-2 flex items-center gap-2">
+              <h2 className="text-xl font-bold text-gray-900">{statusInfo.headline}</h2>
+              <span className={STATUS_PILL[tenancy.status] ?? `${PILL_BASE} bg-gray-100 text-gray-500`}>
+                {tenancy.status.charAt(0) + tenancy.status.slice(1).toLowerCase()}
+              </span>
+            </div>
+            <p className="mt-2 text-sm text-gray-500">{statusInfo.description}</p>
+            <div className="mt-4 flex flex-wrap gap-3">
+              {tenancy.agreement && (
+                <Link
+                  href={`/dashboard/landlord/tenancies/${tenancy.id}/agreement`}
+                  className="bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2.5 rounded-lg transition-colors"
+                >
+                  View Agreement
+                </Link>
+              )}
+              {!tenancy.agreement && tenancy.status !== 'INVITED' && (
+                !tenancy.agreementPreferences?.isComplete ? (
+                  <Link
+                    href={`/dashboard/landlord/tenancies/${tenancy.id}/wizard`}
+                    className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2.5 rounded-lg transition-colors"
+                  >
+                    Start Agreement Wizard
+                  </Link>
+                ) : (
+                  <GenerateAgreementButton tenancyId={tenancy.id} label="Generate Agreement" variant="primary" />
+                )
+              )}
+              {tenancy.status === 'ACTIVE' && !isEndingSoon && (
+                <Link
+                  href={`/dashboard/landlord/tenancies/${id}/terminate`}
+                  className="rounded-lg border border-amber-300 bg-white px-4 py-2 text-sm font-semibold text-amber-800 hover:bg-amber-100 transition-colors"
+                >
+                  Serve Notice to Quit
+                </Link>
+              )}
+            </div>
+          </div>
+        </section>
+
+        {/* Right: next actions aside */}
+        <aside className="rounded-2xl border border-blue-100 bg-blue-50 p-5">
+          <h2 className="text-sm font-semibold text-blue-900">Next actions</h2>
+          <div className="mt-4 space-y-3">
+            {tenancy.agreement && (
+              <Link
+                href={`/dashboard/landlord/tenancies/${tenancy.id}/agreement`}
+                className="flex items-center gap-3 rounded-xl border border-blue-200 bg-white px-4 py-3 text-sm font-medium text-blue-700 hover:bg-blue-50 transition-colors"
+              >
+                <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                View Agreement
+              </Link>
+            )}
+            <Link
+              href="/dashboard/landlord/payments"
+              className="flex items-center gap-3 rounded-xl border border-blue-200 bg-white px-4 py-3 text-sm font-medium text-blue-700 hover:bg-blue-50 transition-colors"
+            >
+              <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
+              </svg>
+              Payments
+            </Link>
+            <Link
+              href="/dashboard/landlord/messages"
+              className="flex items-center gap-3 rounded-xl border border-blue-200 bg-white px-4 py-3 text-sm font-medium text-blue-700 hover:bg-blue-50 transition-colors"
+            >
+              <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+              </svg>
+              Messages
+            </Link>
+            <Link
+              href={`/dashboard/landlord/tenancies/${tenancy.id}/conditions`}
+              className="flex items-center gap-3 rounded-xl border border-blue-200 bg-white px-4 py-3 text-sm font-medium text-blue-700 hover:bg-blue-50 transition-colors"
+            >
+              <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+              </svg>
+              Condition Reports
+            </Link>
+          </div>
+        </aside>
       </div>
 
       <div className="space-y-5">
@@ -175,27 +318,6 @@ export default async function TenancyDetailPage({
             acknowledgedMoveOut={!!acknowledgedMoveOut}
             depositRefundStatus={tenancy.depositRefund?.status ?? null}
           />
-        )}
-
-        {tenancy.status === 'ACTIVE' && !isEndingSoon && (
-          <div className="flex items-start justify-between gap-4 rounded-xl border border-amber-200 bg-amber-50 px-5 py-4">
-            <div>
-              <p className="text-sm font-semibold text-amber-900">
-                Active tenancy actions
-              </p>
-              <p className="text-xs text-amber-700 mt-1 leading-relaxed">
-                If both parties agree to end this tenancy early, or formal
-                notice needs to be served before the end date, you can record
-                the termination here.
-              </p>
-            </div>
-            <Link
-              href={`/dashboard/landlord/tenancies/${id}/terminate`}
-              className="shrink-0 rounded-lg border border-amber-300 bg-white px-4 py-2 text-sm font-semibold text-amber-800 hover:bg-amber-100 transition-colors"
-            >
-              Serve Notice to Quit
-            </Link>
-          </div>
         )}
 
         {/* EXPIRED/TERMINATED — next steps */}
