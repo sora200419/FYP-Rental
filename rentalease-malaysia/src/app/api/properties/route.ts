@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
+import { createNotification } from '@/lib/notifications';
 
 // Property-level fields only — bedrooms, bathrooms, rentAmount have moved to Room
 const propertySchema = z.object({
@@ -50,6 +51,22 @@ export async function POST(request: NextRequest) {
         type: true,
       },
     });
+
+    const admins = await prisma.user.findMany({
+      where: { role: 'ADMIN' },
+      select: { id: true },
+    });
+    await Promise.all(
+      admins.map((admin) =>
+        createNotification(
+          admin.id,
+          'PROPERTY_SUBMITTED',
+          'New property submitted',
+          `A new property at "${property.address}" has been submitted for verification.`,
+          '/dashboard/admin/properties',
+        ),
+      ),
+    );
 
     return NextResponse.json(
       { message: 'Property created successfully', property },
