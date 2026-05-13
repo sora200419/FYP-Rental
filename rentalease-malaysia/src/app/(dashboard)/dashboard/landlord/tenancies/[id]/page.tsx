@@ -9,6 +9,8 @@ import { EndOfTenancyBanner } from '@/components/ui/EndOfTenancyBanner';
 import TenantDocumentsCard from '@/components/ui/TenantDocumentsCard';
 import DepositVerificationCard from '@/components/ui/DepositVerificationCard';
 import CoTenantManager from '@/components/ui/CoTenantManager';
+import LandlordAgreementSignatureProofReview from '@/components/ui/LandlordAgreementSignatureProofReview';
+import CorporateOccupantRosterManager from '@/components/ui/CorporateOccupantRosterManager';
 
 const PILL_BASE = 'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium';
 
@@ -23,6 +25,7 @@ const STATUS_PILL: Record<string, string> = {
 const AGREEMENT_PILL: Record<string, string> = {
   DRAFT:           `${PILL_BASE} bg-gray-100 text-gray-500 ring-1 ring-gray-200 ring-inset`,
   FINALIZED:       `${PILL_BASE} bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200 ring-inset`,
+  PENDING_SIGNATURE_PROOF: `${PILL_BASE} bg-blue-50 text-blue-700 ring-1 ring-blue-200 ring-inset`,
   SIGNED:          `${PILL_BASE} bg-green-50 text-green-700 ring-1 ring-green-200 ring-inset`,
   NEGOTIATING:     `${PILL_BASE} bg-purple-50 text-purple-700 ring-1 ring-purple-200 ring-inset`,
   PENDING_TENANT:  `${PILL_BASE} bg-yellow-50 text-yellow-700 ring-1 ring-yellow-200 ring-inset`,
@@ -51,11 +54,28 @@ export default async function TenancyDetailPage({
     include: {
       room: { include: { property: true } },
       tenant: { select: { name: true, email: true, phone: true } },
+      authorizedSignatoryUser: {
+        select: { id: true, name: true, email: true },
+      },
       agreement: {
         select: {
           id: true, status: true, plainLanguageSummary: true,
           redFlags: true, negotiationNotes: true, negotiationRound: true,
           createdAt: true, updatedAt: true,
+          signatureProofs: {
+            orderBy: { createdAt: 'desc' },
+            select: {
+              id: true,
+              fileUrl: true,
+              originalName: true,
+              mimeType: true,
+              fileSize: true,
+              status: true,
+              rejectionReason: true,
+              createdAt: true,
+              reviewedAt: true,
+            },
+          },
         },
       },
       rentPayments: { orderBy: { dueDate: 'asc' } },
@@ -65,6 +85,14 @@ export default async function TenancyDetailPage({
       depositProofs: {
         orderBy: { createdAt: 'desc' },
         select: { id: true, imageUrl: true, createdAt: true },
+      },
+      corporateOccupants: {
+        orderBy: { createdAt: 'asc' },
+        include: {
+          linkedUser: {
+            select: { id: true, name: true, email: true },
+          },
+        },
       },
       coTenants: { orderBy: { createdAt: 'asc' } },
     },
@@ -85,12 +113,16 @@ export default async function TenancyDetailPage({
       redFlagCount = Array.isArray(flags) ? flags.length : 0;
     } catch { redFlagCount = 0; }
   }
+  const latestSignatureProof = tenancy.agreement?.signatureProofs[0] ?? null;
+  const isCorporate = tenancy.leasePartyType === 'CORPORATE';
+  const canManageCorporateRoster = true;
 
   const totalReports = tenancy.conditionReports.length;
   const pendingAckReports = tenancy.conditionReports.filter((r) => !r.acknowledgedAt).length;
+  const now = new Date();
 
   const daysUntilEnd = Math.ceil(
-    (new Date(tenancy.endDate).getTime() - Date.now()) / (1000 * 60 * 60 * 24),
+    (new Date(tenancy.endDate).getTime() - now.getTime()) / (1000 * 60 * 60 * 24),
   );
   const isEndingSoon = tenancy.status === 'ACTIVE' && daysUntilEnd <= 30 && daysUntilEnd > 0;
 
@@ -100,7 +132,7 @@ export default async function TenancyDetailPage({
   );
 
   const isOverdue = (dueDate: Date, status: string) =>
-    status === 'PENDING' && new Date(dueDate) < new Date();
+    status === 'PENDING' && new Date(dueDate) < now;
 
   return (
     <div className="max-w-3xl">
@@ -143,6 +175,27 @@ export default async function TenancyDetailPage({
             acknowledgedMoveOut={!!acknowledgedMoveOut}
             depositRefundStatus={tenancy.depositRefund?.status ?? null}
           />
+        )}
+
+        {tenancy.status === 'ACTIVE' && !isEndingSoon && (
+          <div className="flex items-start justify-between gap-4 rounded-xl border border-amber-200 bg-amber-50 px-5 py-4">
+            <div>
+              <p className="text-sm font-semibold text-amber-900">
+                Active tenancy actions
+              </p>
+              <p className="text-xs text-amber-700 mt-1 leading-relaxed">
+                If both parties agree to end this tenancy early, or formal
+                notice needs to be served before the end date, you can record
+                the termination here.
+              </p>
+            </div>
+            <Link
+              href={`/dashboard/landlord/tenancies/${id}/terminate`}
+              className="shrink-0 rounded-lg border border-amber-300 bg-white px-4 py-2 text-sm font-semibold text-amber-800 hover:bg-amber-100 transition-colors"
+            >
+              Serve Notice to Quit
+            </Link>
+          </div>
         )}
 
         {/* EXPIRED/TERMINATED — next steps */}
@@ -211,11 +264,54 @@ export default async function TenancyDetailPage({
 
         <TenantDocumentsCard tenancyId={id} tenantName={tenancy.tenant.name} />
 
-        <CoTenantManager
-          tenancyId={id}
-          initialCoTenants={tenancy.coTenants}
-          readonly={tenancy.status === 'EXPIRED' || tenancy.status === 'TERMINATED'}
-        />
+        {isCorporate ? (
+          <>
+            <div className="bg-white rounded-xl border border-gray-200 p-5">
+              <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4">
+                Corporate Lease Party
+              </h2>
+              <div className="space-y-3 text-sm">
+                <div>
+                  <p className="text-gray-400 text-xs">Company</p>
+                  <p className="font-medium text-gray-900 mt-0.5">
+                    {tenancy.companyName ?? 'Corporate tenant'}
+                  </p>
+                  {tenancy.companyRegistrationNo && (
+                    <p className="text-xs text-gray-500 mt-0.5">
+                      Registration No. {tenancy.companyRegistrationNo}
+                    </p>
+                  )}
+                </div>
+                <div>
+                  <p className="text-gray-400 text-xs">Authorized Signatory</p>
+                  <p className="font-medium text-gray-900 mt-0.5">
+                    {tenancy.authorizedSignatoryName ?? tenancy.tenant.name}
+                  </p>
+                  <p className="text-xs text-gray-500 mt-0.5">
+                    {tenancy.authorizedSignatoryRole ??
+                      'Role not specified'}
+                    {tenancy.authorizedSignatoryIC
+                      ? ` · ${tenancy.authorizedSignatoryIC}`
+                      : ''}
+                  </p>
+                </div>
+              </div>
+            </div>
+            <CorporateOccupantRosterManager
+              tenancyId={id}
+              initialOccupants={tenancy.corporateOccupants}
+              canManage={canManageCorporateRoster}
+            />
+          </>
+        ) : (
+          <CoTenantManager
+            tenancyId={id}
+            initialCoTenants={tenancy.coTenants}
+            readonly={
+              tenancy.status === 'EXPIRED' || tenancy.status === 'TERMINATED'
+            }
+          />
+        )}
 
         {/* Tenancy terms card */}
         <div className="bg-white rounded-xl border border-gray-200 p-5">
@@ -253,6 +349,13 @@ export default async function TenancyDetailPage({
               currentEndDate={tenancy.endDate.toISOString()}
               currentMonthlyRent={Number(tenancy.monthlyRent)}
               currentDepositAmount={Number(tenancy.depositAmount)}
+              tenancyStatus={tenancy.status}
+              leasePartyType={tenancy.leasePartyType}
+              currentInvitationEmail={
+                tenancy.leasePartyType === 'CORPORATE'
+                  ? tenancy.authorizedSignatoryUser?.email ?? tenancy.tenant.email
+                  : tenancy.tenant.email
+              }
             />
           )}
         </div>
@@ -294,6 +397,14 @@ export default async function TenancyDetailPage({
             </Link>
           </div>
         </div>
+
+        {tenancy.agreement?.status === 'PENDING_SIGNATURE_PROOF' && (
+          <LandlordAgreementSignatureProofReview
+            agreementId={tenancy.agreement.id}
+            proof={latestSignatureProof}
+            tenantName={tenancy.tenant.name}
+          />
+        )}
 
         {/* Agreement card */}
         {tenancy.status !== 'INVITED' && (
@@ -348,8 +459,23 @@ export default async function TenancyDetailPage({
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                     </svg>
                     <div>
-                      <p className="font-semibold">Agreement signed by tenant — Tenancy is active</p>
-                      <p className="text-green-600 text-xs mt-0.5">Both parties have agreed. The rent payment schedule has been generated.</p>
+                      <p className="font-semibold">Agreement fully approved — Tenancy is active</p>
+                      <p className="text-green-600 text-xs mt-0.5">The digital signature and signed hard-copy proof are both complete. The rent payment schedule has been generated.</p>
+                    </div>
+                  </div>
+                )}
+
+                {tenancy.agreement.status === 'PENDING_SIGNATURE_PROOF' && (
+                  <div className="flex items-start gap-3 bg-blue-50 border border-blue-200 rounded-lg px-4 py-3 mb-4 text-sm text-blue-800">
+                    <svg className="w-4 h-4 text-blue-500 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                        d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <div>
+                      <p className="font-semibold">Waiting for signed hard-copy approval</p>
+                      <p className="text-blue-600 text-xs mt-0.5">
+                        The tenant has completed digital signing. Review the uploaded signed copy below before the tenancy can become active.
+                      </p>
                     </div>
                   </div>
                 )}
@@ -374,7 +500,7 @@ export default async function TenancyDetailPage({
                   >
                     View Agreement
                   </Link>
-                  {tenancy.agreement?.status !== 'SIGNED' && (
+                  {!['SIGNED', 'PENDING_SIGNATURE_PROOF'].includes(tenancy.agreement.status) && (
                     <>
                       <GenerateAgreementButton tenancyId={tenancy.id} label="Regenerate" variant="secondary" />
                       <Link

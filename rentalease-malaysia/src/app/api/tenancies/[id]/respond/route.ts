@@ -2,6 +2,7 @@
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
+import { canLegallySignCorporateAgreement } from '@/lib/corporate-tenancy-access';
 import { prisma } from '@/lib/prisma';
 import { createNotification } from '@/lib/notifications';
 
@@ -34,10 +35,38 @@ export async function PATCH(
         },
       },
       tenant: { select: { id: true, name: true, isVerified: true } },
+      authorizedSignatoryUser: {
+        select: { id: true, name: true, isVerified: true },
+      },
     },
   });
 
-  if (!tenancy || tenancy.tenantId !== session.user.id) {
+  if (!tenancy) {
+    return NextResponse.json({ error: 'Tenancy not found' }, { status: 404 });
+  }
+
+  const isCorporate = tenancy.leasePartyType === 'CORPORATE';
+  const isAuthorizedSignatory =
+    !!tenancy.authorizedSignatoryUserId &&
+    tenancy.authorizedSignatoryUserId === session.user.id;
+  const canRespondToInvitation = isCorporate
+    ? canLegallySignCorporateAgreement({
+        leasePartyType: tenancy.leasePartyType,
+        isAuthorizedSignatory,
+      })
+    : tenancy.tenantId === session.user.id;
+
+  if (!canRespondToInvitation) {
+    if (isCorporate) {
+      return NextResponse.json(
+        {
+          error:
+            'Only the authorized signatory can accept this corporate tenancy invitation.',
+        },
+        { status: 403 },
+      );
+    }
+
     return NextResponse.json({ error: 'Tenancy not found' }, { status: 404 });
   }
 
@@ -50,9 +79,15 @@ export async function PATCH(
 
   const landlordId = tenancy.room.property.landlordId;
   const propertyAddress = tenancy.room.property.address;
+  const respondingUser = isCorporate
+    ? tenancy.authorizedSignatoryUser
+    : tenancy.tenant;
+  const responderName =
+    respondingUser?.name ??
+    (isCorporate ? tenancy.authorizedSignatoryName : tenancy.tenant.name);
 
   if (action === 'ACCEPT') {
-    if (!tenancy.tenant.isVerified) {
+    if (!respondingUser?.isVerified) {
       return NextResponse.json(
         {
           error:
@@ -71,7 +106,7 @@ export async function PATCH(
       landlordId,
       'INVITATION_RESPONDED',
       'Tenant accepted your invitation',
-      `${tenancy.tenant.name} accepted the tenancy invitation for ${propertyAddress}.`,
+      `${responderName} accepted the tenancy invitation for ${propertyAddress}.`,
       '/dashboard/landlord',
     );
 
@@ -92,7 +127,7 @@ export async function PATCH(
     landlordId,
     'INVITATION_RESPONDED',
     'Tenant declined your invitation',
-    `${tenancy.tenant.name} declined the tenancy invitation for ${propertyAddress}.`,
+    `${responderName} declined the tenancy invitation for ${propertyAddress}.`,
     '/dashboard/landlord',
   );
 

@@ -12,6 +12,8 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Exclude accidental local Codex artifact trees from project linting.
+    "~/**",
   ]),
 ]);
 

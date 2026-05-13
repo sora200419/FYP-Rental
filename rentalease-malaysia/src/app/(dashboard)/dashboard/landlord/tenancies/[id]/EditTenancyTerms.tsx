@@ -11,6 +11,9 @@ interface Props {
   currentEndDate: string; // ISO string from tenancy.endDate.toISOString()
   currentMonthlyRent: number;
   currentDepositAmount: number;
+  tenancyStatus: 'INVITED' | 'PENDING';
+  leasePartyType: 'INDIVIDUAL' | 'CORPORATE';
+  currentInvitationEmail: string;
 }
 
 export default function EditTenancyTerms({
@@ -19,6 +22,9 @@ export default function EditTenancyTerms({
   currentEndDate,
   currentMonthlyRent,
   currentDepositAmount,
+  tenancyStatus,
+  leasePartyType,
+  currentInvitationEmail,
 }: Props) {
   const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
@@ -35,6 +41,7 @@ export default function EditTenancyTerms({
   const [depositAmount, setDepositAmount] = useState(
     String(currentDepositAmount),
   );
+  const [invitationEmail, setInvitationEmail] = useState(currentInvitationEmail);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -58,6 +65,7 @@ export default function EditTenancyTerms({
           endDate,
           monthlyRent: Number(monthlyRent),
           depositAmount: Number(depositAmount),
+          invitationEmail: invitationEmail.trim(),
         }),
       });
 
@@ -86,6 +94,7 @@ export default function EditTenancyTerms({
     setEndDate(toDateInput(currentEndDate));
     setMonthlyRent(String(currentMonthlyRent));
     setDepositAmount(String(currentDepositAmount));
+    setInvitationEmail(currentInvitationEmail);
     setError(null);
     setIsOpen(false);
   };
@@ -186,12 +195,34 @@ export default function EditTenancyTerms({
         </div>
       </div>
 
+      {tenancyStatus === 'INVITED' && (
+        <div>
+          <label className="block text-xs font-medium text-gray-600 mb-1">
+            {leasePartyType === 'CORPORATE'
+              ? 'Authorized Signatory Email'
+              : 'Invited Tenant Email'}
+          </label>
+          <input
+            type="email"
+            value={invitationEmail}
+            onChange={(e) => setInvitationEmail(e.target.value)}
+            className={inputClass}
+            required
+          />
+          <p className="text-xs text-gray-400 mt-1">
+            {leasePartyType === 'CORPORATE'
+              ? 'Use this if the legal invitation was sent to the wrong signatory. Saving will resend the invitation to the new tenant account.'
+              : 'Use this if the invitation was sent to the wrong tenant. Saving will resend the invitation to the new tenant account.'}
+          </p>
+        </div>
+      )}
+
       {/* Inline explanation of when editing is allowed */}
       <div className="bg-amber-50 border border-amber-200 rounded-lg px-3 py-2.5">
         <p className="text-xs text-amber-700">
-          Terms can only be edited before an agreement is generated. Once you
-          click &ldquo;Generate Agreement&rdquo;, these values will be locked
-          into the agreement text.
+          {tenancyStatus === 'INVITED'
+            ? 'While the invitation is still pending, you can correct the invited tenant or signatory and update the tenancy terms. Once the invite is accepted, the recipient can no longer be changed from here.'
+            : 'Terms can only be edited before an agreement is generated. Once you click “Generate Agreement”, these values will be locked into the agreement text.'}
         </p>
       </div>
 

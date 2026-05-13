@@ -3,11 +3,15 @@ import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import {
+  buildAgreementEvent,
+  isFinalizeBlocked,
+} from '@/lib/agreements/history';
 import { createNotification } from '@/lib/notifications';
 import { sendAgreementReadyEmail } from '@/lib/email';
 
 export async function PATCH(
-  _request: Request,
+  request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
   const session = await getServerSession(authOptions);
@@ -16,15 +20,22 @@ export async function PATCH(
   }
 
   const { id } = await params;
+  const body = await request.json().catch(() => ({}));
+  const reviewedRedFlags = body?.reviewedRedFlags === true;
 
   // Verify the agreement exists and the landlord owns it
   const agreement = await prisma.agreement.findUnique({
     where: { id },
     include: {
+      changeRequests: {
+        where: { status: 'PENDING' },
+        select: { id: true },
+      },
       tenancy: {
         select: {
           status: true,
-          tenant: { select: { id: true, name: true } },
+          tenant: { select: { id: true, name: true, icNumber: true } },
+          agreementPreferences: { select: { isComplete: true } },
           room: {
             include: {
               property: {
@@ -59,10 +70,40 @@ export async function PATCH(
     );
   }
 
-  await prisma.agreement.update({
-    where: { id },
-    data: { status: 'FINALIZED' },
+  const checklist = isFinalizeBlocked({
+    hasRawContent: agreement.rawContent.trim().length > 0,
+    isWizardComplete: agreement.tenancy.agreementPreferences?.isComplete === true,
+    hasReviewedRedFlags: reviewedRedFlags,
+    unresolvedStructuredRequests: agreement.changeRequests.length,
+    hasRequiredIdentityData: Boolean(agreement.tenancy.tenant.icNumber?.trim()),
+    isFinalizableStatus: true,
   });
+
+  if (checklist.blocked) {
+    return NextResponse.json(
+      {
+        error: 'Agreement is not ready to finalize yet.',
+        checklist,
+      },
+      { status: 409 },
+    );
+  }
+
+  await prisma.$transaction([
+    prisma.agreement.update({
+      where: { id },
+      data: { status: 'FINALIZED' },
+    }),
+    prisma.agreementEvent.create({
+      data: buildAgreementEvent({
+        agreementId: id,
+        type: 'FINALIZED',
+        actorRole: 'LANDLORD',
+        actorUserId: session.user.id,
+        summary: 'Landlord finalized the agreement for tenant review.',
+      }),
+    }),
+  ]);
 
   // Fetch tenant email for email notification
   const tenantUser = await prisma.user.findUnique({
@@ -89,5 +130,5 @@ export async function PATCH(
     );
   }
 
-  return NextResponse.json({ ok: true });
+  return NextResponse.json({ ok: true, checklist });
 }

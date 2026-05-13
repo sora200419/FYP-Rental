@@ -1,10 +1,10 @@
-// src/lib/gemini.ts
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import type { AgreementPreferences } from '@prisma/client';
-import { buildWizardPolicyBlock } from './wizardFormatters';
 import { z } from 'zod';
+import { buildWizardPolicyBlock } from './wizardFormatters';
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
+export const GEMINI_MODEL = 'gemini-2.5-flash';
 
 export interface TenancyForAgreement {
   id: string;
@@ -12,6 +12,10 @@ export interface TenancyForAgreement {
   endDate: Date;
   monthlyRent: unknown;
   depositAmount: unknown;
+  leasePartyType?: 'INDIVIDUAL' | 'CORPORATE';
+  companyName?: string | null;
+  authorizedSignatoryName?: string | null;
+  authorizedSignatoryRole?: string | null;
   property: {
     address: string;
     city: string;
@@ -22,15 +26,14 @@ export interface TenancyForAgreement {
   room: {
     label: string;
     bathrooms: number;
-    // Phase 13: Agreement Injection — all room detail fields now passed through
-    roomType: string; // MASTER | MEDIUM | SMALL | STUDIO | ENTIRE_UNIT
-    bathroomType: string; // ATTACHED | SHARED
-    furnishing: string; // FULLY_FURNISHED | PARTIALLY_FURNISHED | UNFURNISHED
+    roomType: string;
+    bathroomType: string;
+    furnishing: string;
     maxOccupants: number;
     wifiIncluded: boolean;
     waterIncluded: boolean;
     electricIncluded: boolean;
-    genderPreference: string; // ANY | MALE_ONLY | FEMALE_ONLY
+    genderPreference: string;
     sizeSqFt: number | null;
     notes: string | null;
   };
@@ -38,7 +41,7 @@ export interface TenancyForAgreement {
     name: string;
     email: string;
     phone?: string | null;
-    icNumber?: string | null; // Malaysian IC — included if tenant has entered it
+    icNumber?: string | null;
   };
   landlord: {
     name: string;
@@ -47,18 +50,50 @@ export interface TenancyForAgreement {
   };
   negotiationContext?: string | null;
   coTenants?: { name: string; icNumber?: string | null }[];
+  corporateOccupants?: { name: string; roleLabel?: string | null }[];
 }
 
 export interface GeneratedAgreement {
   rawContent: string;
   plainLanguageSummary: string;
-  redFlags: string; // JSON-stringified array
+  redFlags: string;
 }
 
-// ── Enum → human-readable label helpers ────────────────────────────────────
-// These convert database enum values into plain English for the Gemini prompt.
-// Gemini generates significantly better output when it receives readable text
-// rather than raw enum strings like "FULLY_FURNISHED".
+export interface AgreementAnalysis {
+  plainLanguageSummary: string;
+  redFlags: string;
+}
+
+export interface TranslatedOutputs {
+  plainLanguageSummaryMs: string;
+  redFlagsMs: string;
+}
+
+function normalizeStringContent(value: unknown): string {
+  if (typeof value === 'string') {
+    return value;
+  }
+
+  if (Array.isArray(value)) {
+    return value
+      .map((item) => normalizeStringContent(item))
+      .filter(Boolean)
+      .join('\n\n');
+  }
+
+  if (value && typeof value === 'object') {
+    return Object.entries(value as Record<string, unknown>)
+      .map(([key, item]) => {
+        const normalized = normalizeStringContent(item);
+        if (!normalized) return '';
+        return `${key.replace(/_/g, ' ')}: ${normalized}`;
+      })
+      .filter(Boolean)
+      .join('\n\n');
+  }
+
+  return '';
+}
 
 function formatRoomType(rt: string): string {
   const map: Record<string, string> = {
@@ -81,7 +116,7 @@ function formatFurnishing(f: string): string {
       'fully furnished (includes bed, wardrobe, air conditioning, desk, and standard appliances)',
     PARTIALLY_FURNISHED:
       'partially furnished (wardrobe and/or fan/air conditioning provided; other items by tenant)',
-    UNFURNISHED: 'unfurnished (empty room — tenant provides all furniture)',
+    UNFURNISHED: 'unfurnished (empty room - tenant provides all furniture)',
   };
   return map[f] ?? f.toLowerCase().replace(/_/g, ' ');
 }
@@ -92,7 +127,7 @@ function formatGenderPreference(g: string): string {
     MALE_ONLY: 'male occupants only',
     FEMALE_ONLY: 'female occupants only',
   };
-  return map[g] ?? g.toLowerCase();
+  return map[g] ?? g.toLowerCase().replace(/_/g, ' ');
 }
 
 function buildUtilitiesClause(
@@ -102,33 +137,43 @@ function buildUtilitiesClause(
 ): string {
   const included: string[] = [];
   const excluded: string[] = [];
+
   if (wifi) included.push('internet/WiFi');
   else excluded.push('internet/WiFi');
+
   if (water) included.push('water');
   else excluded.push('water');
+
   if (electric) included.push('electricity');
   else excluded.push('electricity');
 
   const parts: string[] = [];
-  if (included.length > 0)
+  if (included.length > 0) {
     parts.push(
       `The following utilities are included in the monthly rent: ${included.join(', ')}.`,
     );
-  if (excluded.length > 0)
+  }
+  if (excluded.length > 0) {
     parts.push(
       `The following utilities are NOT included and shall be paid separately by the Tenant: ${excluded.join(', ')}.`,
     );
+  }
   return parts.join(' ');
 }
 
-// ── Main generation function ────────────────────────────────────────────────
+const redFlagSchema = z.object({
+  severity: z.enum(['HIGH', 'MEDIUM', 'LOW']),
+  clause: z.string(),
+  issue: z.string(),
+  recommendation: z.string(),
+});
 
 export async function generateTenancyAgreement(
   tenancy: TenancyForAgreement,
   preferences?: AgreementPreferences | null,
 ): Promise<GeneratedAgreement> {
   const model = genAI.getGenerativeModel({
-    model: 'gemini-2.0-flash',
+    model: GEMINI_MODEL,
     generationConfig: {
       responseMimeType: 'application/json',
     },
@@ -156,14 +201,12 @@ export async function generateTenancyAgreement(
       (1000 * 60 * 60 * 24 * 30.44),
   );
 
-  // Build the utilities clause string once — used in the prompt
   const utilitiesClause = buildUtilitiesClause(
     tenancy.room.wifiIncluded,
     tenancy.room.waterIncluded,
     tenancy.room.electricIncluded,
   );
 
-  // Mask IC numbers before sending to Gemini — only last 4 digits exposed (IMP-15 / PDPA)
   const maskIc = (ic?: string | null) =>
     ic ? `****-**-${ic.slice(-4)}` : 'Not provided';
 
@@ -171,28 +214,45 @@ export async function generateTenancyAgreement(
     ? `- Tenant IC Number: ${maskIc(tenancy.tenant.icNumber)} (last 4 digits only)`
     : '- Tenant IC Number: Not provided (parties should verify identity separately)';
 
-  // Co-tenants block — only included if there are additional occupants
   const coTenantsBlock =
     tenancy.coTenants && tenancy.coTenants.length > 0
       ? `
-── ADDITIONAL OCCUPANTS ──────────────────────────────────────────────────────
+ADDITIONAL OCCUPANTS
 The following persons will reside in the unit as co-occupants under the primary tenant's tenancy. They are NOT separate parties to this agreement but MUST be named in the Permitted Use and Occupancy clause:
 ${tenancy.coTenants.map((ct) => `- ${ct.name} (IC: ${maskIc(ct.icNumber)})`).join('\n')}
 `
       : '';
 
-  // Optional room details section — only rendered if values are meaningful
+  const corporateLeasePartyBlock =
+    tenancy.leasePartyType === 'CORPORATE'
+      ? `
+CORPORATE LEASE PARTY
+- Lease Party Type: Corporate / Employer tenancy
+- Company Name: ${tenancy.companyName ?? 'Not provided'}
+- Authorized Signatory: ${tenancy.authorizedSignatoryName ?? tenancy.tenant.name}${tenancy.authorizedSignatoryRole ? ` (${tenancy.authorizedSignatoryRole})` : ''}
+- Occupant Roster:
+${(tenancy.corporateOccupants ?? []).length > 0
+  ? tenancy.corporateOccupants!
+      .map((occupant) => `  - ${occupant.name}${occupant.roleLabel ? ` (${occupant.roleLabel})` : ''}`)
+      .join('\n')
+  : '  - No occupants listed yet'}
+The agreement must clearly distinguish the corporate lease party / authorized signatory from the staff or occupants staying in the room or unit.
+`
+      : '';
+
   const optionalRoomDetails: string[] = [];
-  if (tenancy.room.sizeSqFt)
+  if (tenancy.room.sizeSqFt) {
     optionalRoomDetails.push(
       `- Room Size: approximately ${tenancy.room.sizeSqFt} sq ft`,
     );
-  if (tenancy.room.notes)
+  }
+  if (tenancy.room.notes) {
     optionalRoomDetails.push(`- Additional Room Notes: ${tenancy.room.notes}`);
+  }
 
   const negotiationBlock = tenancy.negotiationContext
     ? `
-IMPORTANT — TENANT-REQUESTED CHANGES:
+IMPORTANT - TENANT-REQUESTED CHANGES:
 The tenant has reviewed the previous draft and requested the following changes.
 Incorporate these into the revised agreement where legally reasonable:
 <TENANT_NOTES>
@@ -210,11 +270,11 @@ Generate a complete residential tenancy agreement using the following details.
 ${wizardPolicyBlock}
 All clauses must reflect Malaysian law (Contracts Act 1950, Distress Act 1951, NLC 1965, PDPA 2010).
 
-── PROPERTY DETAILS ──────────────────────────────────────────────────────────
+PROPERTY DETAILS
 - Property Address: ${tenancy.property.address}, ${tenancy.property.city}, ${tenancy.property.state} ${tenancy.property.postcode}
 - Property Type: ${tenancy.property.type}
 
-── RENTED UNIT DETAILS ───────────────────────────────────────────────────────
+RENTED UNIT DETAILS
 - Unit Description: ${tenancy.room.label} (${formatRoomType(tenancy.room.roomType)})
 - Bathroom: ${formatBathroomType(tenancy.room.bathroomType)} (${tenancy.room.bathrooms} bathroom${tenancy.room.bathrooms > 1 ? 's' : ''})
 - Furnishing Level: ${formatFurnishing(tenancy.room.furnishing)}
@@ -222,11 +282,11 @@ All clauses must reflect Malaysian law (Contracts Act 1950, Distress Act 1951, N
 - Gender Restriction: ${formatGenderPreference(tenancy.room.genderPreference)}
 ${optionalRoomDetails.join('\n')}
 
-── UTILITIES & SERVICES ──────────────────────────────────────────────────────
+UTILITIES AND SERVICES
 ${utilitiesClause}
 The agreement MUST include a dedicated Utilities clause that clearly states which utilities are included in rent and which the Tenant is responsible for. Do not leave this ambiguous.
 
-── PARTIES ───────────────────────────────────────────────────────────────────
+PARTIES
 - Landlord Name: ${tenancy.landlord.name}
 - Landlord Email: ${tenancy.landlord.email}
 - Landlord Phone: ${tenancy.landlord.phone ?? 'Not provided'}
@@ -235,14 +295,15 @@ The agreement MUST include a dedicated Utilities clause that clearly states whic
 - Tenant Phone: ${tenancy.tenant.phone ?? 'Not provided'}
 ${tenantIcLine}
 ${coTenantsBlock}
-── FINANCIAL TERMS ───────────────────────────────────────────────────────────
+${corporateLeasePartyBlock}
+FINANCIAL TERMS
 - Tenancy Start Date: ${startDate}
 - Tenancy End Date: ${endDate}
 - Duration: ${durationMonths} months
 - Monthly Rent: RM ${monthlyRent}
 - Security Deposit: RM ${deposit}
 
-── REQUIRED CLAUSES ──────────────────────────────────────────────────────────
+REQUIRED CLAUSES
 The agreement must include all of the following sections. Write each as a numbered clause:
 1. Parties and Property Description
 2. Tenancy Period
@@ -261,7 +322,6 @@ The agreement must include all of the following sections. Write each as a number
 15. Signature Block (with space for date, signature, and IC/NRIC number for both parties)
 
 Respond ONLY with a valid JSON object containing exactly these three keys:
-
 {
   "rawContent": "<full formal tenancy agreement text>",
   "plainLanguageSummary": "<plain language explanation of each clause>",
@@ -275,7 +335,7 @@ Respond ONLY with a valid JSON object containing exactly these three keys:
   ]
 }
 
-For "rawContent": Write a complete, professional Malaysian residential tenancy agreement incorporating ALL details above. The furnishing level, utilities, occupancy limit, and bathroom type must appear explicitly in the relevant clauses — do not omit them.
+For "rawContent": Write a complete, professional Malaysian residential tenancy agreement incorporating ALL details above. The furnishing level, utilities, occupancy limit, and bathroom type must appear explicitly in the relevant clauses - do not omit them.
 
 For "plainLanguageSummary": For each numbered clause, write 2-3 sentences in plain English explaining what it means for a layperson tenant or landlord in Malaysia.
 
@@ -285,21 +345,19 @@ For "redFlags": Analyse the agreement and identify clauses that could disadvanta
   const geminiResponseSchema = z.object({
     rawContent: z.string().min(200, 'Agreement content is too short'),
     plainLanguageSummary: z.string().min(50, 'Summary is too short'),
-    redFlags: z.array(
-      z.object({
-        severity: z.enum(['HIGH', 'MEDIUM', 'LOW']),
-        clause: z.string(),
-        issue: z.string(),
-        recommendation: z.string(),
-      }),
-    ),
+    redFlags: z.array(redFlagSchema),
   });
 
   try {
     const result = await model.generateContent(prompt);
     const text = result.response.text();
     const raw = JSON.parse(text);
-    const validated = geminiResponseSchema.parse(raw);
+    const normalizedRaw = {
+      ...raw,
+      rawContent: normalizeStringContent(raw.rawContent),
+      plainLanguageSummary: normalizeStringContent(raw.plainLanguageSummary),
+    };
+    const validated = geminiResponseSchema.parse(normalizedRaw);
 
     return {
       rawContent: validated.rawContent,
@@ -312,14 +370,67 @@ For "redFlags": Analyse the agreement and identify clauses that could disadvanta
   }
 }
 
-// ── Bilingual translation ──────────────────────────────────────────────────
-// Takes the English plain-language summary and red flags and returns Malay
-// translations. Run as a second call after main generation to keep each
-// response within token limits and localize failure scope.
+export async function analyzeAgreementContent(
+  rawContent: string,
+): Promise<AgreementAnalysis> {
+  const model = genAI.getGenerativeModel({
+    model: GEMINI_MODEL,
+    generationConfig: {
+      responseMimeType: 'application/json',
+    },
+  });
 
-export interface TranslatedOutputs {
-  plainLanguageSummaryMs: string;
-  redFlagsMs: string; // JSON-stringified array with 'issue' and 'recommendation' in Malay
+  const prompt = `
+You are a Malaysian legal document assistant specialising in residential tenancy agreements.
+
+Review the agreement below and produce:
+1. A plain-language summary of each numbered clause.
+2. A red-flag analysis focused on legal ambiguity, unfair terms, and risky clauses.
+
+Respond ONLY with a valid JSON object containing exactly these two keys:
+{
+  "plainLanguageSummary": "<plain language explanation of each clause>",
+  "redFlags": [
+    {
+      "severity": "HIGH" | "MEDIUM" | "LOW",
+      "clause": "<clause name or number>",
+      "issue": "<what the potential problem is>",
+      "recommendation": "<what to do about it>"
+    }
+  ]
+}
+
+For "plainLanguageSummary": For each numbered clause, write 2-3 sentences in plain English explaining what it means for a layperson tenant or landlord in Malaysia.
+
+For "redFlags": Analyse the agreement and identify clauses that could disadvantage either party or create legal ambiguity under Malaysian law. Pay particular attention to: deposit refund conditions, utility responsibility ambiguity, occupancy limit enforcement, subletting prohibition scope, termination penalties, and notice requirements. Return as a JSON array (can be empty []).
+
+AGREEMENT:
+${rawContent}
+`;
+
+  const analysisSchema = z.object({
+    plainLanguageSummary: z.string().min(50, 'Summary is too short'),
+    redFlags: z.array(redFlagSchema),
+  });
+
+  try {
+    const result = await model.generateContent(prompt);
+    const text = result.response.text();
+    const raw = JSON.parse(text);
+    const normalizedRaw = {
+      ...raw,
+      plainLanguageSummary: normalizeStringContent(raw.plainLanguageSummary),
+    };
+    const validated = analysisSchema.parse(normalizedRaw);
+
+    return {
+      plainLanguageSummary: validated.plainLanguageSummary,
+      redFlags: JSON.stringify(validated.redFlags),
+    };
+  } catch (error) {
+    console.error('Gemini agreement analysis error:', error);
+    throw new Error('Failed to refresh AI analysis.');
+  }
 }
 
 export async function translateAgreementOutputs(
@@ -327,7 +438,7 @@ export async function translateAgreementOutputs(
   redFlagsJson: string,
 ): Promise<TranslatedOutputs> {
   const model = genAI.getGenerativeModel({
-    model: 'gemini-2.0-flash',
+    model: GEMINI_MODEL,
     generationConfig: { responseMimeType: 'application/json' },
   });
 
@@ -337,7 +448,7 @@ Translate the following Malaysian residential tenancy agreement summaries from
 English into formal Bahasa Malaysia (Malay). Use terminology appropriate for
 legal and property contexts in Malaysia.
 
-DO NOT translate the agreement body itself — only the plain-language summary
+DO NOT translate the agreement body itself - only the plain-language summary
 and red flag explanations are needed.
 
 PLAIN LANGUAGE SUMMARY (English):
@@ -352,7 +463,7 @@ Respond ONLY with a valid JSON object containing exactly these two keys:
   "redFlagsMs": [
     {
       "severity": "<same as original>",
-      "clause": "<same as original — keep in English>",
+      "clause": "<same as original - keep in English>",
       "issue": "<Malay translation of the issue>",
       "recommendation": "<Malay translation of the recommendation>"
     }

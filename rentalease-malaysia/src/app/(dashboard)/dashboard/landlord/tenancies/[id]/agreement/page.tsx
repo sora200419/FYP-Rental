@@ -5,7 +5,6 @@ import { redirect, notFound } from 'next/navigation';
 import { prisma } from '@/lib/prisma';
 import Link from 'next/link';
 import AgreementViewer from '@/components/ui/AgreementViewer';
-import AgreementEditor from '@/components/ui/AgreementEditor';
 
 export default async function AgreementPage({
   params,
@@ -23,13 +22,20 @@ export default async function AgreementPage({
       room: { property: { landlordId: session.user.id } },
     },
     include: {
+      agreementPreferences: { select: { isComplete: true } },
       room: {
         include: {
           property: { select: { address: true, city: true } },
         },
       },
-      tenant: { select: { name: true } },
-      agreement: true, // full include — contentHash, signedAt, signedByIp all present
+      tenant: { select: { name: true, icNumber: true } },
+      agreement: {
+        include: {
+          events: { orderBy: { createdAt: 'desc' } },
+          revisions: { orderBy: { versionNumber: 'desc' } },
+          changeRequests: { orderBy: { createdAt: 'desc' } },
+        },
+      },
     },
   });
 
@@ -50,6 +56,15 @@ export default async function AgreementPage({
   }
 
   const isSigned = tenancy.agreement.status === 'SIGNED';
+  const finalizeChecklistBase = {
+    hasRawContent: tenancy.agreement.rawContent.trim().length > 0,
+    isWizardComplete: tenancy.agreementPreferences?.isComplete === true,
+    unresolvedStructuredRequests: tenancy.agreement.changeRequests.filter(
+      (request) => request.status === 'PENDING',
+    ).length,
+    hasRequiredIdentityData: Boolean(tenancy.tenant.icNumber?.trim()),
+    isFinalizableStatus: ['DRAFT', 'NEGOTIATING'].includes(tenancy.agreement.status),
+  };
 
   // Parse Malay red flags if present
   let redFlagsMs: typeof redFlags | null = null;
@@ -88,32 +103,20 @@ export default async function AgreementPage({
         redFlagsMs={redFlagsMs}
         tenantName={tenancy.tenant.name}
         propertyAddress={`${tenancy.room.property.address}, ${tenancy.room.property.city} — ${tenancy.room.label}`}
-        language={session.user.language ?? 'en'}
         contentHash={tenancy.agreement.contentHash}
         signedAt={tenancy.agreement.signedAt}
         signedByIp={tenancy.agreement.signedByIp}
         txHash={tenancy.agreement.txHash}
+        events={tenancy.agreement.events}
+        revisions={tenancy.agreement.revisions}
+        changeRequests={tenancy.agreement.changeRequests}
+        finalizeChecklistBase={isSigned ? null : finalizeChecklistBase}
+        editable={!isSigned}
+        editableInitialContent={tenancy.agreement.rawContent}
+        negotiationNotes={tenancy.agreement.negotiationNotes}
       />
 
       {/* Editor — only for landlord, only before signing */}
-      {!isSigned && (
-        <div className="mt-8 border-t border-gray-200 pt-8">
-          <h2 className="text-lg font-bold text-gray-900 mb-1">
-            Edit Agreement
-          </h2>
-          <p className="text-sm text-gray-500 mb-5">
-            Edit the agreement text directly or use AI Assist to apply a
-            specific change. After saving, re-finalize to send the updated
-            version to your tenant.
-          </p>
-          <AgreementEditor
-            agreementId={tenancy.agreement.id}
-            initialContent={tenancy.agreement.rawContent}
-            negotiationNotes={tenancy.agreement.negotiationNotes}
-          />
-        </div>
-      )}
-
       {/* If signed, explain why editing is locked */}
       {isSigned && (
         <div className="mt-6 bg-gray-50 border border-gray-200 rounded-xl px-5 py-4">

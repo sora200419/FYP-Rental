@@ -3,6 +3,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import {
+  buildAgreementEvent,
+  buildAgreementRevision,
+} from '@/lib/agreements/history';
 import { generateTenancyAgreement, translateAgreementOutputs } from '@/lib/gemini';
 import { agreementGenerateLimit } from '@/lib/ratelimit';
 import { z } from 'zod';
@@ -54,6 +58,11 @@ export async function POST(request: NextRequest) {
             icNumber: true,
           },
         },
+        corporateOccupants: {
+          where: { status: { in: ['UNLINKED', 'LINKED'] } },
+          select: { name: true, roleLabel: true },
+          orderBy: { createdAt: 'asc' },
+        },
         coTenants: {
           select: { name: true, icNumber: true },
           orderBy: { createdAt: 'asc' },
@@ -92,7 +101,7 @@ export async function POST(request: NextRequest) {
 
     const existingAgreement = await prisma.agreement.findUnique({
       where: { tenancyId },
-      select: { negotiationNotes: true, negotiationRound: true },
+      select: { id: true, negotiationNotes: true, negotiationRound: true },
     });
 
     // BUG-15: Cap negotiation rounds to prevent unlimited regeneration
@@ -126,6 +135,10 @@ export async function POST(request: NextRequest) {
       endDate: tenancy.endDate,
       monthlyRent: tenancy.monthlyRent,
       depositAmount: tenancy.depositAmount,
+      leasePartyType: tenancy.leasePartyType,
+      companyName: tenancy.companyName,
+      authorizedSignatoryName: tenancy.authorizedSignatoryName,
+      authorizedSignatoryRole: tenancy.authorizedSignatoryRole,
       property: {
         address: tenancy.room.property.address,
         city: tenancy.room.property.city,
@@ -152,6 +165,7 @@ export async function POST(request: NextRequest) {
       landlord,
       negotiationContext: existingAgreement?.negotiationNotes ?? null,
       coTenants: tenancy.coTenants,
+      corporateOccupants: tenancy.corporateOccupants,
     }, preferences);
 
     // Second call: translate summary and red flags into Malay.
@@ -171,39 +185,89 @@ export async function POST(request: NextRequest) {
 
     const nextRound = (existingAgreement?.negotiationRound ?? 0) + 1;
 
-    const agreement = await prisma.agreement.upsert({
-      where: { tenancyId },
-      create: {
-        tenancyId,
-        rawContent: generated.rawContent,
-        plainLanguageSummary: generated.plainLanguageSummary,
-        plainLanguageSummaryMs,
-        redFlags: generated.redFlags,
-        redFlagsMs,
-        status: 'DRAFT',
-        negotiationRound: 1,
-      },
-      update: {
-        rawContent: generated.rawContent,
-        plainLanguageSummary: generated.plainLanguageSummary,
-        plainLanguageSummaryMs,
-        redFlags: generated.redFlags,
-        redFlagsMs,
-        status: 'DRAFT',
-        negotiationNotes: null,
-        negotiationRound: nextRound,
-        updatedAt: new Date(),
-      },
-      select: {
-        id: true,
-        status: true,
-        negotiationRound: true,
-        createdAt: true,
-      },
+    const currentRevisionCount = existingAgreement
+      ? await prisma.agreementRevision.count({
+          where: { agreementId: existingAgreement.id },
+        })
+      : 0;
+
+    const agreement = await prisma.$transaction(async (tx) => {
+      const savedAgreement = await tx.agreement.upsert({
+        where: { tenancyId },
+        create: {
+          tenancyId,
+          rawContent: generated.rawContent,
+          plainLanguageSummary: generated.plainLanguageSummary,
+          plainLanguageSummaryMs,
+          redFlags: generated.redFlags,
+          redFlagsMs,
+          status: 'DRAFT',
+          negotiationRound: 1,
+        },
+        update: {
+          rawContent: generated.rawContent,
+          plainLanguageSummary: generated.plainLanguageSummary,
+          plainLanguageSummaryMs,
+          redFlags: generated.redFlags,
+          redFlagsMs,
+          status: 'DRAFT',
+          negotiationRound: nextRound,
+          updatedAt: new Date(),
+        },
+        select: {
+          id: true,
+          status: true,
+          negotiationRound: true,
+          createdAt: true,
+          rawContent: true,
+          plainLanguageSummary: true,
+          plainLanguageSummaryMs: true,
+          redFlags: true,
+          redFlagsMs: true,
+        },
+      });
+
+      const versionNumber = currentRevisionCount + 1;
+
+      await tx.agreementRevision.create({
+        data: buildAgreementRevision({
+          agreementId: savedAgreement.id,
+          versionNumber,
+          rawContent: savedAgreement.rawContent,
+          plainLanguageSummary: savedAgreement.plainLanguageSummary,
+          plainLanguageSummaryMs: savedAgreement.plainLanguageSummaryMs,
+          redFlags: savedAgreement.redFlags ?? '[]',
+          redFlagsMs: savedAgreement.redFlagsMs,
+          createdByUserId: session.user.id,
+        }),
+      });
+
+      await tx.agreementEvent.create({
+        data: buildAgreementEvent({
+          agreementId: savedAgreement.id,
+          type: 'GENERATED',
+          actorRole: 'LANDLORD',
+          actorUserId: session.user.id,
+          summary:
+            versionNumber === 1
+              ? 'Version 1 generated from the agreement wizard.'
+              : `Version ${versionNumber} regenerated for landlord review.`,
+        }),
+      });
+
+      return savedAgreement;
     });
 
     return NextResponse.json(
-      { message: 'Agreement generated successfully', agreement },
+      {
+        message: 'Agreement generated successfully',
+        agreement: {
+          id: agreement.id,
+          status: agreement.status,
+          negotiationRound: agreement.negotiationRound,
+          createdAt: agreement.createdAt,
+        },
+      },
       { status: 201 },
     );
   } catch (error) {

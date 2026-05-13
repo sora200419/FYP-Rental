@@ -1,13 +1,17 @@
 import { prisma } from './prisma';
 
-// Creates the full monthly rent schedule when a tenancy goes ACTIVE.
-// Called once from the agreement respond API when the tenant accepts.
-export async function generateRentSchedule(
+export function buildRentScheduleEntries(
   tenancyId: string,
   startDate: Date,
   endDate: Date,
   monthlyRent: unknown,
-): Promise<void> {
+  rentDueDay?: number | null,
+): {
+  tenancyId: string;
+  dueDate: Date;
+  amount: number;
+  status: 'PENDING';
+}[] {
   const amount = Number(monthlyRent);
   const payments: {
     tenancyId: string;
@@ -16,9 +20,27 @@ export async function generateRentSchedule(
     status: 'PENDING';
   }[] = [];
 
-  const current = new Date(startDate);
-  current.setDate(1); // normalise to the 1st of each month
+  const resolvedRentDueDay = rentDueDay ?? startDate.getDate();
 
+  function dueDateForMonth(year: number, month: number): Date {
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    return new Date(year, month, Math.min(resolvedRentDueDay, daysInMonth));
+  }
+
+  let currentYear = startDate.getFullYear();
+  let currentMonth = startDate.getMonth();
+  let firstDueDate = dueDateForMonth(currentYear, currentMonth);
+
+  if (firstDueDate < startDate) {
+    currentMonth += 1;
+    if (currentMonth > 11) {
+      currentMonth = 0;
+      currentYear += 1;
+    }
+    firstDueDate = dueDateForMonth(currentYear, currentMonth);
+  }
+
+  let current = new Date(firstDueDate);
   while (current <= endDate) {
     payments.push({
       tenancyId,
@@ -26,9 +48,33 @@ export async function generateRentSchedule(
       amount,
       status: 'PENDING',
     });
-    current.setMonth(current.getMonth() + 1);
+    current = dueDateForMonth(current.getFullYear(), current.getMonth() + 1);
   }
 
+  return payments;
+}
+
+// Creates the full monthly rent schedule when a tenancy goes ACTIVE.
+// Called once when the agreement workflow fully completes.
+export async function generateRentSchedule(
+  tenancyId: string,
+  startDate: Date,
+  endDate: Date,
+  monthlyRent: unknown,
+  rentDueDay?: number | null,
+): Promise<void> {
+  const existingPayments = await prisma.rentPayment.count({
+    where: { tenancyId },
+  });
+  if (existingPayments > 0) return;
+
+  const payments = buildRentScheduleEntries(
+    tenancyId,
+    startDate,
+    endDate,
+    monthlyRent,
+    rentDueDay,
+  );
   if (payments.length === 0) return;
   await prisma.rentPayment.createMany({ data: payments });
 }

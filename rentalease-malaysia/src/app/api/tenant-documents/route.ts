@@ -4,6 +4,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { uploadTenantDocument, deleteTenantDocument } from '@/lib/cloudinary';
+import { createNotification } from '@/lib/notifications';
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'];
@@ -78,6 +79,24 @@ export async function POST(request: NextRequest) {
         uploadedAt: new Date(),
       },
     });
+
+    if (type === 'IC_COPY') {
+      const admins = await prisma.user.findMany({
+        where: { role: 'ADMIN' },
+        select: { id: true },
+      });
+      await Promise.all(
+        admins.map((admin) =>
+          createNotification(
+            admin.id,
+            'KYC_SUBMITTED',
+            'New KYC submission',
+            `${session.user.email} has submitted their identity document for review.`,
+            '/dashboard/admin/verify',
+          ),
+        ),
+      );
+    }
 
     return NextResponse.json({ document: doc }, { status: 201 });
   } catch (error) {

@@ -4,10 +4,17 @@ const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined;
 };
 
-export const prisma =
-  globalForPrisma.prisma ??
-  new PrismaClient({
+function createPrismaClient() {
+  return new PrismaClient({
     log: ['query'],
   });
+}
 
-if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma;
+// In development, avoid keeping a schema-stale PrismaClient instance alive in
+// globalThis across hot reloads after `prisma generate` or migrations.
+export const prisma =
+  process.env.NODE_ENV === 'production'
+    ? globalForPrisma.prisma ?? createPrismaClient()
+    : createPrismaClient();
+
+if (process.env.NODE_ENV === 'production') globalForPrisma.prisma = prisma;

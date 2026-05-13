@@ -5,22 +5,63 @@ import { useRouter } from 'next/navigation';
 
 interface Props {
   agreementId: string;
+  currentVersion?: number;
+  isCorporate?: boolean;
+  signerLabel?: string;
 }
 
-type Mode = 'idle' | 'signing_modal' | 'requesting_changes';
+type Mode = 'idle' | 'signing' | 'requesting_changes';
 
-export default function TenantAgreementActions({ agreementId }: Props) {
+type ChangeRequestDraft = {
+  category: string;
+  requestedChange: string;
+  reason: string;
+  note: string;
+};
+
+const EMPTY_REQUEST: ChangeRequestDraft = {
+  category: 'Rent and payments',
+  requestedChange: '',
+  reason: '',
+  note: '',
+};
+
+const CATEGORY_OPTIONS = [
+  'Rent and payments',
+  'Deposit terms',
+  'Notice period',
+  'House rules',
+  'Repairs and maintenance',
+  'Utilities and services',
+  'Occupancy and guests',
+  'Other clause',
+];
+
+export default function TenantAgreementActions({
+  agreementId,
+  currentVersion = 1,
+  isCorporate = false,
+  signerLabel = 'authorized signatory',
+}: Props) {
   const router = useRouter();
   const [mode, setMode] = useState<Mode>('idle');
-  const [notes, setNotes] = useState('');
   const [acknowledged, setAcknowledged] = useState(false);
+  const [generalNote, setGeneralNote] = useState('');
+  const [changeRequests, setChangeRequests] = useState<ChangeRequestDraft[]>([
+    EMPTY_REQUEST,
+  ]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
+  const hasValidChangeRequest = changeRequests.some(
+    (request) =>
+      request.category.trim() &&
+      request.requestedChange.trim().length >= 5 &&
+      request.reason.trim().length >= 5,
+  );
+
   const handleAccept = async () => {
-    // The API enforces acknowledged=true server-side,
-    // but we also gate the button in the UI so the user can't accidentally submit.
     if (!acknowledged) return;
 
     setIsLoading(true);
@@ -30,17 +71,18 @@ export default function TenantAgreementActions({ agreementId }: Props) {
       const response = await fetch(`/api/agreements/${agreementId}/respond`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'SIGN' }),
+        body: JSON.stringify({ action: 'SIGN', signedAcknowledged: true }),
       });
 
       const result = await response.json();
-
       if (!response.ok) {
         setError(result.error || 'Something went wrong.');
         return;
       }
 
-      setSuccess('Agreement signed successfully. Your tenancy is now active.');
+      setSuccess(
+        'Digital signature recorded. Upload your signed hard-copy file next so the landlord can approve it before the tenancy starts.',
+      );
       router.refresh();
     } catch {
       setError('Network error. Please try again.');
@@ -57,17 +99,20 @@ export default function TenantAgreementActions({ agreementId }: Props) {
       const response = await fetch(`/api/agreements/${agreementId}/respond`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'REQUEST_CHANGES', negotiationNotes: notes }),
+        body: JSON.stringify({
+          action: 'REQUEST_CHANGES',
+          negotiationNotes: generalNote,
+          changeRequests,
+        }),
       });
 
       const result = await response.json();
-
       if (!response.ok) {
         setError(result.error || 'Something went wrong.');
         return;
       }
 
-      setSuccess('Your change request has been sent to the landlord.');
+      setSuccess('Your structured change request has been sent to the landlord.');
       router.refresh();
     } catch {
       setError('Network error. Please try again.');
@@ -76,12 +121,21 @@ export default function TenantAgreementActions({ agreementId }: Props) {
     }
   };
 
-  // Once the tenant has submitted any response, show a clean confirmation.
   if (success) {
     return (
       <div className="bg-green-50 border border-green-200 rounded-xl px-5 py-4 flex items-center gap-3">
-        <svg className="w-5 h-5 text-green-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+        <svg
+          className="w-5 h-5 text-green-500 shrink-0"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M5 13l4 4L19 7"
+          />
         </svg>
         <p className="text-green-800 font-medium text-sm">{success}</p>
       </div>
@@ -90,67 +144,91 @@ export default function TenantAgreementActions({ agreementId }: Props) {
 
   return (
     <div className="bg-white rounded-xl border border-gray-200 p-6">
-      <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-4">
-        Your Response
-      </h2>
+      <div className="flex items-start justify-between gap-4 mb-4">
+        <div>
+          <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wider">
+            Your Response
+          </h2>
+          <p className="text-sm text-gray-600 mt-2">
+            You are reviewing Version {currentVersion}. Read the agreement,
+            plain language summary, red-flag analysis, and history before
+            choosing your next step.
+          </p>
+        </div>
+      </div>
 
-      {/* ── Step 1: Initial choice buttons ──────────────────────────────── */}
       {mode === 'idle' && (
         <div>
-          <p className="text-sm text-gray-600 mb-5">
-            Review all three tabs above carefully before responding. Once you
-            accept, the tenancy becomes active and a payment schedule is
-            generated automatically.
-          </p>
+          <div className="bg-gray-50 border border-gray-200 rounded-xl px-4 py-4 mb-5">
+            <p className="text-sm font-semibold text-gray-900">
+              Final decision options
+            </p>
+            <p className="text-xs text-gray-600 mt-1 leading-relaxed">
+              Signing records your digital acceptance first. You will still
+              need to upload the signed hard-copy file, and the landlord must
+              approve it before the tenancy activates. Requesting changes sends
+              a structured negotiation record back to the landlord for revision.
+            </p>
+            {isCorporate && (
+              <p className="text-xs text-blue-700 mt-2 leading-relaxed">
+                Only the authorized signatory can complete the legal signing or
+                submit binding agreement changes for this corporate tenancy.
+              </p>
+            )}
+          </div>
           <div className="flex flex-col sm:flex-row gap-3">
             <button
-              onClick={() => setMode('signing_modal')}
+              onClick={() => setMode('signing')}
               className="flex-1 bg-green-600 hover:bg-green-700 text-white font-semibold py-3 rounded-lg transition-colors text-sm"
             >
-              Accept Agreement
+              {isCorporate
+                ? 'Review and Sign as Authorized Signatory'
+                : 'Review and Sign'}
             </button>
             <button
               onClick={() => setMode('requesting_changes')}
               className="flex-1 border border-gray-300 text-gray-600 hover:bg-gray-50 font-semibold py-3 rounded-lg transition-colors text-sm"
             >
-              Request Changes
+              Request Structured Changes
             </button>
           </div>
         </div>
       )}
 
-      {/* ── Step 2a: Signing modal (shown when tenant clicks Accept) ────── */}
-      {/* This is the consent gate — the tenant must explicitly tick the    */}
-      {/* checkbox before the final confirm button becomes active.          */}
-      {mode === 'signing_modal' && (
+      {mode === 'signing' && (
         <div>
-          {/* Legal acknowledgement banner */}
           <div className="bg-amber-50 border border-amber-200 rounded-xl px-5 py-4 mb-5">
             <p className="text-amber-900 font-semibold text-sm mb-1">
-              Before you sign
+              Final signing step
             </p>
             <p className="text-amber-700 text-xs leading-relaxed">
-              By accepting this agreement, you confirm that you have read and
-              understood all clauses, including the plain-language summary and
-              any red-flag warnings. This constitutes your electronic acceptance
-              under the Malaysian Electronic Commerce Act 2006. Your acceptance
-              will be recorded with a timestamp and a cryptographic fingerprint
-              of this document.
+              By signing, you confirm that you reviewed this agreement version,
+              understood its terms, and accept the digital-signing step for
+              this tenancy. After that, you must upload the signed hard-copy
+              file for landlord approval.
             </p>
+            {isCorporate && (
+              <p className="text-amber-800 text-xs leading-relaxed mt-2">
+                This signature is being captured in your role as the authorized
+                signatory for the lease party, not as an occupant.
+              </p>
+            )}
           </div>
 
-          {/* Acknowledgement checkbox — the gate */}
-          <label className="flex items-start gap-3 p-4 bg-gray-50 rounded-xl border border-gray-200 cursor-pointer mb-5 hover:border-blue-300 transition-colors">
+          <label className="flex items-start gap-3 p-4 bg-gray-50 rounded-xl border border-gray-200 cursor-pointer mb-5">
             <input
               type="checkbox"
               checked={acknowledged}
-              onChange={(e) => setAcknowledged(e.target.checked)}
+              onChange={(event) => setAcknowledged(event.target.checked)}
               className="mt-0.5 accent-green-600 w-4 h-4 shrink-0"
             />
             <span className="text-sm text-gray-700 leading-relaxed">
-              I have read and understood the full tenancy agreement, the
-              plain-language summary, and all red-flag warnings. I agree to be
-              legally bound by all terms and conditions in this agreement.
+              I have reviewed Version {currentVersion} of this agreement, the
+              plain-language summary, and the red-flag analysis. I understand
+              the terms and agree to sign electronically
+              {isCorporate
+                ? ` as the ${signerLabel} for this corporate tenancy.`
+                : '.'}
             </span>
           </label>
 
@@ -170,44 +248,180 @@ export default function TenantAgreementActions({ agreementId }: Props) {
             </button>
             <button
               onClick={handleAccept}
-              // Button is disabled until the checkbox is ticked AND the request isn't in flight.
-              // This is the UX enforcement — the API enforces it server-side too.
               disabled={!acknowledged || isLoading}
               className="flex-1 bg-green-600 hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white font-semibold py-3 rounded-lg transition-colors text-sm"
             >
               {isLoading
-                ? 'Processing…'
-                : acknowledged
-                  ? 'Confirm and Sign'
-                  : 'Tick the checkbox to continue'}
+                ? 'Processing...'
+                : isCorporate
+                  ? 'Confirm and Sign as Authorized Signatory'
+                  : 'Confirm and Sign Agreement'}
             </button>
           </div>
         </div>
       )}
 
-      {/* ── Step 2b: Request changes form ──────────────────────────────── */}
       {mode === 'requesting_changes' && (
-        <div>
-          <p className="text-sm text-gray-600 mb-3">
-            Describe which clauses you would like to discuss. Your landlord will
-            see this message and can generate a revised agreement based on your
-            feedback.
-          </p>
-          <textarea
-            value={notes}
-            onChange={(e) => setNotes(e.target.value)}
-            rows={4}
-            placeholder="e.g. Clause 4 — the security deposit of RM 3,000 seems high. I would like to request a reduction. Also Clause 9 — can the termination notice period be reduced from 2 months to 1 month?"
-            className="w-full border border-gray-300 rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none mb-4"
-          />
+        <div className="space-y-4">
+          <div className="bg-blue-50 border border-blue-200 rounded-xl px-4 py-4">
+            <p className="text-sm font-semibold text-blue-900">
+              Structured change request
+            </p>
+            <p className="text-xs text-blue-700 mt-1 leading-relaxed">
+              Add one or more clause requests so the landlord can see exactly
+              what needs to be revised. You can include an optional general note
+              at the end.
+            </p>
+          </div>
 
-          {error && <p className="text-red-500 text-sm mb-3">{error}</p>}
+          {changeRequests.map((request, index) => (
+            <div
+              key={index}
+              className="border border-gray-200 rounded-xl p-4 space-y-3"
+            >
+              <div className="flex items-center justify-between gap-3">
+                <p className="text-sm font-semibold text-gray-900">
+                  Request {index + 1}
+                </p>
+                {changeRequests.length > 1 && (
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setChangeRequests((current) =>
+                        current.filter(
+                          (_, currentIndex) => currentIndex !== index,
+                        ),
+                      )
+                    }
+                    className="text-xs font-medium text-red-600 hover:text-red-700"
+                  >
+                    Remove
+                  </button>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-gray-500 mb-1">
+                  Clause / section category
+                </label>
+                <select
+                  value={request.category}
+                  onChange={(event) =>
+                    setChangeRequests((current) =>
+                      current.map((item, currentIndex) =>
+                        currentIndex === index
+                          ? { ...item, category: event.target.value }
+                          : item,
+                      ),
+                    )
+                  }
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  {CATEGORY_OPTIONS.map((option) => (
+                    <option key={option} value={option}>
+                      {option}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-gray-500 mb-1">
+                  What should change?
+                </label>
+                <textarea
+                  value={request.requestedChange}
+                  onChange={(event) =>
+                    setChangeRequests((current) =>
+                      current.map((item, currentIndex) =>
+                        currentIndex === index
+                          ? {
+                              ...item,
+                              requestedChange: event.target.value,
+                            }
+                          : item,
+                      ),
+                    )
+                  }
+                  rows={2}
+                  placeholder="Example: Reduce the security deposit from 3 months to 2 months."
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-gray-500 mb-1">
+                  Why are you requesting this change?
+                </label>
+                <textarea
+                  value={request.reason}
+                  onChange={(event) =>
+                    setChangeRequests((current) =>
+                      current.map((item, currentIndex) =>
+                        currentIndex === index
+                          ? { ...item, reason: event.target.value }
+                          : item,
+                      ),
+                    )
+                  }
+                  rows={2}
+                  placeholder="Explain the concern so the landlord understands the request."
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-gray-500 mb-1">
+                  Optional note
+                </label>
+                <textarea
+                  value={request.note}
+                  onChange={(event) =>
+                    setChangeRequests((current) =>
+                      current.map((item, currentIndex) =>
+                        currentIndex === index
+                          ? { ...item, note: event.target.value }
+                          : item,
+                      ),
+                    )
+                  }
+                  rows={2}
+                  placeholder="Any extra context or example wording."
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                />
+              </div>
+            </div>
+          ))}
+
+          <button
+            type="button"
+            onClick={() =>
+              setChangeRequests((current) => [...current, { ...EMPTY_REQUEST }])
+            }
+            className="text-sm font-medium text-blue-600 hover:text-blue-700"
+          >
+            + Add another change request
+          </button>
+
+          <div>
+            <label className="block text-xs font-medium text-gray-500 mb-1">
+              Optional general note to landlord
+            </label>
+            <textarea
+              value={generalNote}
+              onChange={(event) => setGeneralNote(event.target.value)}
+              rows={3}
+              placeholder="Optional summary note covering the overall negotiation."
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+            />
+          </div>
+
+          {error && <p className="text-red-500 text-sm">{error}</p>}
 
           <div className="flex gap-3">
             <button
               onClick={() => {
                 setMode('idle');
-                setNotes('');
                 setError(null);
               }}
               disabled={isLoading}
@@ -217,10 +431,10 @@ export default function TenantAgreementActions({ agreementId }: Props) {
             </button>
             <button
               onClick={handleRequestChanges}
-              disabled={isLoading || notes.trim().length < 10}
+              disabled={isLoading || !hasValidChangeRequest}
               className="flex-1 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-semibold py-2.5 rounded-lg transition-colors text-sm"
             >
-              {isLoading ? 'Sending…' : 'Send to Landlord'}
+              {isLoading ? 'Sending...' : 'Send Change Request'}
             </button>
           </div>
         </div>

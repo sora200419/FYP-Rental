@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import {
+  buildAgreementEvent,
+  buildAgreementRevision,
+} from '@/lib/agreements/history';
 import { z } from 'zod';
 
 const bodySchema = z.object({
@@ -11,6 +15,7 @@ const bodySchema = z.object({
       100,
       'Agreement content is too short — please do not delete the entire document.',
     ),
+  resolvedChangeRequestIds: z.array(z.string().min(1)).optional().default([]),
 });
 
 // PATCH /api/agreements/[id]/content
@@ -38,7 +43,14 @@ export async function PATCH(
         room: { property: { landlordId: session.user.id } },
       },
     },
-    select: { id: true, status: true },
+    select: {
+      id: true,
+      status: true,
+      plainLanguageSummary: true,
+      plainLanguageSummaryMs: true,
+      redFlags: true,
+      redFlagsMs: true,
+    },
   });
 
   if (!agreement)
@@ -61,21 +73,74 @@ export async function PATCH(
 
   try {
     const body = await request.json();
-    const { rawContent } = bodySchema.parse(body);
+    const { rawContent, resolvedChangeRequestIds } = bodySchema.parse(body);
 
-    const updated = await prisma.agreement.update({
-      where: { id: agreementId },
-      data: {
-        rawContent,
-        // Reset to DRAFT — the landlord must re-finalize before sending
-        // back to the tenant. This prevents accidentally sending an
-        // unreviewed edited draft.
-        status: 'DRAFT',
-        // Clear negotiation notes — the landlord has addressed the request.
-        negotiationNotes: null,
-        updatedAt: new Date(),
-      },
-      select: { id: true, status: true, updatedAt: true },
+    const currentRevisionCount = await prisma.agreementRevision.count({
+      where: { agreementId },
+    });
+
+    const updated = await prisma.$transaction(async (tx) => {
+      const savedAgreement = await tx.agreement.update({
+        where: { id: agreementId },
+        data: {
+          rawContent,
+          status: 'DRAFT',
+          updatedAt: new Date(),
+        },
+        select: { id: true, status: true, updatedAt: true, negotiationNotes: true },
+      });
+
+      if (resolvedChangeRequestIds.length > 0) {
+        await tx.agreementChangeRequest.updateMany({
+          where: {
+            agreementId,
+            id: { in: resolvedChangeRequestIds },
+          },
+          data: {
+            status: 'RESOLVED',
+            resolvedAt: new Date(),
+          },
+        });
+      }
+
+      const pendingRequests = await tx.agreementChangeRequest.count({
+        where: { agreementId, status: 'PENDING' },
+      });
+
+      if (pendingRequests === 0 && savedAgreement.negotiationNotes) {
+        await tx.agreement.update({
+          where: { id: agreementId },
+          data: { negotiationNotes: null },
+        });
+      }
+
+      await tx.agreementRevision.create({
+        data: buildAgreementRevision({
+          agreementId,
+          versionNumber: currentRevisionCount + 1,
+          rawContent,
+          plainLanguageSummary: agreement.plainLanguageSummary,
+          plainLanguageSummaryMs: agreement.plainLanguageSummaryMs,
+          redFlags: agreement.redFlags ?? '[]',
+          redFlagsMs: agreement.redFlagsMs,
+          createdByUserId: session.user.id,
+        }),
+      });
+
+      await tx.agreementEvent.create({
+        data: buildAgreementEvent({
+          agreementId,
+          type: 'EDITED',
+          actorRole: 'LANDLORD',
+          actorUserId: session.user.id,
+          summary:
+            resolvedChangeRequestIds.length > 0
+              ? `Landlord edited the agreement and marked ${resolvedChangeRequestIds.length} change request(s) as addressed.`
+              : 'Landlord edited the agreement draft.',
+        }),
+      });
+
+      return savedAgreement;
     });
 
     return NextResponse.json(
