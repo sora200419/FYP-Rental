@@ -64,7 +64,13 @@
       "Bash(git checkout *)",
       "Bash(git merge *)",
       "Bash(git -c http.sslVerify=false push origin main)",
-      "Bash(git -c http.sslVerify=false push origin claude/allow-ic-number-changes-1pUWr:main)"
+      "Bash(git -c http.sslVerify=false push origin claude/allow-ic-number-changes-1pUWr:main)",
+      "Bash(claude plugin *)",
+      "Bash(git *)",
+      "Bash(findstr /i \"DATABASE_URL\")",
+      "PowerShell(Select-String -Path \"C:\\\\Users\\\\ONG\\\\OneDrive\\\\Desktop\\\\FYP Rental\\\\rentalease-malaysia\\\\node_modules\\\\.prisma\\\\client\\\\index.js\" -Pattern \"prisma://\" | Select-Object -First 5 | ForEach-Object { $_.Line })",
+      "PowerShell(Select-String -Path \"C:\\\\Users\\\\ONG\\\\OneDrive\\\\Desktop\\\\FYP Rental\\\\rentalease-malaysia\\\\node_modules\\\\.prisma\\\\client\\\\index.js\" -Pattern \"no.engine|noEngine|engineType\" | Select-Object -First 5 | ForEach-Object { $_.Line })",
+      "PowerShell(gh *)"
     ]
   }
 }

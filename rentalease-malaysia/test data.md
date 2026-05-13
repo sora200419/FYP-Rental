@@ -1,5 +1,6 @@
 # Test Data
 
+<<<<<<< ours
 Prepared: 2026-05-13
 
 This file is the main manual-testing reference for the current RentalEase build.
@@ -14,6 +15,13 @@ Use it when testing:
 ## 1. Required `.env` values
 
 Use real values for your existing app secrets, database, Cloudinary, Gemini, email, and blockchain config, then confirm these admin bootstrap values:
+=======
+Prepared: 2026-05-12
+
+## 1. Required `.env` values
+
+Use real values for the existing app secrets and database, then add or confirm these admin bootstrap values:
+>>>>>>> theirs
 
 ```env
 ADMIN_EMAIL=admin@rentalease.my
@@ -22,14 +30,27 @@ ADMIN_NAME=RentalEase Admin
 NEXTAUTH_SECRET=replace-with-your-existing-secret
 ```
 
+<<<<<<< ours
 ## 2. Admin bootstrap
+=======
+## 2. Bootstrap the admin account
+
+Admin creation now comes only from `.env`.
+>>>>>>> theirs
 
 Primary behavior:
 - start the app
 - open any app page
+<<<<<<< ours
 - the server automatically creates or re-promotes the admin account if it is missing
 
 Protected fallback:
+=======
+- the server will automatically create or re-promote the admin account if it is missing
+
+Protected fallback:
+- if you want to trigger the bootstrap manually, call the internal route once:
+>>>>>>> theirs
 
 ```powershell
 Invoke-RestMethod `
@@ -38,18 +59,27 @@ Invoke-RestMethod `
   -Headers @{ "x-bootstrap-secret" = "<your NEXTAUTH_SECRET>" }
 ```
 
+<<<<<<< ours
 Expected manual route result if the admin did not exist:
+=======
+Expected manual route result:
+>>>>>>> theirs
 
 ```json
 { "ok": true, "action": "created", "email": "admin@rentalease.my" }
 ```
 
+<<<<<<< ours
 Expected result if the email already exists as a normal user:
+=======
+If the email already exists as a normal user, expected result is:
+>>>>>>> theirs
 
 ```json
 { "ok": true, "action": "promoted", "email": "admin@rentalease.my" }
 ```
 
+<<<<<<< ours
 ## 3. Core manual-test accounts
 
 If these accounts are not already present in your database, register them through the UI.
@@ -184,10 +214,45 @@ Use these tenancy records for manual testing.
 ## 7. Agreement wizard sample values
 
 Use these values so the agreement wizard can complete and the finalize checklist can pass.
+=======
+## 3. Suggested manual test accounts
+
+Use these sample accounts in the UI:
+
+| Role | Name | Email | Password | Phone | IC Number |
+| --- | --- | --- | --- | --- | --- |
+| Admin | RentalEase Admin | admin@rentalease.my | Admin1234! | - | - |
+| Landlord | Ahmad Razif bin Hassan | landlord@test.my | Test1234! | 011-2345678 | 850101-14-5678 |
+| Tenant | Lim Mei Ling | tenant@test.my | Test1234! | 012-3456789 | 900202-08-1234 |
+
+## 4. Agreement flow setup data
+
+Create one property and room with these values:
+
+| Field | Value |
+| --- | --- |
+| Property address | 18 Jalan SS 15/4 |
+| City | Subang Jaya |
+| State | Selangor |
+| Postcode | 47500 |
+| Property type | Apartment |
+| Room label | Master Room |
+| Room type | MASTER |
+| Bathroom type | ATTACHED |
+| Monthly rent | 1500 |
+| Deposit amount | 3000 |
+| Start date | 2026-06-01 |
+| End date | 2027-05-31 |
+
+## 5. Agreement wizard sample values
+
+Use a complete wizard so the finalize checklist can pass:
+>>>>>>> theirs
 
 | Section | Suggested value |
 | --- | --- |
 | Pets policy | APPROVAL |
+<<<<<<< ours
 | Pets max count | 1 |
 | Pets deposit | 300 |
 | Smoking policy | NOT_INDOORS |
@@ -201,10 +266,17 @@ Use these values so the agreement wizard can complete and the finalize checklist
 | Internet account manager | LANDLORD |
 | AC servicing | LANDLORD |
 | Pest control | LANDLORD |
+=======
+| Smoking policy | NOT_INDOORS |
+| Overnight guests | NOTIFICATION |
+| Utility payment method | REIMBURSE_LANDLORD |
+| Utility dispute method | SPLIT_50_50 |
+>>>>>>> theirs
 | Rent due day | 5 |
 | Grace period days | 3 |
 | Late penalty type | FLAT |
 | Late penalty amount | 50 |
+<<<<<<< ours
 | Acceptable payment methods | Bank transfer, DuitNow |
 | Rent increase terms | Only after term renewal |
 | Rent increase percent | 5 |
@@ -232,6 +304,19 @@ Use these values so the agreement wizard can complete and the finalize checklist
 Use one or more of these for negotiation testing.
 
 ### Request A: Deposit terms
+=======
+| Minor repair threshold | 150 |
+| Tenant notice months | 1 |
+| Landlord notice months | 2 |
+| Deposit refund days | 14 |
+| Wizard status | Complete all 6 steps |
+
+## 6. Structured tenant change-request samples
+
+Use one or more of these when testing the negotiation flow:
+
+### Request A
+>>>>>>> theirs
 
 | Field | Value |
 | --- | --- |
@@ -240,7 +325,11 @@ Use one or more of these for negotiation testing.
 | Why? | The current deposit is too high for my move-in budget. |
 | Optional note | I can pay the reduced deposit immediately together with the first month rent. |
 
+<<<<<<< ours
 ### Request B: Notice period
+=======
+### Request B
+>>>>>>> theirs
 
 | Field | Value |
 | --- | --- |
@@ -249,7 +338,11 @@ Use one or more of these for negotiation testing.
 | Why? | A shorter notice period is more practical for my work relocation risk. |
 | Optional note | I am still fine with standard penalties for early termination. |
 
+<<<<<<< ours
 ### Request C: Repairs
+=======
+### Request C
+>>>>>>> theirs
 
 | Field | Value |
 | --- | --- |
@@ -258,6 +351,7 @@ Use one or more of these for negotiation testing.
 | Why? | I want the written agreement to match the wizard settings clearly. |
 | Optional note | Please mention urgent plumbing issues specifically. |
 
+<<<<<<< ours
 ### Request D: Occupancy and guests
 
 | Field | Value |
@@ -495,3 +589,116 @@ Use any local files you already have, or prepare simple placeholders with these 
   - signed hard-copy upload second
   - landlord approval third
   - only then does the tenancy become `ACTIVE`
+=======
+## 7. Manual verification checklist
+
+### Agreement-local bilingual toggle
+
+1. Open the landlord agreement page.
+2. Confirm there is no EN/BM toggle in the dashboard nav or sidebar.
+3. Confirm the agreement page itself has the EN/BM toggle.
+4. Switch to BM and verify:
+   - Plain Language tab changes language.
+   - Red Flags tab changes language when BM content exists.
+   - Full Agreement tab stays English.
+
+### Version history
+
+1. Generate the first agreement.
+2. Confirm History shows Version 1 and a generated event.
+3. Edit and save the agreement.
+4. Confirm History shows a new revision and edit event.
+5. Finalize the agreement.
+6. Confirm History shows a finalize event.
+
+### Structured change requests
+
+1. Login as tenant.
+2. Open the finalized agreement.
+3. Choose `Request Structured Changes`.
+4. Submit Request A and Request B.
+5. Confirm landlord side shows both requests in the editor.
+6. Save the revised agreement and mark the requests addressed.
+7. Confirm the checklist no longer reports unresolved change requests.
+
+### Dual-signature agreement activation
+
+1. Re-finalize the revised agreement.
+2. Login as tenant.
+3. Confirm the signing area shows the current version number.
+4. Try signing without the acknowledgement checkbox.
+5. Confirm signing is blocked.
+6. Tick the checkbox and sign.
+7. Confirm the agreement moves to `PENDING_SIGNATURE_PROOF`.
+8. Confirm the tenancy itself stays `PENDING`, not `ACTIVE`.
+9. Confirm no rent payment schedule appears yet.
+10. Upload a signed hard-copy file using one of these formats:
+   - `PDF`
+   - `JPG`
+   - `PNG`
+   - `HEIC`
+11. Confirm the tenant sees `Under Review`.
+12. Login as landlord and open the tenancy detail page.
+13. Confirm the signed-copy review card appears.
+14. Approve the signed copy.
+15. Confirm the agreement becomes `SIGNED`.
+16. Confirm the tenancy becomes `ACTIVE`.
+17. Confirm the rent payment schedule appears only after approval.
+
+### Dual-signature rejection and re-upload
+
+1. Repeat the digital-sign step until the tenant uploads a signed hard-copy file.
+2. Login as landlord.
+3. Reject the uploaded file without entering a reason and confirm the system blocks the action.
+4. Enter a rejection reason of at least 10 characters and submit the rejection.
+5. Confirm the tenancy remains `PENDING`.
+6. Confirm the agreement remains `PENDING_SIGNATURE_PROOF`.
+7. Login as tenant and confirm the rejection reason is visible.
+8. Upload a replacement signed-copy file.
+9. Confirm landlord can review the new file.
+10. Approve the new file and confirm the tenancy becomes `ACTIVE`.
+
+### Admin bootstrap
+
+1. Remove any existing admin row if you want a clean bootstrap test.
+2. Start the app and open `http://localhost:3000/login`.
+3. Confirm the admin account is recreated automatically from `.env`.
+4. Login with `admin@rentalease.my / Admin1234!`.
+5. Confirm the admin dashboard opens.
+6. Optionally call `POST /api/internal/bootstrap-admin` with `x-bootstrap-secret` and confirm it returns `noop` after the automatic bootstrap already restored the account.
+
+## 8. Corporate tenancy workflow
+
+Use this for the restaurant-boss / employer-rents-for-staff demo:
+- Company: `Restoran Maju Sdn Bhd`
+- Authorized signatory tenant account:
+  - Name: `Ahmad Razif bin Hassan`
+  - Email: `landlord@test.my` should **not** be used here
+  - Create a tenant-role boss/signatory account such as `boss@test.my`
+- Occupants:
+  - `Worker A`
+  - `Worker B`
+
+Recommended manual flow:
+1. Register `boss@test.my` as a tenant account and complete verification.
+2. Login as landlord and create a new tenancy.
+3. Choose `Corporate / Employer`.
+4. Enter the company name and authorized signatory details.
+5. Use `boss@test.my` as the authorized signatory email.
+6. Add `Worker A` and `Worker B` to the occupant roster.
+7. Submit the invitation.
+8. Login as `boss@test.my` and confirm only the authorized signatory can accept the invitation.
+9. Confirm the corporate invitation card appears on the tenant side.
+10. Generate and finalize the agreement from the landlord side.
+11. Login as `boss@test.my` and confirm the signing copy refers to the authorized signatory role.
+12. Complete digital signing, upload the signed hard-copy proof, and let the landlord approve it.
+13. Confirm the tenancy becomes `ACTIVE` only after proof approval.
+14. Return to the landlord tenancy detail page and use the corporate roster manager to:
+    - add another occupant
+    - replace an occupant
+    - link an occupant to a registered tenant account by email
+
+Important modeling note:
+- `CoTenant` is still for simple additional occupants in personal rentals.
+- Corporate staff living in the room or unit should use the dedicated corporate occupant roster, not `CoTenant`.
+>>>>>>> theirs
