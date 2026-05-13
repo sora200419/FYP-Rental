@@ -12,6 +12,10 @@ export interface TenancyForAgreement {
   endDate: Date;
   monthlyRent: unknown;
   depositAmount: unknown;
+  leasePartyType?: 'INDIVIDUAL' | 'CORPORATE';
+  companyName?: string | null;
+  authorizedSignatoryName?: string | null;
+  authorizedSignatoryRole?: string | null;
   property: {
     address: string;
     city: string;
@@ -46,6 +50,7 @@ export interface TenancyForAgreement {
   };
   negotiationContext?: string | null;
   coTenants?: { name: string; icNumber?: string | null }[];
+  corporateOccupants?: { name: string; roleLabel?: string | null }[];
 }
 
 export interface GeneratedAgreement {
@@ -218,6 +223,23 @@ ${tenancy.coTenants.map((ct) => `- ${ct.name} (IC: ${maskIc(ct.icNumber)})`).joi
 `
       : '';
 
+  const corporateLeasePartyBlock =
+    tenancy.leasePartyType === 'CORPORATE'
+      ? `
+CORPORATE LEASE PARTY
+- Lease Party Type: Corporate / Employer tenancy
+- Company Name: ${tenancy.companyName ?? 'Not provided'}
+- Authorized Signatory: ${tenancy.authorizedSignatoryName ?? tenancy.tenant.name}${tenancy.authorizedSignatoryRole ? ` (${tenancy.authorizedSignatoryRole})` : ''}
+- Occupant Roster:
+${(tenancy.corporateOccupants ?? []).length > 0
+  ? tenancy.corporateOccupants!
+      .map((occupant) => `  - ${occupant.name}${occupant.roleLabel ? ` (${occupant.roleLabel})` : ''}`)
+      .join('\n')
+  : '  - No occupants listed yet'}
+The agreement must clearly distinguish the corporate lease party / authorized signatory from the staff or occupants staying in the room or unit.
+`
+      : '';
+
   const optionalRoomDetails: string[] = [];
   if (tenancy.room.sizeSqFt) {
     optionalRoomDetails.push(
@@ -273,6 +295,7 @@ PARTIES
 - Tenant Phone: ${tenancy.tenant.phone ?? 'Not provided'}
 ${tenantIcLine}
 ${coTenantsBlock}
+${corporateLeasePartyBlock}
 FINANCIAL TERMS
 - Tenancy Start Date: ${startDate}
 - Tenancy End Date: ${endDate}

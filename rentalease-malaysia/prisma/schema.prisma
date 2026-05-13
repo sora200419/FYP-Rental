@@ -21,16 +21,20 @@ model User {
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 
-  ownedProperties         Property[]        @relation("LandlordProperties")
-  tenancies               Tenancy[]         @relation("TenantTenancies")
-  sentMessages            Message[]         @relation("SentMessages")
-  receivedMessages        Message[]         @relation("ReceivedMessages")
-  uploadedProofs          PaymentProof[]    @relation("UploadedProofs")
-  createdReports          ConditionReport[] @relation("CreatedReports")
-  acknowledgedReports     ConditionReport[] @relation("AcknowledgedReports")
-  uploadedConditionPhotos ConditionPhoto[]  @relation("UploadedConditionPhotos")
-  uploadedPropertyPhotos  PropertyPhoto[]   @relation("UploadedPropertyPhotos")
-  uploadedDepositProofs   DepositProof[]    @relation("UploadedDepositProofs")
+  ownedProperties                  Property[]                @relation("LandlordProperties")
+  tenancies                        Tenancy[]                 @relation("TenantTenancies")
+  sentMessages                     Message[]                 @relation("SentMessages")
+  receivedMessages                 Message[]                 @relation("ReceivedMessages")
+  uploadedProofs                   PaymentProof[]            @relation("UploadedProofs")
+  createdReports                   ConditionReport[]         @relation("CreatedReports")
+  acknowledgedReports              ConditionReport[]         @relation("AcknowledgedReports")
+  uploadedConditionPhotos          ConditionPhoto[]          @relation("UploadedConditionPhotos")
+  uploadedPropertyPhotos           PropertyPhoto[]           @relation("UploadedPropertyPhotos")
+  uploadedDepositProofs            DepositProof[]            @relation("UploadedDepositProofs")
+  uploadedAgreementSignatureProofs AgreementSignatureProof[] @relation("UploadedAgreementSignatureProofs")
+  reviewedAgreementSignatureProofs AgreementSignatureProof[] @relation("ReviewedAgreementSignatureProofs")
+  authorizedCorporateTenancies     Tenancy[]                 @relation("AuthorizedCorporateTenancies")
+  linkedCorporateOccupancies       CorporateOccupant[]       @relation("LinkedCorporateOccupancies")
 
   kycRejectedReason String? @db.Text // set by admin on KYC rejection; cleared on approval
 
@@ -170,12 +174,23 @@ model Tenancy {
   terminatedAt       DateTime?
   terminatedReason   String?
 
+  // Future corporate-tenancy scaffolding. Current UI still assumes an
+  // individual lease party; these fields stay nullable until that flow exists.
+  leasePartyType          LeasePartyType @default(INDIVIDUAL)
+  companyName             String?
+  companyRegistrationNo   String?
+  authorizedSignatoryName String?
+  authorizedSignatoryIC   String?
+  authorizedSignatoryRole String?
+  authorizedSignatoryUserId String?
+
   // Foreign key to Room (not Property directly — go through room.property for auth)
   roomId String
   room   Room   @relation(fields: [roomId], references: [id])
 
   tenantId String
   tenant   User   @relation("TenantTenancies", fields: [tenantId], references: [id])
+  authorizedSignatoryUser User? @relation("AuthorizedCorporateTenancies", fields: [authorizedSignatoryUserId], references: [id], onDelete: SetNull)
 
   // Deposit payment tracking
   depositStatus          DepositStatus @default(PENDING)
@@ -189,6 +204,7 @@ model Tenancy {
   depositRefund        DepositRefund?
   depositProofs        DepositProof[]
   coTenants            CoTenant[]
+  corporateOccupants   CorporateOccupant[]
 }
 
 // ─── CO-TENANT ────────────────────────────────────────────────────────────────
@@ -205,12 +221,42 @@ model CoTenant {
   tenancy   Tenancy @relation(fields: [tenancyId], references: [id], onDelete: Cascade)
 }
 
+model CorporateOccupant {
+  id           String                  @id @default(cuid())
+  tenancyId    String
+  tenancy      Tenancy                 @relation(fields: [tenancyId], references: [id], onDelete: Cascade)
+  name         String
+  icNumber     String?
+  phone        String?
+  roleLabel    String?
+  linkedUserId String?
+  linkedUser   User?                   @relation("LinkedCorporateOccupancies", fields: [linkedUserId], references: [id], onDelete: SetNull)
+  status       CorporateOccupantStatus @default(UNLINKED)
+  createdAt    DateTime                @default(now())
+  updatedAt    DateTime                @updatedAt
+
+  @@index([tenancyId, status])
+  @@index([linkedUserId])
+}
+
 enum TenancyStatus {
   INVITED // Landlord created — waiting for tenant to accept the invitation
   PENDING // Tenant accepted — agreement being drafted/negotiated
   ACTIVE // Agreement signed — tenancy is live
   EXPIRED // Past the end date
   TERMINATED // Ended early
+}
+
+enum LeasePartyType {
+  INDIVIDUAL
+  CORPORATE
+}
+
+enum CorporateOccupantStatus {
+  UNLINKED
+  LINKED
+  REPLACED
+  REMOVED
 }
 
 enum DepositStatus {
@@ -250,16 +296,47 @@ model Agreement {
   tenancyId String  @unique
   tenancy   Tenancy @relation(fields: [tenancyId], references: [id], onDelete: Cascade)
 
-  events         AgreementEvent[]
-  revisions      AgreementRevision[]
-  changeRequests AgreementChangeRequest[]
+  events          AgreementEvent[]
+  revisions       AgreementRevision[]
+  changeRequests  AgreementChangeRequest[]
+  signatureProofs AgreementSignatureProof[]
 }
 
 enum AgreementStatus {
   DRAFT // AI generated, landlord reviewing
   FINALIZED // Landlord confirmed — awaiting tenant review
   NEGOTIATING // Tenant requested changes — landlord needs to revise
+  PENDING_SIGNATURE_PROOF // Tenant signed digitally; hard-copy proof still pending approval
   SIGNED // Tenant accepted
+}
+
+model AgreementSignatureProof {
+  id              String                        @id @default(cuid())
+  agreementId     String
+  agreement       Agreement                     @relation(fields: [agreementId], references: [id], onDelete: Cascade)
+  uploadedById    String
+  uploadedBy      User                          @relation("UploadedAgreementSignatureProofs", fields: [uploadedById], references: [id])
+  fileUrl         String
+  publicId        String
+  originalName    String
+  mimeType        String
+  fileSize        Int
+  status          AgreementSignatureProofStatus @default(UNDER_REVIEW)
+  rejectionReason String?                       @db.Text
+  reviewedById    String?
+  reviewedBy      User?                         @relation("ReviewedAgreementSignatureProofs", fields: [reviewedById], references: [id])
+  reviewedAt      DateTime?
+  createdAt       DateTime                      @default(now())
+  updatedAt       DateTime                      @updatedAt
+
+  @@index([agreementId, createdAt])
+  @@index([agreementId, status])
+}
+
+enum AgreementSignatureProofStatus {
+  UNDER_REVIEW
+  APPROVED
+  REJECTED
 }
 
 // ─── RENT PAYMENT ────────────────────────────────────────────────────────────
@@ -387,6 +464,9 @@ enum NotificationType {
   AGREEMENT_READY
   AGREEMENT_CHANGES_REQUESTED
   AGREEMENT_SIGNED
+  AGREEMENT_SIGNATURE_PROOF_UPLOADED
+  AGREEMENT_SIGNATURE_PROOF_APPROVED
+  AGREEMENT_SIGNATURE_PROOF_REJECTED
   PAYMENT_PROOF_UPLOADED
   PAYMENT_APPROVED
   PAYMENT_REJECTED
@@ -626,6 +706,10 @@ enum AgreementEventType {
   EDITED
   FINALIZED
   REQUESTED_CHANGES
+  DIGITAL_SIGNED
+  SIGNATURE_PROOF_UPLOADED
+  SIGNATURE_PROOF_REJECTED
+  SIGNATURE_PROOF_APPROVED
   SIGNED
 }
 

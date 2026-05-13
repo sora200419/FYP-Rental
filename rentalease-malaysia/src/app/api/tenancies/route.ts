@@ -5,6 +5,7 @@ import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { createNotification } from '@/lib/notifications';
 import { sendInvitationEmail } from '@/lib/email';
+import { buildCorporateTenancyCreateInput } from '@/lib/corporate-tenancy';
 
 export async function GET() {
   const session = await getServerSession(authOptions);
@@ -20,7 +21,9 @@ export async function GET() {
         room: { property: { landlordId: session.user.id } },
       },
       include: {
-        tenant: { select: { id: true, name: true, email: true, phone: true } },
+        tenant: {
+          select: { id: true, name: true, email: true, phone: true },
+        },
         room: {
           include: {
             property: {
@@ -38,7 +41,6 @@ export async function GET() {
     return NextResponse.json(tenancies);
   }
 
-  // TENANT
   const tenancies = await prisma.tenancy.findMany({
     where: { tenantId: session.user.id },
     include: {
@@ -71,25 +73,50 @@ export async function POST(request: Request) {
   }
 
   const body = await request.json();
-  const {
-    roomId,
-    tenantEmail,
-    startDate,
-    endDate,
-    monthlyRent,
-    depositAmount,
-  } = body;
+  const leasePartyType =
+    body.leasePartyType === 'CORPORATE' ? 'CORPORATE' : 'INDIVIDUAL';
+  const { roomId, tenantEmail, startDate, endDate, monthlyRent, depositAmount } =
+    body;
 
   if (
-    !roomId ||
-    !tenantEmail ||
-    !startDate ||
-    !endDate ||
-    !monthlyRent ||
-    !depositAmount
+    typeof roomId !== 'string' ||
+    typeof startDate !== 'string' ||
+    typeof endDate !== 'string' ||
+    typeof monthlyRent !== 'number' ||
+    typeof depositAmount !== 'number'
   ) {
     return NextResponse.json(
       { error: 'Missing required fields' },
+      { status: 400 },
+    );
+  }
+
+  if (
+    leasePartyType === 'INDIVIDUAL' &&
+    (typeof tenantEmail !== 'string' || !tenantEmail.trim())
+  ) {
+    return NextResponse.json(
+      { error: 'Tenant email is required' },
+      { status: 400 },
+    );
+  }
+
+  if (
+    leasePartyType === 'CORPORATE' &&
+    (
+      typeof body.companyName !== 'string' ||
+      !body.companyName.trim() ||
+      typeof body.authorizedSignatoryName !== 'string' ||
+      !body.authorizedSignatoryName.trim() ||
+      typeof body.authorizedSignatoryEmail !== 'string' ||
+      !body.authorizedSignatoryEmail.trim()
+    )
+  ) {
+    return NextResponse.json(
+      {
+        error:
+          'Company name, authorized signatory name, and authorized signatory email are required for corporate tenancies',
+      },
       { status: 400 },
     );
   }
@@ -109,11 +136,17 @@ export async function POST(request: Request) {
     );
   }
 
-  // Verify the landlord owns this room
   const room = await prisma.room.findUnique({
     where: { id: roomId },
     include: {
-      property: { select: { landlordId: true, address: true, city: true, isVerified: true } },
+      property: {
+        select: {
+          landlordId: true,
+          address: true,
+          city: true,
+          isVerified: true,
+        },
+      },
     },
   });
 
@@ -141,64 +174,148 @@ export async function POST(request: Request) {
     );
   }
 
-  // Find the tenant by email
-  const tenant = await prisma.user.findUnique({
-    where: { email: tenantEmail },
-    select: { id: true, name: true, email: true, role: true },
-  });
+  let tenancy;
+  let invitationRecipient:
+    | { id: string; name: string | null; email: string | null }
+    | null = null;
+  let invitationEmail: string | null = null;
+  let invitationName = 'Tenant';
 
-  if (!tenant || tenant.role !== 'TENANT') {
-    return NextResponse.json(
-      { error: 'No tenant account found with that email address' },
-      { status: 404 },
-    );
-  }
+  if (leasePartyType === 'INDIVIDUAL') {
+    const tenant = await prisma.user.findUnique({
+      where: { email: tenantEmail.trim() },
+      select: { id: true, name: true, email: true, role: true },
+    });
 
-  // Create the tenancy in INVITED status
-  const tenancy = await prisma.tenancy.create({
-    data: {
+    if (!tenant || tenant.role !== 'TENANT') {
+      return NextResponse.json(
+        { error: 'No tenant account found with that email address' },
+        { status: 404 },
+      );
+    }
+
+    tenancy = await prisma.tenancy.create({
+      data: {
+        roomId,
+        tenantId: tenant.id,
+        leasePartyType: 'INDIVIDUAL',
+        startDate: new Date(startDate),
+        endDate: new Date(endDate),
+        monthlyRent,
+        depositAmount,
+        status: 'INVITED',
+      },
+      include: {
+        room: {
+          include: { property: { select: { address: true, city: true } } },
+        },
+        tenant: { select: { id: true, name: true, email: true } },
+      },
+    });
+
+    invitationRecipient = tenant;
+    invitationEmail = tenant.email;
+    invitationName = tenant.name ?? 'Tenant';
+  } else {
+    const corporateInput = buildCorporateTenancyCreateInput({
       roomId,
-      tenantId: tenant.id,
-      startDate: new Date(startDate),
-      endDate: new Date(endDate),
+      startDate,
+      endDate,
       monthlyRent,
       depositAmount,
-      status: 'INVITED',
-    },
-    include: {
-      room: {
-        include: { property: { select: { address: true, city: true } } },
-      },
-      tenant: { select: { id: true, name: true, email: true } },
-    },
-  });
+      companyName: body.companyName,
+      companyRegistrationNo: body.companyRegistrationNo,
+      authorizedSignatoryName: body.authorizedSignatoryName,
+      authorizedSignatoryIC: body.authorizedSignatoryIC,
+      authorizedSignatoryRole: body.authorizedSignatoryRole,
+      authorizedSignatoryEmail: body.authorizedSignatoryEmail,
+      occupants: Array.isArray(body.occupants) ? body.occupants : [],
+    });
 
-  // Mark the room as unavailable
+    const authorizedSignatoryUser = corporateInput.authorizedSignatoryEmail
+      ? await prisma.user.findUnique({
+          where: { email: corporateInput.authorizedSignatoryEmail },
+          select: { id: true, name: true, email: true, role: true },
+        })
+      : null;
+
+    if (!authorizedSignatoryUser || authorizedSignatoryUser.role !== 'TENANT') {
+      return NextResponse.json(
+        {
+          error:
+            'The authorized signatory email must belong to an existing tenant account before you can create a corporate tenancy.',
+        },
+        { status: 404 },
+      );
+    }
+
+    tenancy = await prisma.tenancy.create({
+      data: {
+        roomId,
+        tenantId: authorizedSignatoryUser.id,
+        leasePartyType: 'CORPORATE',
+        companyName: corporateInput.companyName,
+        companyRegistrationNo: corporateInput.companyRegistrationNo,
+        authorizedSignatoryName: corporateInput.authorizedSignatoryName,
+        authorizedSignatoryIC: corporateInput.authorizedSignatoryIC,
+        authorizedSignatoryRole: corporateInput.authorizedSignatoryRole,
+        authorizedSignatoryUserId: authorizedSignatoryUser.id,
+        startDate: new Date(corporateInput.startDate),
+        endDate: new Date(corporateInput.endDate),
+        monthlyRent: corporateInput.monthlyRent,
+        depositAmount: corporateInput.depositAmount,
+        status: 'INVITED',
+        corporateOccupants: {
+          create: corporateInput.occupants.map((occupant) => ({
+            name: occupant.name,
+            icNumber: occupant.icNumber,
+            phone: occupant.phone,
+            roleLabel: occupant.roleLabel,
+          })),
+        },
+      },
+      include: {
+        room: {
+          include: { property: { select: { address: true, city: true } } },
+        },
+        tenant: { select: { id: true, name: true, email: true } },
+      },
+    });
+
+    invitationRecipient = authorizedSignatoryUser;
+    invitationEmail = authorizedSignatoryUser.email;
+    invitationName =
+      authorizedSignatoryUser.name ?? corporateInput.authorizedSignatoryName;
+  }
+
   await prisma.room.update({
     where: { id: roomId },
     data: { isAvailable: false },
   });
 
-  // Notify the tenant — they now have an invitation waiting
-  await createNotification(
-    tenant.id,
-    'INVITATION_RECEIVED',
-    'New tenancy invitation',
-    `You have received a tenancy invitation for ${room.property.address}, ${room.property.city}.`,
-    '/dashboard/tenant/tenancy',
-  );
+  if (invitationRecipient) {
+    await createNotification(
+      invitationRecipient.id,
+      'INVITATION_RECEIVED',
+      'New tenancy invitation',
+      `You have received a tenancy invitation for ${room.property.address}, ${room.property.city}.`,
+      '/dashboard/tenant/tenancy',
+    );
+  }
 
-  // Send email (non-blocking)
   const landlordUser = await prisma.user.findUnique({
     where: { id: session.user.id },
     select: { name: true },
   });
-  sendInvitationEmail(
-    tenant.email,
-    tenant.name ?? 'Tenant',
-    `${room.property.address}, ${room.property.city}`,
-    landlordUser?.name ?? 'Your landlord',
-  );
+
+  if (invitationEmail) {
+    sendInvitationEmail(
+      invitationEmail,
+      invitationName,
+      `${room.property.address}, ${room.property.city}`,
+      landlordUser?.name ?? 'Your landlord',
+    );
+  }
 
   return NextResponse.json(tenancy, { status: 201 });
 }

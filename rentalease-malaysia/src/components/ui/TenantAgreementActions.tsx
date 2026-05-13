@@ -6,6 +6,8 @@ import { useRouter } from 'next/navigation';
 interface Props {
   agreementId: string;
   currentVersion?: number;
+  isCorporate?: boolean;
+  signerLabel?: string;
 }
 
 type Mode = 'idle' | 'signing' | 'requesting_changes';
@@ -38,6 +40,8 @@ const CATEGORY_OPTIONS = [
 export default function TenantAgreementActions({
   agreementId,
   currentVersion = 1,
+  isCorporate = false,
+  signerLabel = 'authorized signatory',
 }: Props) {
   const router = useRouter();
   const [mode, setMode] = useState<Mode>('idle');
@@ -76,7 +80,9 @@ export default function TenantAgreementActions({
         return;
       }
 
-      setSuccess('Agreement signed successfully. Your tenancy is now active.');
+      setSuccess(
+        'Digital signature recorded. Upload your signed hard-copy file next so the landlord can approve it before the tenancy starts.',
+      );
       router.refresh();
     } catch {
       setError('Network error. Please try again.');
@@ -144,9 +150,9 @@ export default function TenantAgreementActions({
             Your Response
           </h2>
           <p className="text-sm text-gray-600 mt-2">
-            You are reviewing Version {currentVersion}. Read the agreement, plain
-            language summary, red-flag analysis, and history before choosing your
-            next step.
+            You are reviewing Version {currentVersion}. Read the agreement,
+            plain language summary, red-flag analysis, and history before
+            choosing your next step.
           </p>
         </div>
       </div>
@@ -158,17 +164,26 @@ export default function TenantAgreementActions({
               Final decision options
             </p>
             <p className="text-xs text-gray-600 mt-1 leading-relaxed">
-              Signing activates the tenancy and generates the rent payment
-              schedule. Requesting changes sends a structured negotiation record
-              back to the landlord for revision.
+              Signing records your digital acceptance first. You will still
+              need to upload the signed hard-copy file, and the landlord must
+              approve it before the tenancy activates. Requesting changes sends
+              a structured negotiation record back to the landlord for revision.
             </p>
+            {isCorporate && (
+              <p className="text-xs text-blue-700 mt-2 leading-relaxed">
+                Only the authorized signatory can complete the legal signing or
+                submit binding agreement changes for this corporate tenancy.
+              </p>
+            )}
           </div>
           <div className="flex flex-col sm:flex-row gap-3">
             <button
               onClick={() => setMode('signing')}
               className="flex-1 bg-green-600 hover:bg-green-700 text-white font-semibold py-3 rounded-lg transition-colors text-sm"
             >
-              Review and Sign
+              {isCorporate
+                ? 'Review and Sign as Authorized Signatory'
+                : 'Review and Sign'}
             </button>
             <button
               onClick={() => setMode('requesting_changes')}
@@ -188,9 +203,16 @@ export default function TenantAgreementActions({
             </p>
             <p className="text-amber-700 text-xs leading-relaxed">
               By signing, you confirm that you reviewed this agreement version,
-              understood its terms, and accept electronic signing for this
-              tenancy.
+              understood its terms, and accept the digital-signing step for
+              this tenancy. After that, you must upload the signed hard-copy
+              file for landlord approval.
             </p>
+            {isCorporate && (
+              <p className="text-amber-800 text-xs leading-relaxed mt-2">
+                This signature is being captured in your role as the authorized
+                signatory for the lease party, not as an occupant.
+              </p>
+            )}
           </div>
 
           <label className="flex items-start gap-3 p-4 bg-gray-50 rounded-xl border border-gray-200 cursor-pointer mb-5">
@@ -202,8 +224,11 @@ export default function TenantAgreementActions({
             />
             <span className="text-sm text-gray-700 leading-relaxed">
               I have reviewed Version {currentVersion} of this agreement, the
-              plain-language summary, and the red-flag analysis. I understand the
-              terms and agree to sign electronically.
+              plain-language summary, and the red-flag analysis. I understand
+              the terms and agree to sign electronically
+              {isCorporate
+                ? ` as the ${signerLabel} for this corporate tenancy.`
+                : '.'}
             </span>
           </label>
 
@@ -226,7 +251,11 @@ export default function TenantAgreementActions({
               disabled={!acknowledged || isLoading}
               className="flex-1 bg-green-600 hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white font-semibold py-3 rounded-lg transition-colors text-sm"
             >
-              {isLoading ? 'Processing…' : 'Confirm and Sign Agreement'}
+              {isLoading
+                ? 'Processing...'
+                : isCorporate
+                  ? 'Confirm and Sign as Authorized Signatory'
+                  : 'Confirm and Sign Agreement'}
             </button>
           </div>
         </div>
@@ -259,7 +288,9 @@ export default function TenantAgreementActions({
                     type="button"
                     onClick={() =>
                       setChangeRequests((current) =>
-                        current.filter((_, currentIndex) => currentIndex !== index),
+                        current.filter(
+                          (_, currentIndex) => currentIndex !== index,
+                        ),
                       )
                     }
                     className="text-xs font-medium text-red-600 hover:text-red-700"
@@ -304,7 +335,10 @@ export default function TenantAgreementActions({
                     setChangeRequests((current) =>
                       current.map((item, currentIndex) =>
                         currentIndex === index
-                          ? { ...item, requestedChange: event.target.value }
+                          ? {
+                              ...item,
+                              requestedChange: event.target.value,
+                            }
                           : item,
                       ),
                     )
@@ -400,7 +434,7 @@ export default function TenantAgreementActions({
               disabled={isLoading || !hasValidChangeRequest}
               className="flex-1 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-semibold py-2.5 rounded-lg transition-colors text-sm"
             >
-              {isLoading ? 'Sending…' : 'Send Change Request'}
+              {isLoading ? 'Sending...' : 'Send Change Request'}
             </button>
           </div>
         </div>

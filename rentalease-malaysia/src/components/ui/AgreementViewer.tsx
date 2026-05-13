@@ -77,6 +77,7 @@ const PILL_BASE =
 const STATUS_PILL: Record<string, string> = {
   DRAFT: `${PILL_BASE} bg-gray-100 text-gray-500 ring-1 ring-gray-200 ring-inset`,
   FINALIZED: `${PILL_BASE} bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200 ring-inset`,
+  PENDING_SIGNATURE_PROOF: `${PILL_BASE} bg-blue-50 text-blue-700 ring-1 ring-blue-200 ring-inset`,
   SIGNED: `${PILL_BASE} bg-green-50 text-green-700 ring-1 ring-green-200 ring-inset`,
   NEGOTIATING: `${PILL_BASE} bg-purple-50 text-purple-700 ring-1 ring-purple-200 ring-inset`,
 };
@@ -149,7 +150,11 @@ export default function AgreementViewer({
   const isDraftLike = status === 'DRAFT' || status === 'NEGOTIATING';
   const isSigned = status === 'SIGNED';
   const showFinalizeButton = isDraftLike && !readOnly && finalizeChecklistBase;
-  const showEditTab = editable && !readOnly && !isSigned;
+  const showEditTab =
+    editable &&
+    !readOnly &&
+    !isSigned &&
+    status !== 'PENDING_SIGNATURE_PROOF';
   const currentVersion = revisions[0]?.versionNumber ?? 1;
   const latestEvents = [...events].sort(
     (a, b) =>

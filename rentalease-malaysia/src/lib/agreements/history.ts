@@ -3,6 +3,10 @@ export type AgreementEventType =
   | 'EDITED'
   | 'FINALIZED'
   | 'REQUESTED_CHANGES'
+  | 'DIGITAL_SIGNED'
+  | 'SIGNATURE_PROOF_UPLOADED'
+  | 'SIGNATURE_PROOF_REJECTED'
+  | 'SIGNATURE_PROOF_APPROVED'
   | 'SIGNED';
 
 export type AgreementChecklistInput = {

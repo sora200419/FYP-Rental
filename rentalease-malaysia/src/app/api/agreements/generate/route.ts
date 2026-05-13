@@ -58,6 +58,11 @@ export async function POST(request: NextRequest) {
             icNumber: true,
           },
         },
+        corporateOccupants: {
+          where: { status: { in: ['UNLINKED', 'LINKED'] } },
+          select: { name: true, roleLabel: true },
+          orderBy: { createdAt: 'asc' },
+        },
         coTenants: {
           select: { name: true, icNumber: true },
           orderBy: { createdAt: 'asc' },
@@ -130,6 +135,10 @@ export async function POST(request: NextRequest) {
       endDate: tenancy.endDate,
       monthlyRent: tenancy.monthlyRent,
       depositAmount: tenancy.depositAmount,
+      leasePartyType: tenancy.leasePartyType,
+      companyName: tenancy.companyName,
+      authorizedSignatoryName: tenancy.authorizedSignatoryName,
+      authorizedSignatoryRole: tenancy.authorizedSignatoryRole,
       property: {
         address: tenancy.room.property.address,
         city: tenancy.room.property.city,
@@ -156,6 +165,7 @@ export async function POST(request: NextRequest) {
       landlord,
       negotiationContext: existingAgreement?.negotiationNotes ?? null,
       coTenants: tenancy.coTenants,
+      corporateOccupants: tenancy.corporateOccupants,
     }, preferences);
 
     // Second call: translate summary and red flags into Malay.

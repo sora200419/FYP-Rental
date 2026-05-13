@@ -3,6 +3,8 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
+import { createNotification } from '@/lib/notifications';
+import { sendInvitationEmail } from '@/lib/email';
 
 const editSchema = z
   .object({
@@ -12,6 +14,13 @@ const editSchema = z
       .number()
       .positive('Monthly rent must be greater than 0'),
     depositAmount: z.coerce.number().min(0, 'Deposit must be 0 or more'),
+    invitationEmail: z
+      .string()
+      .trim()
+      .optional()
+      .refine((value) => !value || z.email().safeParse(value).success, {
+        message: 'Invitation email must be a valid email address',
+      }),
   })
   .refine((data) => new Date(data.endDate) > new Date(data.startDate), {
     message: 'End date must be after start date',
@@ -73,6 +82,21 @@ export async function PATCH(
       id: tenancyId,
       room: { property: { landlordId: session.user.id } },
     },
+    include: {
+      room: {
+        include: {
+          property: {
+            select: { address: true, city: true, landlordId: true },
+          },
+        },
+      },
+      tenant: {
+        select: { id: true, name: true, email: true },
+      },
+      authorizedSignatoryUser: {
+        select: { id: true, name: true, email: true },
+      },
+    },
   });
 
   if (!tenancy)
@@ -115,6 +139,55 @@ export async function PATCH(
   try {
     const body = await request.json();
     const data = editSchema.parse(body);
+    const normalizedInvitationEmail = data.invitationEmail?.toLowerCase() ?? null;
+    let recipientUpdateData: Record<string, string | null> = {};
+    let newRecipient:
+      | { id: string; name: string | null; email: string | null }
+      | null = null;
+
+    if (normalizedInvitationEmail) {
+      const currentRecipientEmail =
+        tenancy.leasePartyType === 'CORPORATE'
+          ? tenancy.authorizedSignatoryUser?.email?.toLowerCase() ??
+            tenancy.tenant.email?.toLowerCase() ??
+            null
+          : tenancy.tenant.email?.toLowerCase() ?? null;
+
+      if (tenancy.status !== 'INVITED' && normalizedInvitationEmail !== currentRecipientEmail) {
+        return NextResponse.json(
+          {
+            error:
+              'The invitation recipient can only be changed before the tenant accepts the invitation.',
+          },
+          { status: 409 },
+        );
+      }
+
+      if (normalizedInvitationEmail !== currentRecipientEmail) {
+        const replacementUser = await prisma.user.findUnique({
+          where: { email: normalizedInvitationEmail },
+          select: { id: true, name: true, email: true, role: true },
+        });
+
+        if (!replacementUser || replacementUser.role !== 'TENANT') {
+          return NextResponse.json(
+            { error: 'No tenant account found with that email address' },
+            { status: 404 },
+          );
+        }
+
+        newRecipient = replacementUser;
+        recipientUpdateData =
+          tenancy.leasePartyType === 'CORPORATE'
+            ? {
+                tenantId: replacementUser.id,
+                authorizedSignatoryUserId: replacementUser.id,
+                authorizedSignatoryName:
+                  replacementUser.name ?? tenancy.authorizedSignatoryName ?? tenancy.tenant.name,
+              }
+            : { tenantId: replacementUser.id };
+      }
+    }
 
     const updated = await prisma.tenancy.update({
       where: { id: tenancyId },
@@ -123,6 +196,7 @@ export async function PATCH(
         endDate: new Date(data.endDate),
         monthlyRent: data.monthlyRent,
         depositAmount: data.depositAmount,
+        ...recipientUpdateData,
       },
       select: {
         id: true,
@@ -131,11 +205,42 @@ export async function PATCH(
         monthlyRent: true,
         depositAmount: true,
         status: true,
+        tenant: {
+          select: { id: true, name: true, email: true },
+        },
       },
     });
 
+    if (newRecipient?.id && newRecipient.email) {
+      await createNotification(
+        newRecipient.id,
+        'INVITATION_RECEIVED',
+        'Updated tenancy invitation',
+        `You have received a tenancy invitation for ${tenancy.room.property.address}, ${tenancy.room.property.city}.`,
+        '/dashboard/tenant/tenancy',
+      );
+
+      const landlordUser = await prisma.user.findUnique({
+        where: { id: session.user.id },
+        select: { name: true },
+      });
+
+      sendInvitationEmail(
+        newRecipient.email,
+        newRecipient.name ?? 'Tenant',
+        `${tenancy.room.property.address}, ${tenancy.room.property.city}`,
+        landlordUser?.name ?? 'Your landlord',
+      );
+    }
+
     return NextResponse.json(
-      { message: 'Tenancy terms updated successfully.', tenancy: updated },
+      {
+        message:
+          newRecipient
+            ? 'Tenancy invitation updated and resent successfully.'
+            : 'Tenancy terms updated successfully.',
+        tenancy: updated,
+      },
       { status: 200 },
     );
   } catch (error) {

@@ -9,6 +9,8 @@ import TenantDepositReview from '@/components/ui/TenantDepositReview';
 import TenantInvitationActions from '@/components/ui/TenantInvitationActions';
 import TenantWithdrawButton from '@/components/ui/TenantWithdrawButton';
 import DepositProofUploader from '@/components/ui/DepositProofUploader';
+import TenantAgreementSignatureProofUploader from '@/components/ui/TenantAgreementSignatureProofUploader';
+import CorporateSignatoryInvitationCard from '@/components/ui/CorporateSignatoryInvitationCard';
 
 export default async function TenantTenancyPage() {
   const session = await getServerSession(authOptions);
@@ -35,7 +37,15 @@ export default async function TenantTenancyPage() {
           events: { orderBy: { createdAt: 'desc' } },
           revisions: { orderBy: { versionNumber: 'desc' } },
           changeRequests: { orderBy: { createdAt: 'desc' } },
+          signatureProofs: { orderBy: { createdAt: 'desc' } },
         },
+      },
+      corporateOccupants: {
+        where: { status: { in: ['UNLINKED', 'LINKED'] } },
+        include: {
+          linkedUser: { select: { id: true, name: true, email: true } },
+        },
+        orderBy: { createdAt: 'asc' },
       },
       depositProofs: {
         orderBy: { createdAt: 'desc' },
@@ -100,6 +110,11 @@ export default async function TenantTenancyPage() {
 
   const property = tenancy.room.property;
   const landlord = property.landlord;
+  const isCorporate = tenancy.leasePartyType === 'CORPORATE';
+  const signerLabel =
+    tenancy.authorizedSignatoryRole?.trim() || 'authorized signatory';
+  const isCurrentUserAuthorizedSignatory =
+    !isCorporate || tenancy.authorizedSignatoryUserId === session.user.id;
   const fullAddress = `${property.address}, ${property.city} — ${tenancy.room.label}`;
 
   return (
@@ -197,7 +212,20 @@ export default async function TenantTenancyPage() {
 
         {/* ── Case 2: INVITED — waiting for tenant to accept or decline ──────── */}
         {tenancy.status === 'INVITED' && (
-          <TenantInvitationActions tenancyId={tenancy.id} />
+          <div className="space-y-4">
+            {isCorporate && (
+              <CorporateSignatoryInvitationCard
+                companyName={tenancy.companyName ?? 'Corporate lease party'}
+                authorizedSignatoryName={
+                  tenancy.authorizedSignatoryName ?? 'Authorized signatory'
+                }
+                isCurrentUserAuthorizedSignatory={
+                  isCurrentUserAuthorizedSignatory
+                }
+              />
+            )}
+            <TenantInvitationActions tenancyId={tenancy.id} />
+          </div>
         )}
 
         {/* ── Case 3: No agreement generated yet ────────────────────────────── */}
@@ -273,15 +301,63 @@ export default async function TenantTenancyPage() {
         )}
 
         {/* ── Case 5: SIGNED — now with audit trail props ───────────────────── */}
+        {tenancy.agreement?.status === 'PENDING_SIGNATURE_PROOF' && (
+          <div className="space-y-5">
+            <div className="bg-blue-50 border border-blue-200 rounded-xl px-5 py-4">
+              <p className="text-blue-800 font-semibold text-sm">
+                Digital signature recorded
+              </p>
+              <p className="text-blue-600 text-xs mt-0.5">
+                Your digital signature has been stored, but the tenancy will
+                only start after you upload the signed hard-copy agreement and
+                the landlord approves it.
+              </p>
+            </div>
+            <AgreementViewer
+              agreementId={tenancy.agreement.id}
+              status={tenancy.agreement.status}
+              rawContent={tenancy.agreement.rawContent}
+              plainLanguageSummary={tenancy.agreement.plainLanguageSummary}
+              plainLanguageSummaryMs={tenancy.agreement.plainLanguageSummaryMs}
+              redFlags={redFlags}
+              redFlagsMs={redFlagsMs}
+              tenantName={session.user.name ?? 'Tenant'}
+              propertyAddress={fullAddress}
+              readOnly
+              events={tenancy.agreement.events}
+              revisions={tenancy.agreement.revisions}
+              changeRequests={tenancy.agreement.changeRequests}
+            />
+            <TenantAgreementSignatureProofUploader
+              agreementId={tenancy.agreement.id}
+              status="PENDING_SIGNATURE_PROOF"
+              isCorporate={isCorporate}
+              signerLabel={signerLabel}
+              proofs={tenancy.agreement.signatureProofs.map((proof) => ({
+                id: proof.id,
+                fileUrl: proof.fileUrl,
+                originalName: proof.originalName,
+                mimeType: proof.mimeType,
+                fileSize: proof.fileSize,
+                status: proof.status,
+                rejectionReason: proof.rejectionReason,
+                createdAt: proof.createdAt,
+                reviewedAt: proof.reviewedAt,
+              }))}
+            />
+          </div>
+        )}
+
         {tenancy.agreement?.status === 'SIGNED' && (
           <>
             <div className="bg-green-50 border border-green-200 rounded-xl px-5 py-4">
               <p className="text-green-800 font-semibold text-sm">
-                Agreement signed — Tenancy is active
+                Agreement fully approved — Tenancy is active
               </p>
               <p className="text-green-600 text-xs mt-0.5">
-                You have accepted this agreement. Your tenancy is now live and
-                your payment schedule has been generated.
+                Your digital signature and hard-copy proof have both been
+                approved. Your tenancy is now live and your payment schedule
+                has been generated.
               </p>
             </div>
             <AgreementViewer
@@ -327,6 +403,8 @@ export default async function TenantTenancyPage() {
             <TenantAgreementActions
               agreementId={tenancy.agreement.id}
               currentVersion={tenancy.agreement.revisions[0]?.versionNumber ?? 1}
+              isCorporate={isCorporate}
+              signerLabel={signerLabel}
             />
           </div>
         )}
