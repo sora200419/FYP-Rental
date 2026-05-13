@@ -3,6 +3,9 @@ import { authOptions } from '@/lib/auth';
 import { redirect } from 'next/navigation';
 import { prisma } from '@/lib/prisma';
 import Link from 'next/link';
+import PropertyCover from '@/components/ui/PropertyCover';
+import { EmptyState, PageHeader, StatCard } from '@/components/ui/RedesignPrimitives';
+import { getPropertyCover } from '@/lib/uiRedesign';
 
 export default async function PropertiesPage() {
   const session = await getServerSession(authOptions);
@@ -12,6 +15,11 @@ export default async function PropertiesPage() {
     prisma.property.findMany({
       where: { landlordId: session.user.id },
       include: {
+        photos: {
+          select: { imageUrl: true, caption: true, order: true, createdAt: true },
+          orderBy: [{ order: 'asc' }, { createdAt: 'asc' }],
+          take: 1,
+        },
         rooms: {
           include: {
             tenancies: {
@@ -31,85 +39,95 @@ export default async function PropertiesPage() {
 
   const isVerified = landlord?.isVerified ?? false;
   const hasIc = !!landlord?.icNumber;
+  const totalRooms = properties.reduce((sum, property) => sum + property.rooms.length, 0);
+  const occupiedRooms = properties.reduce(
+    (sum, property) => sum + property.rooms.filter((room) => room.tenancies.length > 0).length,
+    0,
+  );
+  const pendingVerification = properties.filter((property) => !property.isVerified).length;
 
   return (
     <div>
       {!isVerified && (
-        <div className="flex items-start gap-3 bg-amber-50 border border-amber-200 rounded-lg px-4 py-3 mb-6 text-sm text-amber-800">
-          <svg className="w-4 h-4 text-amber-500 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div className="mb-6 flex items-start gap-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+          <svg className="mt-0.5 h-4 w-4 shrink-0 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
               d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
           </svg>
           <div>
             <p className="font-semibold">Account not yet verified</p>
-            <p className="text-xs text-amber-700 mt-0.5 leading-relaxed">
+            <p className="mt-0.5 text-xs leading-relaxed text-amber-700">
               {hasIc
                 ? 'Your IC is pending admin review. You will be able to add properties once your identity is verified.'
-                : <>You need to upload your IC on your{' '}<Link href="/dashboard/profile" className="underline font-medium">Profile page</Link>{' '}and wait for admin approval before you can add properties.</>
+                : <>You need to upload your IC on your{' '}<Link href="/dashboard/profile" className="font-medium underline">Profile page</Link>{' '}and wait for admin approval before you can add properties.</>
               }
             </p>
           </div>
         </div>
       )}
 
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Properties</h1>
-          <p className="text-sm text-gray-500 mt-1">
-            {properties.length} {properties.length === 1 ? 'property' : 'properties'} in your portfolio
-          </p>
-        </div>
-        {isVerified && (
-          <Link
-            href="/dashboard/landlord/properties/new"
-            className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2.5 rounded-lg transition-colors"
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-            </svg>
-            Add Property
-          </Link>
-        )}
-      </div>
-
-      {properties.length === 0 ? (
-        <div className="bg-white rounded-xl border border-gray-200 p-12 text-center">
-          <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center mx-auto mb-4">
-            <svg className="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
-                d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-            </svg>
-          </div>
-          <p className="text-gray-700 font-semibold text-base">No properties yet</p>
-          <p className="text-sm text-gray-400 mt-1 mb-6">
-            {isVerified
-              ? 'Add your first property to get started with RentalEase.'
-              : 'Complete identity verification to start adding properties.'}
-          </p>
-          {isVerified && (
+      <PageHeader
+        eyebrow="Property portfolio"
+        title="Properties"
+        description={`${properties.length} ${properties.length === 1 ? 'property' : 'properties'} in your portfolio`}
+        action={
+          isVerified && (
             <Link
               href="/dashboard/landlord/properties/new"
-              className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2.5 rounded-lg transition-colors"
+              className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-blue-700"
             >
               Add Property
             </Link>
-          )}
-        </div>
+          )
+        }
+      />
+
+      <div className="mb-8 grid grid-cols-2 gap-4 lg:grid-cols-4">
+        <StatCard label="Properties" value={properties.length} tone="blue" />
+        <StatCard label="Rooms" value={totalRooms} />
+        <StatCard label="Occupied" value={occupiedRooms} detail={`${totalRooms - occupiedRooms} available`} tone="green" />
+        <StatCard
+          label="Pending verification"
+          value={pendingVerification}
+          tone={pendingVerification > 0 ? 'amber' : 'default'}
+        />
+      </div>
+
+      {properties.length === 0 ? (
+        <EmptyState
+          title="No properties yet"
+          description={
+            isVerified
+              ? 'Add your first property to start building your RentalEase portfolio.'
+              : 'Complete identity verification to start adding properties.'
+          }
+          action={
+            isVerified && (
+              <Link
+                href="/dashboard/landlord/properties/new"
+                className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-blue-700"
+              >
+                Add Property
+              </Link>
+            )
+          }
+        />
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+        <div className="grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-3">
           {properties.map((property) => {
-            const totalRooms = property.rooms.length;
-            const occupiedRooms = property.rooms.filter((r) => r.tenancies.length > 0).length;
-            const fullyOccupied = totalRooms > 0 && occupiedRooms === totalRooms;
-            const hasVacancy = totalRooms > 0 && occupiedRooms < totalRooms;
-            const noRooms = totalRooms === 0;
+            const cover = getPropertyCover(property.photos);
+            const propertyTotalRooms = property.rooms.length;
+            const propertyOccupiedRooms = property.rooms.filter((r) => r.tenancies.length > 0).length;
+            const fullyOccupied = propertyTotalRooms > 0 && propertyOccupiedRooms === propertyTotalRooms;
+            const hasVacancy = propertyTotalRooms > 0 && propertyOccupiedRooms < propertyTotalRooms;
+            const noRooms = propertyTotalRooms === 0;
 
             const occupancyLabel = fullyOccupied
-              ? 'Fully Occupied'
+              ? 'Fully occupied'
               : noRooms
-              ? 'No Rooms'
+              ? 'No rooms'
               : hasVacancy
-              ? `${occupiedRooms}/${totalRooms} Occupied`
+              ? `${propertyOccupiedRooms}/${propertyTotalRooms} occupied`
               : 'Vacant';
 
             const occupancyPill = fullyOccupied
@@ -121,41 +139,53 @@ export default async function PropertiesPage() {
               : 'bg-gray-100 text-gray-500 ring-1 ring-gray-200 ring-inset';
 
             return (
-              <div key={property.id} className="bg-white rounded-xl border border-gray-200 p-5 hover:border-gray-300 transition-colors">
-                <div className="flex items-start justify-between mb-3">
-                  <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${occupancyPill}`}>
-                    {occupancyLabel}
-                  </span>
-                  <span className="text-xs text-gray-400 capitalize">{property.type}</span>
-                </div>
-
-                {!property.isVerified && (
-                  <div className="flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 mb-3">
-                    <svg className="w-3.5 h-3.5 text-amber-500 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                        d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                    </svg>
-                    <p className="text-xs text-amber-700 font-medium">Pending admin verification</p>
+              <article key={property.id} className="overflow-hidden rounded-xl border border-gray-200 bg-white transition-colors hover:border-gray-300">
+                <div className="relative">
+                  <PropertyCover
+                    address={property.address}
+                    imageUrl={cover?.imageUrl}
+                    caption={cover?.caption}
+                    className="rounded-t-xl"
+                    heightClassName="h-44"
+                  />
+                  <div className="absolute left-3 top-3 flex flex-wrap gap-2">
+                    <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold ${occupancyPill}`}>
+                      {occupancyLabel}
+                    </span>
+                    {!property.isVerified && (
+                      <span className="inline-flex items-center rounded-full bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-700 ring-1 ring-amber-200 ring-inset">
+                        Pending verification
+                      </span>
+                    )}
                   </div>
-                )}
-
-                <p className="font-semibold text-gray-900 text-sm leading-snug">{property.address}</p>
-                <p className="text-xs text-gray-400 mt-0.5">
-                  {property.city}, {property.state} {property.postcode}
-                </p>
-                <p className="text-xs text-gray-500 mt-3">
-                  {totalRooms} {totalRooms === 1 ? 'room' : 'rooms'}
-                </p>
-
-                <div className="flex gap-2 mt-4 pt-4 border-t border-gray-100">
-                  <Link
-                    href={`/dashboard/landlord/properties/${property.id}`}
-                    className="flex-1 text-center text-sm text-blue-600 hover:text-blue-700 font-medium py-1.5 rounded-lg hover:bg-blue-50 transition-colors"
-                  >
-                    {noRooms ? 'Add Rooms' : 'Manage'}
-                  </Link>
                 </div>
-              </div>
+
+                <div className="p-5">
+                  {!property.isVerified && (
+                    <div className="mb-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2">
+                      <p className="text-xs font-medium text-amber-700">Pending admin verification</p>
+                    </div>
+                  )}
+
+                  <p className="text-sm font-semibold leading-snug text-gray-900">{property.address}</p>
+                  <p className="mt-0.5 text-xs text-gray-400">
+                    {property.city}, {property.state} {property.postcode}
+                  </p>
+                  <div className="mt-3 flex items-center justify-between text-xs text-gray-500">
+                    <span className="capitalize">{property.type}</span>
+                    <span>{propertyTotalRooms} {propertyTotalRooms === 1 ? 'room' : 'rooms'}</span>
+                  </div>
+
+                  <div className="mt-4 border-t border-gray-100 pt-4">
+                    <Link
+                      href={`/dashboard/landlord/properties/${property.id}`}
+                      className="block rounded-lg py-1.5 text-center text-sm font-medium text-blue-600 transition-colors hover:bg-blue-50 hover:text-blue-700"
+                    >
+                      {noRooms ? 'Add Rooms' : 'Manage'}
+                    </Link>
+                  </div>
+                </div>
+              </article>
             );
           })}
         </div>
