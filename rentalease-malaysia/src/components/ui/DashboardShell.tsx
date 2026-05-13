@@ -77,20 +77,18 @@ export default function DashboardShell({ children }: { children: React.ReactNode
             </Link>
           )}
 
-          {/* Notification bell — not for ADMIN */}
-          {role !== 'ADMIN' && (
-            <div className="relative">
-              <NotificationBell
-                count={unreadCounts.notificationCount}
-                onClick={() => setNotificationOpen((v) => !v)}
-              />
-              <NotificationDropdown
-                open={notificationOpen}
-                onClose={() => setNotificationOpen(false)}
-                onCountChanged={fetchUnreadCounts}
-              />
-            </div>
-          )}
+          {/* Notification bell */}
+          <div className="relative">
+            <NotificationBell
+              count={unreadCounts.notificationCount}
+              onClick={() => setNotificationOpen((v) => !v)}
+            />
+            <NotificationDropdown
+              open={notificationOpen}
+              onClose={() => setNotificationOpen(false)}
+              onCountChanged={fetchUnreadCounts}
+            />
+          </div>
         </header>
 
         {/* Page content */}
