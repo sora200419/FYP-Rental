@@ -8,6 +8,12 @@ export type PropertyPhotoLike = {
 
 export type Tone = 'default' | 'muted' | 'success' | 'warning' | 'danger' | 'info';
 
+function getCreatedAtTime(value: PropertyPhotoLike['createdAt']) {
+  if (!value) return Number.MAX_SAFE_INTEGER;
+  const time = value instanceof Date ? value.getTime() : new Date(value).getTime();
+  return Number.isNaN(time) ? Number.MAX_SAFE_INTEGER : time;
+}
+
 export function getPropertyCover(photos: PropertyPhotoLike[]) {
   if (photos.length === 0) return null;
 
@@ -15,7 +21,7 @@ export function getPropertyCover(photos: PropertyPhotoLike[]) {
     const orderA = a.order ?? Number.MAX_SAFE_INTEGER;
     const orderB = b.order ?? Number.MAX_SAFE_INTEGER;
     if (orderA !== orderB) return orderA - orderB;
-    return String(a.createdAt ?? '').localeCompare(String(b.createdAt ?? ''));
+    return getCreatedAtTime(a.createdAt) - getCreatedAtTime(b.createdAt);
   });
 
   return {

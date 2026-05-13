@@ -41,6 +41,71 @@ describe('uiRedesign helpers', () => {
     });
   });
 
+  it('uses Date timestamps as the cover tie-breaker when photo order is tied or absent', () => {
+    expect(
+      getPropertyCover([
+        {
+          id: 'later',
+          imageUrl: '/later.jpg',
+          caption: 'Later',
+          createdAt: new Date('2026-01-02T00:00:00.000Z'),
+        },
+        {
+          id: 'earliest',
+          imageUrl: '/earliest.jpg',
+          caption: 'Earliest',
+          createdAt: new Date('2026-01-01T00:00:00.000Z'),
+        },
+      ]),
+    ).toEqual({
+      imageUrl: '/earliest.jpg',
+      caption: 'Earliest',
+    });
+
+    expect(
+      getPropertyCover([
+        {
+          id: 'later',
+          imageUrl: '/ordered-later.jpg',
+          caption: 'Ordered later',
+          order: 1,
+          createdAt: new Date('2026-01-02T00:00:00.000Z'),
+        },
+        {
+          id: 'earliest',
+          imageUrl: '/ordered-earliest.jpg',
+          caption: 'Ordered earliest',
+          order: 1,
+          createdAt: new Date('2026-01-01T00:00:00.000Z'),
+        },
+      ]),
+    ).toEqual({
+      imageUrl: '/ordered-earliest.jpg',
+      caption: 'Ordered earliest',
+    });
+
+    expect(
+      getPropertyCover([
+        {
+          id: 'invalid',
+          imageUrl: '/invalid.jpg',
+          caption: 'Invalid date',
+          createdAt: new Date('not-a-date'),
+        },
+        { id: 'missing', imageUrl: '/missing.jpg', caption: 'Missing date' },
+        {
+          id: 'valid',
+          imageUrl: '/valid.jpg',
+          caption: 'Valid date',
+          createdAt: new Date('2026-01-01T00:00:00.000Z'),
+        },
+      ]),
+    ).toEqual({
+      imageUrl: '/valid.jpg',
+      caption: 'Valid date',
+    });
+  });
+
   it('returns null when no property photos exist', () => {
     expect(getPropertyCover([])).toBeNull();
   });
