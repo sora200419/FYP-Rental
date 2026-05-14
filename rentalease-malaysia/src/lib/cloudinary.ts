@@ -171,7 +171,7 @@ export async function uploadKycImage(
 }
 
 export async function deleteKycImage(publicId: string): Promise<void> {
-  await cloudinary.uploader.destroy(publicId);
+  await cloudinary.uploader.destroy(publicId, { resource_type: 'image' });
 }
 
 // Uploads deposit refund proof (same pattern as payment proof)

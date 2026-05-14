@@ -6,6 +6,7 @@ import { prisma } from '@/lib/prisma';
 export async function GET() {
   const session = await getServerSession(authOptions);
   if (!session) return NextResponse.json({ error: 'Unauthorised' }, { status: 401 });
+  if (session.user.role === 'ADMIN') return NextResponse.json({ error: 'Admins do not submit KYC' }, { status: 403 });
 
   const submission = await prisma.kycSubmission.findUnique({
     where: { userId: session.user.id },

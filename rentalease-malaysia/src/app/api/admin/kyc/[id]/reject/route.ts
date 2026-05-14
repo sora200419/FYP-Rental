@@ -30,15 +30,16 @@ export async function PATCH(
   if (submission.status !== 'PENDING')
     return NextResponse.json({ error: 'Submission is not pending' }, { status: 409 });
 
-  await prisma.kycSubmission.update({
-    where: { id },
-    data: {
-      status: 'REJECTED',
-      rejectedReason: reason,
-      reviewedById: session.user.id,
-      reviewedAt: new Date(),
-    },
-  });
+  await prisma.$transaction([
+    prisma.kycSubmission.update({
+      where: { id },
+      data: { status: 'REJECTED', rejectedReason: reason, reviewedById: session.user.id, reviewedAt: new Date() },
+    }),
+    prisma.user.update({
+      where: { id: submission.userId },
+      data: { kycRejectedReason: reason },
+    }),
+  ]);
 
   sendKycRejectedEmail(submission.user.email, submission.user.name, reason).catch((err) =>
     console.error('[kyc] rejection email failed:', err),
