@@ -24,8 +24,13 @@ export async function compareFaces(
     SimilarityThreshold: 0,
   });
 
-  const response = await client.send(command);
-  const matches = response.FaceMatches ?? [];
-  if (matches.length === 0) return 0;
-  return matches[0].Similarity ?? 0;
+  try {
+    const response = await client.send(command);
+    const matches = response.FaceMatches ?? [];
+    if (matches.length === 0) return 0;
+    return matches[0].Similarity ?? 0;
+  } catch (err) {
+    console.error('[rekognition] compareFaces failed:', err);
+    return 0;
+  }
 }

@@ -164,7 +164,7 @@ export async function uploadKycImage(
     folder: 'rentalease/kyc',
     public_id: `${Date.now()}-${fileName.replace(/\.[^/.]+$/, '')}`,
     resource_type: 'image',
-    transformation: [{ quality: 'auto' }, { width: 1920, crop: 'limit' }],
+    transformation: [{ quality: 'auto', fetch_format: 'auto' }, { width: 1920, crop: 'limit' }],
   });
 
   return { url: result.secure_url, publicId: result.public_id };
