@@ -24,11 +24,11 @@ export default async function AdminUsersPage({
   const params = await searchParams;
   const q = params.q?.trim() ?? '';
   const roleFilter = params.role ?? 'all';
+  const safeRole = (['LANDLORD', 'TENANT'] as const).find((r) => r === params.role) ?? null;
   const statusFilter = params.status ?? 'all';
 
   const where = {
-    role: { not: 'ADMIN' as const },
-    ...(roleFilter !== 'all' && { role: roleFilter as 'LANDLORD' | 'TENANT' }),
+    role: safeRole ?? { not: 'ADMIN' as const },
     ...(statusFilter === 'suspended' && { isSuspended: true }),
     ...(statusFilter === 'active' && { isSuspended: false }),
     ...(q && {
