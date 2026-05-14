@@ -21,6 +21,7 @@ function LoginForm() {
   const searchParams = useSearchParams();
   const justRegistered = searchParams.get('registered') === 'true';
   const justReset = searchParams.get('reset') === 'true';
+  const isSuspended = searchParams.get('reason') === 'suspended';
 
   const [serverError, setServerError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -54,6 +55,12 @@ function LoginForm() {
 
   return (
     <>
+      {isSuspended && (
+        <div className="mb-4 rounded-lg bg-amber-50 border border-amber-200 px-4 py-3 text-sm text-amber-800">
+          Your account has been suspended. Please contact the platform administrator.
+        </div>
+      )}
+
       {justRegistered && (
         <div className="flex items-start gap-3 bg-green-50 border border-green-200 rounded-lg px-4 py-3 text-sm text-green-800 font-medium mb-6">
           <svg className="w-4 h-4 text-green-500 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">

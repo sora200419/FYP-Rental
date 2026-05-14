@@ -16,8 +16,9 @@ model User {
   role       Role     @default(TENANT)
   phone      String?
   icNumber   String?  @unique // Malaysian IC — sensitive, PDPA 2010 protected
-  isVerified Boolean  @default(false) // set to true by admin after IC review
-  language   String   @default("en") // "en" or "ms" — bilingual preference
+  isVerified  Boolean  @default(false) // set to true by admin after IC review
+  isSuspended Boolean  @default(false)
+  language    String   @default("en") // "en" or "ms" — bilingual preference
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 
@@ -488,6 +489,8 @@ enum NotificationType {
   PROPERTY_SUBMITTED
   ACCOUNT_VERIFICATION_REVOKED
   PROPERTY_VERIFICATION_REVOKED
+  ACCOUNT_SUSPENDED
+  ACCOUNT_REACTIVATED
 }
 
 // ─── AGREEMENT PREFERENCES (WIZARD) ──────────────────────────────────────────

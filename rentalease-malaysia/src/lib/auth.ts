@@ -36,6 +36,15 @@ export const authOptions: NextAuthOptions = {
         // Find the user by email
         const user = await prisma.user.findUnique({
           where: { email: credentials.email },
+          select: {
+            id: true,
+            email: true,
+            name: true,
+            password: true,
+            role: true,
+            language: true,
+            isSuspended: true,
+          },
         });
 
         if (!user) {
@@ -57,6 +66,7 @@ export const authOptions: NextAuthOptions = {
           name: user.name,
           role: user.role,
           language: user.language ?? 'en',
+          isSuspended: user.isSuspended,
         };
       },
     }),
@@ -67,6 +77,7 @@ export const authOptions: NextAuthOptions = {
         token.role = (user as { id: string; role: string; language: string }).role;
         token.id = user.id;
         token.language = (user as { language: string }).language ?? 'en';
+        token.isSuspended = (user as { isSuspended: boolean }).isSuspended ?? false;
       }
       // Allow updating language via session update() call
       if (trigger === 'update' && updatedSession?.language) {
@@ -79,6 +90,7 @@ export const authOptions: NextAuthOptions = {
         session.user.role = token.role as string;
         session.user.id = token.id as string;
         session.user.language = (token.language as string) ?? 'en';
+        session.user.isSuspended = token.isSuspended as boolean;
       }
       return session;
     },

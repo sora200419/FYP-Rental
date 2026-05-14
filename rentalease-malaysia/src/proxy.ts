@@ -7,6 +7,11 @@ export default withAuth(
     const pathname = req.nextUrl.pathname;
     const role = token?.role;
 
+    // Redirect suspended users out regardless of role
+    if (token?.isSuspended === true) {
+      return NextResponse.redirect(new URL('/login?reason=suspended', req.url));
+    }
+
     // ADMIN users go to their own dashboard; block them from landlord/tenant routes
     if (role === 'ADMIN') {
       if (!pathname.startsWith('/dashboard/admin')) {
