@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { deletePaymentProof } from '@/lib/cloudinary';
+import { logAudit, getIp } from '@/lib/audit';
 
 export async function DELETE(
   request: NextRequest,
@@ -46,6 +47,15 @@ export async function DELETE(
       },
       { status: 409 },
     );
+
+  await logAudit({
+    actorId: session.user.id,
+    action: 'CONDITION_PHOTO_DELETED',
+    entityName: 'ConditionPhoto',
+    entityId: photoId,
+    previousData: photo as object,
+    ipAddress: getIp(request),
+  });
 
   // Delete from Cloudinary first, then the DB record.
   try {
