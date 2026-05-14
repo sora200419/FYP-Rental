@@ -4,7 +4,7 @@ import { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 
-type DocumentType = 'IC_COPY' | 'INCOME_PROOF';
+type DocumentType = 'INCOME_PROOF';
 
 interface TenantDocument {
   id: string;

@@ -24,9 +24,8 @@ export default async function ProfilePage() {
     },
   });
 
-  // Both landlords and tenants need IC document upload for KYC
   const tenantDocuments = await prisma.tenantDocument.findMany({
-    where: { userId: session.user.id },
+    where: { userId: session.user.id, type: 'INCOME_PROOF' },
     orderBy: { uploadedAt: 'desc' },
   });
 
@@ -166,6 +165,7 @@ export default async function ProfilePage() {
         <TenantDocumentUploader
           initialDocuments={tenantDocuments.map((d) => ({
             ...d,
+            type: d.type as 'INCOME_PROOF',
             uploadedAt: d.uploadedAt.toISOString(),
           }))}
         />
