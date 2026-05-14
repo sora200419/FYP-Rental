@@ -761,7 +761,7 @@ model AuditLog {
 model KycSubmission {
   id              String    @id @default(cuid())
   userId          String    @unique
-  user            User      @relation("UserKyc", fields: [userId], references: [id])
+  user            User      @relation("UserKyc", fields: [userId], references: [id], onDelete: Cascade)
 
   icFrontUrl      String
   icFrontPublicId String
@@ -779,6 +779,8 @@ model KycSubmission {
   reviewedAt      DateTime?
   submittedAt     DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
+
+  @@index([status, submittedAt])
 }
 
 enum KycStatus {
