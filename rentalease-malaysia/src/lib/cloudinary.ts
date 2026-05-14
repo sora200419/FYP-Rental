@@ -152,6 +152,28 @@ export async function deletePropertyPhoto(publicId: string): Promise<void> {
   await cloudinary.uploader.destroy(publicId);
 }
 
+export async function uploadKycImage(
+  fileBuffer: Buffer,
+  fileName: string,
+  mimeType: string,
+): Promise<{ url: string; publicId: string }> {
+  const base64 = fileBuffer.toString('base64');
+  const dataUri = `data:${mimeType};base64,${base64}`;
+
+  const result = await cloudinary.uploader.upload(dataUri, {
+    folder: 'rentalease/kyc',
+    public_id: `${Date.now()}-${fileName.replace(/\.[^/.]+$/, '')}`,
+    resource_type: 'image',
+    transformation: [{ quality: 'auto' }, { width: 1920, crop: 'limit' }],
+  });
+
+  return { url: result.secure_url, publicId: result.public_id };
+}
+
+export async function deleteKycImage(publicId: string): Promise<void> {
+  await cloudinary.uploader.destroy(publicId);
+}
+
 // Uploads deposit refund proof (same pattern as payment proof)
 export async function uploadRefundProof(
   fileBuffer: Buffer,
