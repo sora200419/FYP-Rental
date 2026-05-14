@@ -39,6 +39,14 @@ model User {
 
   kycRejectedReason String? @db.Text // set by admin on KYC rejection; cleared on approval
 
+  deletedAt     DateTime?
+  deletedById   String?
+  deletedReason String?
+
+  deletedBy    User?  @relation("DeletedUsers", fields: [deletedById], references: [id])
+  deletedUsers User[] @relation("DeletedUsers")
+  auditLogsAuthored AuditLog[] @relation("AuditLogActor")
+
   notifications       Notification[]
   tenantDocuments     TenantDocument[]
   passwordResetTokens PasswordResetToken[]
@@ -723,4 +731,23 @@ enum AgreementEventType {
 enum ChangeRequestStatus {
   PENDING
   RESOLVED
+}
+
+// ─── AUDIT LOG ───────────────────────────────────────────────────────────────
+// Immutable record written before any hard delete. Stores a full JSON snapshot
+// of the deleted record so data can be reviewed or recovered by admins.
+model AuditLog {
+  id           String   @id @default(cuid())
+  actorId      String
+  actor        User     @relation("AuditLogActor", fields: [actorId], references: [id])
+  action       String   // e.g. "USER_DELETED", "PROPERTY_DELETED", "ROOM_DELETED"
+  entityName   String   // Prisma model name: "User", "Property", "Room", etc.
+  entityId     String   // The deleted record's ID
+  previousData Json     // Full snapshot of the record at time of deletion
+  ipAddress    String?
+  reason       String?
+  createdAt    DateTime @default(now())
+
+  @@index([entityName, entityId])
+  @@index([actorId, createdAt])
 }

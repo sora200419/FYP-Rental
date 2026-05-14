@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { logAudit, getIp } from '@/lib/audit';
 
 export function getUserDeleteBlockers({
   activeTenancyCount,
@@ -35,7 +36,7 @@ export function getUserDeleteBlockers({
 }
 
 export async function DELETE(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
   const session = await getServerSession(authOptions);
@@ -46,15 +47,20 @@ export async function DELETE(
 
   const { id } = await params;
 
+  const url = new URL(request.url);
+  const reason = url.searchParams.get('reason') ?? undefined;
+
   const user = await prisma.user.findUnique({
     where: { id },
-    select: { id: true, role: true },
+    select: { id: true, role: true, deletedAt: true },
   });
 
   if (!user)
     return NextResponse.json({ error: 'User not found' }, { status: 404 });
   if (user.role === 'ADMIN')
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  if (user.deletedAt)
+    return NextResponse.json({ error: 'User already deleted' }, { status: 409 });
 
   const now = new Date();
 
@@ -98,7 +104,26 @@ export async function DELETE(
     );
   }
 
-  await prisma.user.delete({ where: { id } });
+  const fullUser = await prisma.user.findUnique({ where: { id } });
+
+  await prisma.user.update({
+    where: { id },
+    data: {
+      deletedAt: now,
+      deletedById: session.user.id,
+      deletedReason: reason ?? null,
+    },
+  });
+
+  await logAudit({
+    actorId: session.user.id,
+    action: 'USER_DELETED',
+    entityName: 'User',
+    entityId: id,
+    previousData: fullUser as object,
+    ipAddress: getIp(request),
+    reason,
+  });
 
   return NextResponse.json({ message: 'User deleted successfully' });
 }

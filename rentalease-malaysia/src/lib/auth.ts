@@ -44,12 +44,18 @@ export const authOptions: NextAuthOptions = {
             role: true,
             language: true,
             isSuspended: true,
+            deletedAt: true,
           },
         });
 
         if (!user) {
           throw new Error('No account found with this email');
         }
+
+        if (user.deletedAt) {
+          throw new Error('This account has been removed.');
+        }
+
         // Compare the submitted password with the hashed password
         const isValidPassword = await bcrypt.compare(
           credentials.password,

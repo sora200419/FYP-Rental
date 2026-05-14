@@ -49,6 +49,8 @@ export default async function AdminUsersPage({
         role: true,
         isVerified: true,
         isSuspended: true,
+        deletedAt: true,
+        deletedReason: true,
         createdAt: true,
         tenantDocuments: { select: { id: true }, take: 1 },
         ownedProperties: {
@@ -161,20 +163,27 @@ export default async function AdminUsersPage({
                           Suspended
                         </span>
                       )}
+                      {user.deletedAt && (
+                        <span className="rounded-full bg-red-200 px-2 py-0.5 text-xs font-semibold text-red-800">
+                          Deleted
+                        </span>
+                      )}
                     </div>
                     <p className="mt-0.5 truncate text-xs text-gray-500">{user.email}</p>
                     <p className="mt-1 text-xs text-gray-400">
                       {activityLabel} · Joined {new Date(user.createdAt).toLocaleDateString('en-MY')}
                     </p>
                   </div>
-                  <div className="flex shrink-0 items-center gap-2">
-                    <SuspendButton
-                      userId={user.id}
-                      userName={user.name}
-                      isSuspended={user.isSuspended}
-                    />
-                    <DeleteUserButton userId={user.id} userName={user.name} />
-                  </div>
+                  {!user.deletedAt && (
+                    <div className="flex shrink-0 items-center gap-2">
+                      <SuspendButton
+                        userId={user.id}
+                        userName={user.name}
+                        isSuspended={user.isSuspended}
+                      />
+                      <DeleteUserButton userId={user.id} userName={user.name} />
+                    </div>
+                  )}
                 </div>
               </div>
             );

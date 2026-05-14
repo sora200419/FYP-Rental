@@ -1,8 +1,9 @@
-import { NextResponse } from 'next/server';
+import { NextResponse, NextRequest } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { uploadPropertyPhoto, deletePropertyPhoto } from '@/lib/cloudinary';
+import { logAudit, getIp } from '@/lib/audit';
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024;
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
@@ -102,7 +103,7 @@ export async function POST(
 }
 
 export async function DELETE(
-  request: Request,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
   const session = await getServerSession(authOptions);
@@ -129,6 +130,15 @@ export async function DELETE(
   if (!photo) {
     return NextResponse.json({ error: 'Photo not found' }, { status: 404 });
   }
+
+  await logAudit({
+    actorId: session.user.id,
+    action: 'PROPERTY_PHOTO_DELETED',
+    entityName: 'PropertyPhoto',
+    entityId: photoId,
+    previousData: photo as object,
+    ipAddress: getIp(request),
+  });
 
   try {
     await deletePropertyPhoto(photo.publicId);
