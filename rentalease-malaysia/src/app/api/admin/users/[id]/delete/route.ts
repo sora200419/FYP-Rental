@@ -73,7 +73,7 @@ export async function DELETE(
       prisma.depositRefund.count({
         where: {
           tenancy: { tenantId: id },
-          status: { not: 'COMPLETED' },
+          status: { not: 'PAID' },
         },
       }),
       prisma.agreement.count({
