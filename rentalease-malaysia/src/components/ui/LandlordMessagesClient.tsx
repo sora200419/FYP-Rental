@@ -9,6 +9,7 @@ interface TenancyItem {
   propertyCity: string;
   tenantName: string;
   unreadCount: number;
+  status?: string;
 }
 
 interface Props {
@@ -56,6 +57,11 @@ export default function LandlordMessagesClient({
                   <p className="text-xs text-gray-400 truncate">
                     {tenancy.propertyCity}
                   </p>
+                  {tenancy.status && (
+                    <span className="text-[10px] font-medium text-gray-400">
+                      {tenancy.status.charAt(0) + tenancy.status.slice(1).toLowerCase()}
+                    </span>
+                  )}
                 </div>
                 {/* Unread badge */}
                 {tenancy.unreadCount > 0 && (
@@ -76,6 +82,7 @@ export default function LandlordMessagesClient({
             tenancyId={selected.id}
             currentUserId={currentUserId}
             otherPartyName={selected.tenantName}
+            contextLabel={`${selected.propertyAddress}, ${selected.propertyCity}`}
           />
         ) : (
           <div className="h-full bg-white rounded-xl border border-gray-200 flex items-center justify-center">

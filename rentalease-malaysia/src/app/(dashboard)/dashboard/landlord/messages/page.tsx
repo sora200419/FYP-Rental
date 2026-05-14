@@ -39,6 +39,7 @@ export default async function LandlordMessagesPage() {
     propertyCity: t.room.property.city,
     tenantName: t.tenant.name,
     unreadCount: t.messages.length,
+    status: t.status,
   }));
 
   return (

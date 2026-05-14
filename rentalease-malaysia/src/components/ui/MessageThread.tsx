@@ -19,12 +19,14 @@ interface Props {
   currentUserId: string;
   // The other party's name shown in the thread header
   otherPartyName: string;
+  contextLabel?: string;
 }
 
 export default function MessageThread({
   tenancyId,
   currentUserId,
   otherPartyName,
+  contextLabel,
 }: Props) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState('');
@@ -116,11 +118,9 @@ export default function MessageThread({
   return (
     <div className="flex flex-col bg-white rounded-xl border border-gray-200 overflow-hidden h-full min-h-[480px]">
       {/* Thread header */}
-      <div className="px-5 py-4 border-b border-gray-100 bg-gray-50">
-        <p className="font-semibold text-gray-900 text-sm">{otherPartyName}</p>
-        <p className="text-xs text-gray-400 mt-0.5">
-          Messages are scoped to this tenancy
-        </p>
+      <div className="border-b border-gray-100 bg-gray-50 px-5 py-4">
+        <p className="text-sm font-semibold text-gray-900">{otherPartyName}</p>
+        <p className="mt-0.5 truncate text-xs text-gray-400">{contextLabel ?? 'Messages are scoped to this tenancy'}</p>
       </div>
 
       {/* Message list — scrollable middle section */}
@@ -187,23 +187,24 @@ export default function MessageThread({
       </div>
 
       {/* Message input area */}
-      <div className="px-4 py-3 border-t border-gray-100">
-        {error && <p className="text-red-500 text-xs mb-2">{error}</p>}
-        <div className="flex gap-2 items-end">
+      <div className="border-t border-gray-100 bg-white px-4 py-3">
+        {error && <p className="mb-2 text-xs text-red-500">{error}</p>}
+        <div className="flex items-end gap-2 rounded-xl border border-gray-200 bg-gray-50 p-2 focus-within:ring-2 focus-within:ring-blue-500">
           <textarea
             value={newMessage}
             onChange={(e) => setNewMessage(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Type a message… (Enter to send, Shift+Enter for new line)"
             rows={2}
-            className="flex-1 border border-gray-300 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+            placeholder="Type a message… (Enter to send, Shift+Enter for new line)"
+            disabled={isSending}
+            className="flex-1 resize-none bg-transparent px-2 py-2 text-sm text-gray-900 outline-none"
           />
           <button
             onClick={handleSend}
             disabled={isSending || !newMessage.trim()}
-            className="shrink-0 bg-blue-600 hover:bg-blue-700 disabled:opacity-40 text-white px-4 py-2.5 rounded-xl transition-colors text-sm font-semibold"
+            className="shrink-0 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-blue-700 disabled:opacity-40"
           >
-            {isSending ? '…' : 'Send'}
+            {isSending ? 'Sending…' : 'Send'}
           </button>
         </div>
       </div>
