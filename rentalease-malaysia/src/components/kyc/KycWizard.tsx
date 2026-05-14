@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 
 type Step = 1 | 2 | 3;
@@ -20,7 +20,9 @@ export default function KycWizard() {
   const streamRef = useRef<MediaStream | null>(null);
   const [cameraActive, setCameraActive] = useState(false);
 
-  function handleFile(file: File, setter: (img: ImageFile) => void) {
+  useEffect(() => () => stopCamera(), []);
+
+  function handleFile(file: File, setter: (img: ImageFile) => void, currentPreview?: string) {
     if (!['image/jpeg', 'image/png'].includes(file.type)) {
       setError('Only JPG and PNG files are accepted.'); return;
     }
@@ -28,6 +30,7 @@ export default function KycWizard() {
       setError('File must be under 10 MB.'); return;
     }
     setError(null);
+    if (currentPreview) URL.revokeObjectURL(currentPreview);
     setter({ file, preview: URL.createObjectURL(file) });
   }
 
@@ -53,7 +56,9 @@ export default function KycWizard() {
     const canvas = canvasRef.current;
     canvas.width = videoRef.current.videoWidth;
     canvas.height = videoRef.current.videoHeight;
-    canvas.getContext('2d')!.drawImage(videoRef.current, 0, 0);
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    ctx.drawImage(videoRef.current, 0, 0);
     canvas.toBlob((blob) => {
       if (!blob) return;
       const file = new File([blob], `selfie-${Date.now()}.jpg`, { type: 'image/jpeg' });
@@ -134,7 +139,7 @@ export default function KycWizard() {
           title="Step 1 — IC Front"
           description="Upload a clear photo of the front of your Malaysian MyKad (JPG or PNG, max 10 MB)."
           value={icFront}
-          onChange={(f) => handleFile(f, setIcFront)}
+          onChange={(f) => handleFile(f, setIcFront, icFront?.preview)}
           onNext={() => { setError(null); setStep(2); }}
           canNext={!!icFront}
         />
@@ -145,7 +150,7 @@ export default function KycWizard() {
           title="Step 2 — IC Back"
           description="Upload a clear photo of the back of your Malaysian MyKad (JPG or PNG, max 10 MB)."
           value={icBack}
-          onChange={(f) => handleFile(f, setIcBack)}
+          onChange={(f) => handleFile(f, setIcBack, icBack?.preview)}
           onNext={() => { setError(null); setStep(3); }}
           onBack={() => setStep(1)}
           canNext={!!icBack}
@@ -163,7 +168,7 @@ export default function KycWizard() {
             <div className="mb-4 text-center">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={selfie.preview} alt="Selfie preview" className="mx-auto h-48 w-48 rounded-xl border border-gray-200 object-cover" />
-              <button onClick={() => setSelfie(null)} className="mt-2 block mx-auto text-xs text-red-500 hover:text-red-700">
+              <button onClick={() => { URL.revokeObjectURL(selfie.preview); setSelfie(null); }} className="mt-2 block mx-auto text-xs text-red-500 hover:text-red-700">
                 Retake
               </button>
             </div>
