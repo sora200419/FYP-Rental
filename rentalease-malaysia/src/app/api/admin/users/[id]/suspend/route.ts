@@ -15,8 +15,16 @@ export async function PATCH(
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
   const { id } = await params;
-  const body = await request.json() as { suspended: boolean };
+  let body: { suspended: boolean };
+  try {
+    body = await request.json() as { suspended: boolean };
+  } catch {
+    return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
+  }
   const { suspended } = body;
+  if (typeof suspended !== 'boolean') {
+    return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
+  }
 
   const user = await prisma.user.findUnique({
     where: { id },
