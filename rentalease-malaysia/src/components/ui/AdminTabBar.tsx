@@ -30,3 +30,27 @@ export default function AdminTabBar({ activeTab, pendingCount, verifiedCount }: 
     </div>
   );
 }
+
+interface AdminNavProps {
+  active: 'kyc' | 'properties' | 'users';
+}
+
+export function AdminNav({ active }: AdminNavProps) {
+  const base = 'px-4 py-2 text-sm font-medium rounded-lg transition-colors';
+  const activeClass = 'bg-blue-600 text-white';
+  const inactiveClass = 'text-gray-600 hover:bg-gray-100';
+
+  return (
+    <div className="flex gap-2 mb-6">
+      <a href="/dashboard/admin/verify" className={`${base} ${active === 'kyc' ? activeClass : inactiveClass}`}>
+        KYC
+      </a>
+      <a href="/dashboard/admin/properties" className={`${base} ${active === 'properties' ? activeClass : inactiveClass}`}>
+        Properties
+      </a>
+      <a href="/dashboard/admin/users" className={`${base} ${active === 'users' ? activeClass : inactiveClass}`}>
+        Users
+      </a>
+    </div>
+  );
+}

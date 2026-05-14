@@ -103,6 +103,7 @@ const adminLinks: NavLink[] = [
   { href: '/dashboard/admin',            label: 'Dashboard',           Icon: HomeIcon },
   { href: '/dashboard/admin/verify',     label: 'KYC Verification',    Icon: ShieldIcon },
   { href: '/dashboard/admin/properties', label: 'Property Verification', Icon: CheckSquareIcon },
+  { href: '/dashboard/admin/users',      label: 'Users',               Icon: UsersIcon },
 ];
 
 // ── Sidebar inner content (shared between desktop aside and mobile drawer) ──
