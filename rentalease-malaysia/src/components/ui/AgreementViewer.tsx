@@ -261,7 +261,7 @@ export default function AgreementViewer({
             Version {currentVersion}
           </span>
 
-          <div className="flex items-center gap-0 border border-gray-200 rounded-lg overflow-hidden text-xs font-semibold">
+          <div className="xl:hidden flex items-center gap-0 border border-gray-200 rounded-lg overflow-hidden text-xs font-semibold">
             <button
               type="button"
               onClick={() => setDisplayLanguage('en')}

@@ -13,7 +13,7 @@ import LandlordAgreementSignatureProofReview from '@/components/ui/LandlordAgree
 import CorporateOccupantRosterManager from '@/components/ui/CorporateOccupantRosterManager';
 import PropertyCover from '@/components/ui/PropertyCover';
 import { PageHeader } from '@/components/ui/RedesignPrimitives';
-import { getPropertyCover } from '@/lib/uiRedesign';
+import { getPropertyCover, TENANCY_STEPS, getTenancyStep } from '@/lib/uiRedesign';
 
 const PILL_BASE = 'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium';
 
@@ -31,8 +31,6 @@ const AGREEMENT_PILL: Record<string, string> = {
   PENDING_SIGNATURE_PROOF: `${PILL_BASE} bg-blue-50 text-blue-700 ring-1 ring-blue-200 ring-inset`,
   SIGNED:          `${PILL_BASE} bg-green-50 text-green-700 ring-1 ring-green-200 ring-inset`,
   NEGOTIATING:     `${PILL_BASE} bg-purple-50 text-purple-700 ring-1 ring-purple-200 ring-inset`,
-  PENDING_TENANT:  `${PILL_BASE} bg-yellow-50 text-yellow-700 ring-1 ring-yellow-200 ring-inset`,
-  PENDING_LANDLORD:`${PILL_BASE} bg-orange-50 text-orange-700 ring-1 ring-orange-200 ring-inset`,
 };
 
 const PAYMENT_PILL = {
@@ -42,15 +40,6 @@ const PAYMENT_PILL = {
   OVERDUE:      `${PILL_BASE} bg-red-50 text-red-600 ring-1 ring-red-200 ring-inset`,
 };
 
-const TENANCY_STEPS = ['Invite', 'Agreement', 'Deposit', 'Condition', 'Active'];
-
-function getTenancyStep(status: string, agreementStatus?: string | null, depositStatus?: string | null) {
-  if (status === 'INVITED') return 0;
-  if (!agreementStatus || ['DRAFT', 'NEGOTIATING', 'PENDING_TENANT', 'PENDING_LANDLORD'].includes(agreementStatus)) return 1;
-  if (depositStatus !== 'PAID') return 2;
-  if (status !== 'ACTIVE') return 3;
-  return 4;
-}
 
 const STATUS_HEADLINE: Record<string, { headline: string; description: string }> = {
   INVITED:    { headline: 'Invitation sent', description: 'Waiting for tenant to accept the invitation.' },
@@ -198,8 +187,10 @@ export default async function TenancyDetailPage({
           <div
             key={step}
             className={`rounded-lg border px-3 py-2 text-center text-xs font-semibold ${
-              index <= activeStep
+              index < activeStep
                 ? 'border-blue-200 bg-blue-50 text-blue-700'
+                : index === activeStep
+                ? 'border-blue-400 bg-blue-100 text-blue-800 ring-1 ring-blue-300 ring-inset'
                 : 'border-gray-200 bg-gray-50 text-gray-400'
             }`}
           >

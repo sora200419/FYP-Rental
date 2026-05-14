@@ -1,3 +1,17 @@
+export const TENANCY_STEPS = ['Invite', 'Agreement', 'Deposit', 'Condition', 'Active'];
+
+export function getTenancyStep(
+  status: string,
+  agreementStatus?: string | null,
+  depositStatus?: string | null,
+): number {
+  if (status === 'INVITED') return 0;
+  if (!agreementStatus || agreementStatus !== 'SIGNED') return 1;
+  if (depositStatus !== 'PAID') return 2;
+  if (status !== 'ACTIVE') return 3;
+  return 4;
+}
+
 export type PropertyPhotoLike = {
   id?: string;
   imageUrl: string;

@@ -14,17 +14,8 @@ import CorporateSignatoryInvitationCard from '@/components/ui/CorporateSignatory
 import Link from 'next/link';
 import PropertyCover from '@/components/ui/PropertyCover';
 import { PageHeader } from '@/components/ui/RedesignPrimitives';
-import { getPropertyCover } from '@/lib/uiRedesign';
+import { getPropertyCover, TENANCY_STEPS, getTenancyStep } from '@/lib/uiRedesign';
 
-const TENANCY_STEPS = ['Invite', 'Agreement', 'Deposit', 'Condition', 'Active'];
-
-function getTenancyStep(status: string, agreementStatus?: string | null, depositStatus?: string | null) {
-  if (status === 'INVITED') return 0;
-  if (!agreementStatus || ['DRAFT', 'NEGOTIATING', 'PENDING_TENANT', 'PENDING_LANDLORD'].includes(agreementStatus)) return 1;
-  if (depositStatus !== 'PAID') return 2;
-  if (status !== 'ACTIVE') return 3;
-  return 4;
-}
 
 const STATUS_HEADLINE: Record<string, { headline: string; description: string }> = {
   INVITED:    { headline: 'Invitation received', description: 'Review and accept or decline your tenancy invitation.' },
@@ -162,8 +153,10 @@ export default async function TenantTenancyPage() {
           <div
             key={step}
             className={`rounded-lg border px-3 py-2 text-center text-xs font-semibold ${
-              index <= activeStep
+              index < activeStep
                 ? 'border-blue-200 bg-blue-50 text-blue-700'
+                : index === activeStep
+                ? 'border-blue-400 bg-blue-100 text-blue-800 ring-1 ring-blue-300 ring-inset'
                 : 'border-gray-200 bg-gray-50 text-gray-400'
             }`}
           >
@@ -188,9 +181,6 @@ export default async function TenantTenancyPage() {
             <h2 className="mt-2 text-xl font-bold text-gray-900">{statusInfo.headline}</h2>
             <p className="mt-2 text-sm text-gray-500">{statusInfo.description}</p>
             <div className="mt-4 flex flex-wrap gap-3">
-              {tenancy.status === 'INVITED' && (
-                <TenantInvitationActions tenancyId={tenancy.id} />
-              )}
               {tenancy.agreement?.status === 'FINALIZED' && (
                 <a
                   href="#agreement-section"

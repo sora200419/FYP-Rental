@@ -111,8 +111,7 @@ export default async function LandlordPaymentsPage() {
 
       {/* ── Security Deposits ────────────────────────────────────────────────── */}
       {allDepositTenancies.length > 0 && (
-        <div className="mb-8">
-          <SectionCard title="Security Deposits">
+          <SectionCard title="Security Deposits" className="mb-8">
             <div className="space-y-4">
               {/* Under review — approve/reject */}
               {depositsUnderReview.map((t) => (
@@ -177,7 +176,6 @@ export default async function LandlordPaymentsPage() {
               ))}
             </div>
           </SectionCard>
-        </div>
       )}
 
       {allPayments.length === 0 && allDepositTenancies.length === 0 && (
@@ -191,8 +189,7 @@ export default async function LandlordPaymentsPage() {
 
       {/* ── Rent: Awaiting Review ────────────────────────────────────────────── */}
       {underReview.length > 0 && (
-        <div className="mb-8">
-          <SectionCard title="Rent — Awaiting Review">
+          <SectionCard title="Rent — Awaiting Review" className="mb-8">
             <div className="space-y-4">
               {underReview.map((payment) => (
                 <PaymentRow
@@ -212,13 +209,11 @@ export default async function LandlordPaymentsPage() {
               ))}
             </div>
           </SectionCard>
-        </div>
       )}
 
       {/* ── Rent: Pending / Overdue ──────────────────────────────────────────── */}
       {pending.length > 0 && (
-        <div className="mb-8">
-          <SectionCard title="Rent — Pending">
+          <SectionCard title="Rent — Pending" className="mb-8">
             <div className="space-y-4">
               {pending.map((payment) => {
                 const isOverdue = new Date(payment.dueDate) < today;
@@ -248,13 +243,11 @@ export default async function LandlordPaymentsPage() {
               })}
             </div>
           </SectionCard>
-        </div>
       )}
 
       {/* ── Rent: Paid ──────────────────────────────────────────────────────── */}
       {paid.length > 0 && (
-        <div className="mb-8">
-          <SectionCard title="Rent — Paid">
+          <SectionCard title="Rent — Paid" className="mb-8">
             <div className="space-y-4">
               {paid.map((payment) => (
                 <PaymentRow
@@ -285,7 +278,6 @@ export default async function LandlordPaymentsPage() {
               ))}
             </div>
           </SectionCard>
-        </div>
       )}
     </div>
   );

@@ -70,7 +70,24 @@
       "Bash(findstr /i \"DATABASE_URL\")",
       "PowerShell(Select-String -Path \"C:\\\\Users\\\\ONG\\\\OneDrive\\\\Desktop\\\\FYP Rental\\\\rentalease-malaysia\\\\node_modules\\\\.prisma\\\\client\\\\index.js\" -Pattern \"prisma://\" | Select-Object -First 5 | ForEach-Object { $_.Line })",
       "PowerShell(Select-String -Path \"C:\\\\Users\\\\ONG\\\\OneDrive\\\\Desktop\\\\FYP Rental\\\\rentalease-malaysia\\\\node_modules\\\\.prisma\\\\client\\\\index.js\" -Pattern \"no.engine|noEngine|engineType\" | Select-Object -First 5 | ForEach-Object { $_.Line })",
-      "PowerShell(gh *)"
+      "PowerShell(gh *)",
+      "Bash(bash *)",
+      "PowerShell(Push-Location \"C:\\\\Users\\\\ONG\\\\OneDrive\\\\Desktop\\\\FYP Rental\\\\rentalease-malaysia\"; $env:PRISMA_GENERATE_NO_ENGINE='1'; npm.cmd run build 2>&1 | Select-String \"error|Error|warn|Warning\" | Select-Object -First 30; Pop-Location)",
+      "PowerShell(Push-Location \"C:\\\\Users\\\\ONG\\\\OneDrive\\\\Desktop\\\\FYP Rental\\\\rentalease-malaysia\"; $env:PRISMA_GENERATE_NO_ENGINE='1'; npm.cmd run build 2>&1 | Select-Object -Last 20; Pop-Location)",
+      "PowerShell(Push-Location \"C:\\\\Users\\\\ONG\\\\OneDrive\\\\Desktop\\\\FYP Rental\\\\rentalease-malaysia\"; $env:PRISMA_GENERATE_NO_ENGINE='1'; npm.cmd run build 2>&1 | Select-String \"error|Error\" | Select-Object -First 20; Pop-Location)",
+      "Bash(New-Item -ItemType Directory -Force -Path \"C:\\\\Users\\\\ONG\\\\OneDrive\\\\Desktop\\\\FYP Rental\\\\rentalease-malaysia\\\\src\\\\app\\\\api\\\\admin\\\\users\\\\[id]\\\\suspend\")",
+      "Bash(Write-Output \"Directory ready\")",
+      "PowerShell(Push-Location \"C:\\\\Users\\\\ONG\\\\OneDrive\\\\Desktop\\\\FYP Rental\\\\rentalease-malaysia\"; $env:PRISMA_GENERATE_NO_ENGINE='1'; $result = npm.cmd run build 2>&1; $exitCode = $LASTEXITCODE; $result | Select-Object -Last 30; Write-Host \"Exit code: $exitCode\"; Pop-Location)",
+      "Bash(Push-Location \"C:\\\\Users\\\\ONG\\\\OneDrive\\\\Desktop\\\\FYP Rental\\\\rentalease-malaysia\")",
+      "Bash(npm.cmd run *)",
+      "Bash(Select-Object -Last 10)",
+      "Bash(Pop-Location)",
+      "PowerShell(Push-Location \"C:\\\\Users\\\\ONG\\\\OneDrive\\\\Desktop\\\\FYP Rental\\\\rentalease-malaysia\"; $env:PRISMA_GENERATE_NO_ENGINE='1'; npm.cmd run build 2>&1 | Select-String \"SuspendButton|DeleteUserButton\"; Pop-Location)",
+      "PowerShell(Push-Location \"C:\\\\Users\\\\ONG\\\\OneDrive\\\\Desktop\\\\FYP Rental\\\\rentalease-malaysia\"; $env:PRISMA_GENERATE_NO_ENGINE='1'; npm.cmd run build 2>&1 | Select-String \"error TS|Type error\" | Select-Object -First 30; Pop-Location)",
+      "PowerShell(Push-Location \"C:\\\\Users\\\\ONG\\\\OneDrive\\\\Desktop\\\\FYP Rental\\\\rentalease-malaysia\"; $env:PRISMA_GENERATE_NO_ENGINE='1'; npm.cmd run build 2>&1 | Out-String | Select-String -Pattern \"\\\\.tsx?:\\\\d+\" | Select-Object -First 10; Pop-Location)",
+      "PowerShell(Push-Location \"C:\\\\Users\\\\ONG\\\\OneDrive\\\\Desktop\\\\FYP Rental\\\\rentalease-malaysia\"; $env:PRISMA_GENERATE_NO_ENGINE='1'; npm.cmd run build 2>&1 | Out-String | Select-String -Pattern \"error TS|Type error|Failed to compile|compiled successfully|Build completed\" | Select-Object -First 20; Pop-Location)",
+      "PowerShell(Push-Location \"C:\\\\Users\\\\ONG\\\\OneDrive\\\\Desktop\\\\FYP Rental\\\\rentalease-malaysia\"; $env:PRISMA_GENERATE_NO_ENGINE='1'; npm.cmd run build 2>&1 | Select-Object -Last 60; Pop-Location)",
+      "PowerShell(Push-Location \"C:\\\\Users\\\\ONG\\\\OneDrive\\\\Desktop\\\\FYP Rental\\\\rentalease-malaysia\"; $env:PRISMA_GENERATE_NO_ENGINE='1'; npm.cmd run build 2>&1 | Where-Object { $_ -match \"error|warning|Error|Warning|failed|Failed\" } | Select-Object -First 30; Pop-Location)"
     ]
   }
 }

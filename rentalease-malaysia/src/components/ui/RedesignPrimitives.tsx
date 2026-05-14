@@ -91,13 +91,15 @@ export function SectionCard({
   title,
   action,
   children,
+  className,
 }: {
   title: string;
   action?: ReactNode;
   children: ReactNode;
+  className?: string;
 }) {
   return (
-    <section className="rounded-xl border border-gray-200 bg-white">
+    <section className={`rounded-xl border border-gray-200 bg-white${className ? ` ${className}` : ''}`}>
       <div className="flex items-center justify-between gap-3 border-b border-gray-100 px-5 py-4">
         <h2 className="text-base font-semibold text-gray-900">{title}</h2>
         {action}

@@ -3,6 +3,14 @@
 import { useState } from 'react';
 import MessageThread from './MessageThread';
 
+const TENANCY_STATUS_LABEL: Record<string, string> = {
+  INVITED: 'Invited',
+  PENDING: 'Pending',
+  ACTIVE: 'Active',
+  EXPIRED: 'Expired',
+  TERMINATED: 'Terminated',
+};
+
 interface TenancyItem {
   id: string;
   propertyAddress: string;
@@ -59,7 +67,7 @@ export default function LandlordMessagesClient({
                   </p>
                   {tenancy.status && (
                     <span className="text-[10px] font-medium text-gray-400">
-                      {tenancy.status.charAt(0) + tenancy.status.slice(1).toLowerCase()}
+                      {TENANCY_STATUS_LABEL[tenancy.status] ?? tenancy.status}
                     </span>
                   )}
                 </div>

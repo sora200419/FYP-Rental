@@ -144,6 +144,24 @@ export default async function AdminPropertiesPage({
                         <p className="text-xs text-red-600">{property.rejectedReason}</p>
                       </div>
                     )}
+
+                    {property.photos.length > 1 && (
+                      <div className="mt-3 flex gap-1.5">
+                        {property.photos.slice(1, 5).map((photo, i) => (
+                          <img
+                            key={i}
+                            src={photo.imageUrl}
+                            alt={photo.caption ?? `Photo ${i + 2}`}
+                            className="h-12 w-16 rounded object-cover flex-shrink-0"
+                          />
+                        ))}
+                        {property.photos.length > 5 && (
+                          <div className="h-12 w-16 rounded bg-gray-100 flex items-center justify-center text-xs text-gray-500 font-medium flex-shrink-0">
+                            +{property.photos.length - 5}
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
 
                   <div className="shrink-0 p-5 flex items-start">

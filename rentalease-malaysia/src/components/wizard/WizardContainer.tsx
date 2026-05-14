@@ -255,7 +255,7 @@ export function WizardContainer({ tenancyId, roomMeta, existingPreferences }: Wi
       )}
 
       {/* Step content */}
-      <div className="bg-white rounded-xl border border-gray-200 p-6 mb-6">
+      <div className="mb-6">
         {step === 0 && <Step1HouseRules data={form} onChange={updateForm} />}
         {step === 1 && <Step2Utilities data={form} onChange={updateForm} roomMeta={roomMeta} />}
         {step === 2 && <Step3Financial data={form} onChange={updateForm} />}
