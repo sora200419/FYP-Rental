@@ -90,22 +90,22 @@ export default function PaymentVerificationCard({
 
       {/* Proof thumbnails — clicking opens full size in new tab */}
       {proofs.length > 0 && (
-        <div className="flex flex-wrap gap-2 mb-4">
-          {proofs.map((proof) => (
+        <div className="grid gap-3 sm:grid-cols-2 mb-4">
+          {proofs.map((proof, index) => (
             <a
               key={proof.id}
               href={proof.imageUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="relative block w-20 h-20 rounded-lg overflow-hidden border border-gray-200 hover:opacity-80 transition-opacity"
-              title="Click to view full size"
+              aria-label={`View payment proof ${index + 1}`}
+              className={index === 0 ? 'sm:col-span-2' : ''}
             >
               <Image
                 src={proof.imageUrl}
-                alt="Payment proof"
-                fill
-                className="object-cover"
-                sizes="80px"
+                alt={`Payment proof ${index + 1}`}
+                width={index === 0 ? 800 : 400}
+                height={index === 0 ? 224 : 128}
+                className={`w-full rounded-lg object-cover ${index === 0 ? 'h-56' : 'h-32'}`}
               />
             </a>
           ))}

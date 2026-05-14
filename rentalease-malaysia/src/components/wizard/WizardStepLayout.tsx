@@ -11,15 +11,22 @@ interface WizardStepLayoutProps {
 
 export function WizardStepLayout({ step, title, description, children }: WizardStepLayoutProps) {
   return (
-    <div>
-      <div className="mb-6">
-        <p className="text-xs font-semibold text-blue-600 uppercase tracking-wider mb-1">
-          Step {step} of 6
-        </p>
-        <h2 className="text-xl font-bold text-gray-900">{title}</h2>
-        <p className="text-sm text-gray-500 mt-1">{description}</p>
+    <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
+      <div className="rounded-xl border border-gray-200 bg-white p-6">
+        <div className="mb-6">
+          <p className="text-xs font-semibold text-blue-600 uppercase tracking-wider mb-1">
+            Step {step} of 6
+          </p>
+          <h2 className="text-xl font-bold text-gray-900">{title}</h2>
+          <p className="text-sm text-gray-500 mt-1">{description}</p>
+        </div>
+        <div className="space-y-6">{children}</div>
       </div>
-      <div className="space-y-6">{children}</div>
+      <aside className="rounded-xl border border-blue-100 bg-blue-50 p-5 self-start">
+        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-blue-600">Step guidance</p>
+        <h3 className="mt-2 text-base font-semibold text-blue-950">{title}</h3>
+        <p className="mt-2 text-sm leading-relaxed text-blue-800">{description}</p>
+      </aside>
     </div>
   );
 }

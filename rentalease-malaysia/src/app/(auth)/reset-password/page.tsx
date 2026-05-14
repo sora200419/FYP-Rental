@@ -103,10 +103,25 @@ export default function ResetPasswordPage() {
     <div className="min-h-screen flex">
       {/* Left panel */}
       <div className="hidden lg:flex w-5/12 bg-gray-900 flex-col items-center justify-center p-12">
-        <span className="text-4xl font-bold text-white tracking-tight">RentalEase</span>
-        <p className="text-gray-400 mt-3 text-center text-sm leading-relaxed max-w-xs">
-          AI-Assisted Digital Tenancy Platform for Malaysian Residential Rentals
+        <span className="text-4xl font-bold tracking-tight text-white">RentalEase</span>
+        <p className="mt-4 max-w-sm text-center text-sm leading-relaxed text-gray-400">
+          A guided tenancy workspace for Malaysian rentals, from invitation to agreement, payment, and handover records.
         </p>
+        <ul className="mt-10 space-y-3 text-sm text-gray-400 max-w-xs w-full">
+          {[
+            'AI-assisted tenancy agreement review',
+            'Identity and property verification workflows',
+            'Payment proof and deposit records',
+            'Tenant-landlord messages in context',
+          ].map((item) => (
+            <li key={item} className="flex items-center gap-2.5">
+              <svg className="w-4 h-4 text-blue-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              </svg>
+              {item}
+            </li>
+          ))}
+        </ul>
       </div>
 
       {/* Right panel */}

@@ -2,10 +2,11 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { redirect } from 'next/navigation';
 import { prisma } from '@/lib/prisma';
-import Link from 'next/link';
 import VerifyPropertyButton from '@/components/ui/VerifyPropertyButton';
 import RevokeButton from '@/components/ui/RevokeButton';
 import AdminTabBar from '@/components/ui/AdminTabBar';
+import PropertyCover from '@/components/ui/PropertyCover';
+import { PageHeader } from '@/components/ui/RedesignPrimitives';
 
 export default async function AdminPropertiesPage({
   searchParams,
@@ -48,17 +49,11 @@ export default async function AdminPropertiesPage({
 
   return (
     <div className="max-w-3xl">
-      <div className="flex items-center gap-2 text-sm text-gray-400 mb-5">
-        <Link href="/dashboard/admin" className="hover:text-blue-600 transition-colors">
-          Admin
-        </Link>
-        <span>/</span>
-        <span className="text-gray-700 font-medium">Property Verification</span>
-      </div>
-
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Property Verification</h1>
-      </div>
+      <PageHeader
+        eyebrow="Admin"
+        title="Property Verification"
+        description="Review and approve property listings before landlords can invite tenants."
+      />
 
       <AdminTabBar
         activeTab={activeTab}
@@ -89,84 +84,75 @@ export default async function AdminPropertiesPage({
             return (
               <div
                 key={property.id}
-                className={`bg-white border rounded-xl p-5 flex items-start gap-5 ${
+                className={`grid gap-4 rounded-xl border bg-white p-4 lg:grid-cols-[160px_1fr_auto] ${
                   wasRejected && activeTab === 'pending' ? 'border-red-200' : 'border-gray-200'
                 }`}
               >
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-1">
-                    <p className="font-semibold text-gray-900 text-sm">{property.address}</p>
-                    <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-gray-100 text-gray-500">
-                      {property.type}
-                    </span>
-                    {wasRejected && activeTab === 'pending' && (
-                      <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-red-100 text-red-700">
-                        Previously rejected
+                  <PropertyCover
+                    address={property.address}
+                    imageUrl={property.photos[0]?.imageUrl}
+                    caption={property.photos[0]?.caption}
+                    heightClassName="h-32 lg:h-full"
+                    className="rounded-xl"
+                  />
+                  <div className="flex-1 min-w-0 p-5">
+                    <div className="flex items-center gap-2 mb-1">
+                      <p className="font-semibold text-gray-900 text-sm">{property.address}</p>
+                      <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-gray-100 text-gray-500">
+                        {property.type}
                       </span>
-                    )}
-                  </div>
-                  <p className="text-xs text-gray-500">
-                    {property.city}, {property.state} {property.postcode}
-                  </p>
-                  <p className="text-xs text-gray-400 mt-1">
-                    {property.rooms.length} room{property.rooms.length !== 1 ? 's' : ''} &middot; Listed{' '}
-                    {new Date(property.createdAt).toLocaleDateString('en-MY', {
-                      day: 'numeric',
-                      month: 'short',
-                      year: 'numeric',
-                    })}
-                  </p>
-
-                  {property.photos.length > 0 ? (
-                    <div className="mt-3 flex gap-2 flex-wrap">
-                      {property.photos.map((photo, i) => (
-                        <a key={i} href={photo.imageUrl} target="_blank" rel="noopener noreferrer">
-                          <img
-                            src={photo.imageUrl}
-                            alt={photo.caption ?? `Photo ${i + 1}`}
-                            className="w-20 h-16 object-cover rounded-lg border border-gray-200 hover:opacity-80 transition-opacity"
-                          />
-                        </a>
-                      ))}
+                      {wasRejected && activeTab === 'pending' && (
+                        <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-red-100 text-red-700">
+                          Previously rejected
+                        </span>
+                      )}
                     </div>
-                  ) : (
-                    <p className="mt-2 text-xs text-amber-600 font-medium">No photos uploaded</p>
-                  )}
-
-                  <div className="mt-2 pt-2 border-t border-gray-100">
-                    <p className="text-xs text-gray-600 font-medium">
-                      Landlord: {property.landlord.name}
+                    <p className="text-xs text-gray-500">
+                      {property.city}, {property.state} {property.postcode}
                     </p>
-                    <p className="text-xs text-gray-400">{property.landlord.email}</p>
-                    {property.landlord.icNumber && (
-                      <p className="text-xs text-gray-400">IC: {property.landlord.icNumber}</p>
+                    <p className="text-xs text-gray-400 mt-1">
+                      {property.rooms.length} room{property.rooms.length !== 1 ? 's' : ''} &middot; Listed{' '}
+                      {new Date(property.createdAt).toLocaleDateString('en-MY', {
+                        day: 'numeric',
+                        month: 'short',
+                        year: 'numeric',
+                      })}
+                    </p>
+
+                    <div className="mt-2 pt-2 border-t border-gray-100">
+                      <p className="text-xs text-gray-600 font-medium">
+                        Landlord: {property.landlord.name}
+                      </p>
+                      <p className="text-xs text-gray-400">{property.landlord.email}</p>
+                      {property.landlord.icNumber && (
+                        <p className="text-xs text-gray-400">IC: {property.landlord.icNumber}</p>
+                      )}
+                      <span
+                        className={`inline-block text-xs font-medium px-2 py-0.5 rounded-full mt-1 ${
+                          property.landlord.isVerified
+                            ? 'bg-green-100 text-green-700'
+                            : 'bg-amber-100 text-amber-700'
+                        }`}
+                      >
+                        Landlord {property.landlord.isVerified ? 'Identity Verified' : 'Identity Pending'}
+                      </span>
+                    </div>
+
+                    {wasRejected && activeTab === 'pending' && (
+                      <div className="mt-2 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+                        <p className="text-xs font-semibold text-red-700 mb-0.5">Previous rejection reason</p>
+                        <p className="text-xs text-red-600">{property.rejectedReason}</p>
+                      </div>
                     )}
-                    <span
-                      className={`inline-block text-xs font-medium px-2 py-0.5 rounded-full mt-1 ${
-                        property.landlord.isVerified
-                          ? 'bg-green-100 text-green-700'
-                          : 'bg-amber-100 text-amber-700'
-                      }`}
-                    >
-                      Landlord {property.landlord.isVerified ? 'Identity Verified' : 'Identity Pending'}
-                    </span>
                   </div>
 
-                  {wasRejected && activeTab === 'pending' && (
-                    <div className="mt-2 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
-                      <p className="text-xs font-semibold text-red-700 mb-0.5">Previous rejection reason</p>
-                      <p className="text-xs text-red-600">{property.rejectedReason}</p>
-                    </div>
-                  )}
-                </div>
-
-                <div className="shrink-0">
-                  {activeTab === 'pending' ? (
-                    <VerifyPropertyButton propertyId={property.id} />
-                  ) : (
-                    <RevokeButton revokeUrl={`/api/admin/properties/${property.id}/revoke`} />
-                  )}
-                </div>
+                  <div className="shrink-0 p-5 flex items-start">
+                    {activeTab === 'pending' ? (
+                      <VerifyPropertyButton propertyId={property.id} />
+                    ) : (
+                      <RevokeButton revokeUrl={`/api/admin/properties/${property.id}/revoke`} />
+                    )}
+                  </div>
               </div>
             );
           })}

@@ -8,6 +8,9 @@ import PropertyPhotoUploader from '@/components/ui/PropertyPhotoUploader';
 import PropertyPhotoGallery from '@/components/ui/PropertyPhotoGallery';
 import DeletePropertyButton from '@/components/ui/DeletePropertyButton';
 import DeleteRoomButton from '@/components/ui/DeleteRoomButton';
+import PropertyCover from '@/components/ui/PropertyCover';
+import { PageHeader, SectionCard, StatCard } from '@/components/ui/RedesignPrimitives';
+import { getOccupancySummary, getPropertyCover } from '@/lib/uiRedesign';
 
 export default async function PropertyDetailPage({
   params,
@@ -48,63 +51,45 @@ export default async function PropertyDetailPage({
   const totalRooms = property.rooms.length;
   const occupiedRooms = property.rooms.filter((r) => !r.isAvailable).length;
 
+  const cover = getPropertyCover(property.photos);
+  const occupancy = getOccupancySummary({ totalRooms, occupiedRooms });
+
   return (
     <div className="max-w-3xl">
-      <div className="flex items-center gap-2 text-sm text-gray-400 mb-6">
-        <Link
-          href="/dashboard/landlord/properties"
-          className="hover:text-blue-600 transition-colors"
-        >
-          Properties
-        </Link>
-        <span>/</span>
-        <span className="text-gray-700 font-medium truncate">
-          {property.address}
-        </span>
-      </div>
+      <PageHeader
+        eyebrow="Property detail"
+        title={property.address}
+        description={`${property.city}, ${property.state} ${property.postcode}`}
+        action={<DeletePropertyButton propertyId={property.id} propertyAddress={property.address} />}
+      />
 
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">
-            {property.address}
-          </h1>
-          <p className="text-gray-500 text-sm mt-1">
-            {property.city}, {property.state} {property.postcode}
-          </p>
-        </div>
-        <div className="text-right space-y-1">
-          <span className="text-xs text-gray-400 capitalize block">
-            {property.type}
-          </span>
-          {totalRooms > 0 && (
-            <p className="text-xs font-medium text-gray-500">
-              {occupiedRooms}/{totalRooms} rooms occupied
-            </p>
-          )}
-          <DeletePropertyButton
-            propertyId={property.id}
-            propertyAddress={property.address}
+      <div className="mb-6 overflow-hidden rounded-2xl border border-gray-200 bg-white">
+        <PropertyCover
+          address={property.address}
+          imageUrl={cover?.imageUrl}
+          caption={cover?.caption}
+          className="rounded-none border-0"
+          heightClassName="h-64"
+        />
+        <div className="grid gap-4 p-5 sm:grid-cols-3">
+          <StatCard label="Property type" value={property.type} />
+          <StatCard
+            label="Occupancy"
+            value={occupancy.label}
+            tone={occupancy.tone === 'success' ? 'green' : occupancy.tone === 'warning' ? 'amber' : 'default'}
           />
+          <StatCard label="Rooms" value={totalRooms} />
         </div>
       </div>
 
       <div className="space-y-5">
-        {/* Photos section */}
-        <div className="bg-white rounded-xl border border-gray-200 p-6">
-          <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-4">
-            Property Photos
-          </h2>
-          <PropertyPhotoGallery
-            propertyId={property.id}
-            photos={property.photos}
-          />
+        <SectionCard title="Property photos">
+          <PropertyPhotoGallery propertyId={property.id} photos={property.photos} />
           <div className="mt-4 border-t border-gray-100 pt-4">
-            <p className="text-xs font-medium text-gray-500 mb-3">
-              Add a Photo
-            </p>
+            <p className="mb-3 text-xs font-medium text-gray-500">Add a photo</p>
             <PropertyPhotoUploader propertyId={property.id} />
           </div>
-        </div>
+        </SectionCard>
 
         <div className="bg-white rounded-xl border border-gray-200 p-6">
           <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-4">
@@ -155,7 +140,7 @@ export default async function PropertyDetailPage({
             </div>
           )}
 
-          <div className="space-y-4 mb-5">
+          <div className="grid gap-4 lg:grid-cols-2 mb-5">
             {property.rooms.map((room) => {
               const currentTenancy = room.tenancies[0] ?? null;
               const isOccupied = !room.isAvailable;
@@ -163,7 +148,7 @@ export default async function PropertyDetailPage({
               return (
                 <div
                   key={room.id}
-                  className={`border rounded-xl p-5 ${isOccupied ? 'border-green-200 bg-green-50' : 'border-gray-200'}`}
+                  className={`border rounded-xl p-5 ${isOccupied ? 'border-green-200 bg-green-50' : 'border-gray-200 bg-white'}`}
                 >
                   <div className="flex items-start justify-between mb-3">
                     <div>
