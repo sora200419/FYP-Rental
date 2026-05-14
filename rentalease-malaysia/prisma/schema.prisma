@@ -38,6 +38,8 @@ model User {
   linkedCorporateOccupancies       CorporateOccupant[]       @relation("LinkedCorporateOccupancies")
 
   kycRejectedReason String? @db.Text // set by admin on KYC rejection; cleared on approval
+  kycSubmission            KycSubmission?   @relation("UserKyc")
+  reviewedKycSubmissions   KycSubmission[]  @relation("KycReviewer")
 
   deletedAt     DateTime?
   deletedById   String?
@@ -750,4 +752,37 @@ model AuditLog {
 
   @@index([entityName, entityId])
   @@index([actorId, createdAt])
+}
+
+// ─── KYC SUBMISSION ──────────────────────────────────────────────────────────
+// One submission per user. Resubmission (after REJECTED) upserts this record
+// and deletes old Cloudinary images. faceMatchScore is admin-only — never
+// returned to the submitting user.
+model KycSubmission {
+  id              String    @id @default(cuid())
+  userId          String    @unique
+  user            User      @relation("UserKyc", fields: [userId], references: [id])
+
+  icFrontUrl      String
+  icFrontPublicId String
+  icBackUrl       String
+  icBackPublicId  String
+  selfieUrl       String
+  selfiePublicId  String
+
+  faceMatchScore  Float?
+  status          KycStatus @default(PENDING)
+  rejectedReason  String?   @db.Text
+
+  reviewedById    String?
+  reviewedBy      User?     @relation("KycReviewer", fields: [reviewedById], references: [id])
+  reviewedAt      DateTime?
+  submittedAt     DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+}
+
+enum KycStatus {
+  PENDING
+  APPROVED
+  REJECTED
 }
