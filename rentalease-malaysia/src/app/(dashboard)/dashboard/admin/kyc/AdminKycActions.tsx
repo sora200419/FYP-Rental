@@ -21,6 +21,7 @@ export default function AdminKycActions({ submissionId }: Props) {
       router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed');
+    } finally {
       setLoading(false);
     }
   }
@@ -36,9 +37,11 @@ export default function AdminKycActions({ submissionId }: Props) {
         body: JSON.stringify({ reason: reason.trim() }),
       });
       if (!res.ok) { const d = await res.json(); throw new Error(d.error); }
+      setReason('');
       router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed');
+    } finally {
       setLoading(false);
     }
   }
@@ -72,7 +75,7 @@ export default function AdminKycActions({ submissionId }: Props) {
             className="rounded-lg bg-green-600 px-4 py-2 text-sm font-semibold text-white hover:bg-green-700 disabled:opacity-50">
             {loading ? 'Approving…' : 'Approve'}
           </button>
-          <button onClick={() => setRejecting(true)} disabled={loading}
+          <button onClick={() => { setRejecting(true); setError(null); }} disabled={loading}
             className="rounded-lg border border-red-300 px-4 py-2 text-sm font-semibold text-red-600 hover:bg-red-50">
             Reject
           </button>
