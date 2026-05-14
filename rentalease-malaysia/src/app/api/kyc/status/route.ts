@@ -1,0 +1,22 @@
+import { NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
+import { prisma } from '@/lib/prisma';
+
+export async function GET() {
+  const session = await getServerSession(authOptions);
+  if (!session) return NextResponse.json({ error: 'Unauthorised' }, { status: 401 });
+
+  const submission = await prisma.kycSubmission.findUnique({
+    where: { userId: session.user.id },
+    select: { status: true, rejectedReason: true, submittedAt: true },
+  });
+
+  if (!submission) return NextResponse.json({ status: null });
+
+  return NextResponse.json({
+    status: submission.status,
+    rejectedReason: submission.rejectedReason,
+    submittedAt: submission.submittedAt,
+  });
+}
