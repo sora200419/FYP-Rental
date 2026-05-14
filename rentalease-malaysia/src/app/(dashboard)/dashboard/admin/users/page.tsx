@@ -7,9 +7,10 @@ import { AdminNav } from '@/components/ui/AdminTabBar';
 import SuspendButton from '@/components/ui/SuspendButton';
 import DeleteUserButton from '@/components/ui/DeleteUserButton';
 
-function getKycBadge(isVerified: boolean, hasDocument: boolean) {
+function getKycBadge(isVerified: boolean, kycStatus: string | null) {
   if (isVerified) return { label: 'Verified', cls: 'bg-green-100 text-green-700' };
-  if (hasDocument) return { label: 'Pending', cls: 'bg-amber-100 text-amber-700' };
+  if (kycStatus === 'PENDING') return { label: 'Pending', cls: 'bg-amber-100 text-amber-700' };
+  if (kycStatus === 'REJECTED') return { label: 'Rejected', cls: 'bg-red-100 text-red-700' };
   return { label: 'Unverified', cls: 'bg-gray-100 text-gray-500' };
 }
 
@@ -52,7 +53,7 @@ export default async function AdminUsersPage({
         deletedAt: true,
         deletedReason: true,
         createdAt: true,
-        tenantDocuments: { select: { id: true }, take: 1 },
+        kycSubmission: { select: { status: true } },
         ownedProperties: {
           where: { isVerified: true },
           select: { id: true },
@@ -127,7 +128,7 @@ export default async function AdminUsersPage({
       ) : (
         <div className="space-y-3">
           {users.map((user) => {
-            const kyc = getKycBadge(user.isVerified, user.tenantDocuments.length > 0);
+            const kyc = getKycBadge(user.isVerified, user.kycSubmission?.status ?? null);
             const activityCount =
               user.role === 'LANDLORD'
                 ? user.ownedProperties.length

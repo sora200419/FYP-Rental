@@ -206,19 +206,9 @@ export default function TenantDocumentUploader({ initialDocuments }: Props) {
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
         </svg>
         <p className="text-xs text-blue-700 leading-relaxed">
-          Your documents are stored securely and only visible to landlords with an active tenancy relationship with you. Access is automatically revoked when the tenancy ends — in accordance with PDPA data minimisation principles.
+          Your income proof document is stored securely and only visible to landlords with an active tenancy relationship with you. Access is automatically revoked when the tenancy ends — in accordance with PDPA data minimisation principles.
         </p>
       </div>
-
-      <DocumentSlot
-        type="IC_COPY"
-        label="IC / NRIC Copy"
-        description="Front and back of your Malaysian identity card. Accepted: JPG, PNG, WebP, PDF (max 10 MB)"
-        doc={getDoc('IC_COPY')}
-        onUpload={handleUpload}
-        onDelete={(id) => handleDelete(id, 'IC_COPY')}
-        isUploading={uploadingType === 'IC_COPY'}
-      />
 
       <DocumentSlot
         type="INCOME_PROOF"

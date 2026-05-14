@@ -14,17 +14,28 @@ export default async function DashboardLayout({
   if (!session) redirect('/login');
 
   let isVerified = true;
+  let kycState: 'none' | 'PENDING' | 'REJECTED' = 'none';
+  let rejectedReason: string | null = null;
+
   if (session.user.role !== 'ADMIN') {
     const user = await prisma.user.findUnique({
       where: { id: session.user.id },
-      select: { isVerified: true },
+      select: {
+        isVerified: true,
+        kycSubmission: { select: { status: true, rejectedReason: true } },
+      },
     });
     isVerified = user?.isVerified ?? false;
+    const sub = user?.kycSubmission;
+    if (sub?.status === 'PENDING') kycState = 'PENDING';
+    else if (sub?.status === 'REJECTED') { kycState = 'REJECTED'; rejectedReason = sub.rejectedReason ?? null; }
   }
 
   return (
     <DashboardShell>
-      {!isVerified && <KycPendingBanner role={session.user.role} />}
+      {!isVerified && (
+        <KycPendingBanner role={session.user.role} kycState={kycState} rejectedReason={rejectedReason} />
+      )}
       {children}
     </DashboardShell>
   );

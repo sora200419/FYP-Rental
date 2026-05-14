@@ -30,6 +30,11 @@ export default async function ProfilePage() {
     orderBy: { uploadedAt: 'desc' },
   });
 
+  const kycSubmission = await prisma.kycSubmission.findUnique({
+    where: { userId: session.user.id },
+    select: { status: true, rejectedReason: true },
+  });
+
   if (!user) redirect('/login');
 
   // Count how many agreements this user is a party to — shown as context
@@ -110,17 +115,29 @@ export default async function ProfilePage() {
           </div>
           <div>
             <p className="text-gray-400">Verification</p>
-            <p
-              className={`font-medium mt-0.5 ${
-                isVerified
-                  ? 'text-green-600'
-                  : hasIc
-                    ? 'text-blue-600'
-                    : 'text-amber-600'
-              }`}
-            >
-              {isVerified ? 'Verified' : hasIc ? 'Pending Review' : 'Not provided'}
-            </p>
+            <div className="mt-0.5 flex items-center gap-2">
+              <p className={`font-medium ${
+                isVerified ? 'text-green-600'
+                : kycSubmission?.status === 'PENDING' ? 'text-blue-600'
+                : kycSubmission?.status === 'REJECTED' ? 'text-red-600'
+                : 'text-amber-600'
+              }`}>
+                {isVerified ? 'Verified'
+                  : kycSubmission?.status === 'PENDING' ? 'Under review'
+                  : kycSubmission?.status === 'REJECTED' ? 'Rejected'
+                  : 'Not started'}
+              </p>
+              {!isVerified && !kycSubmission && (
+                <a href="/dashboard/kyc" className="text-xs text-blue-600 hover:underline font-medium">
+                  Verify now →
+                </a>
+              )}
+              {kycSubmission?.status === 'REJECTED' && (
+                <a href="/dashboard/kyc" className="text-xs text-red-600 hover:underline font-medium">
+                  Resubmit →
+                </a>
+              )}
+            </div>
           </div>
         </div>
       </div>
@@ -136,17 +153,15 @@ export default async function ProfilePage() {
         />
       </div>
 
-      {/* Identity documents — shown to both landlords and tenants for KYC */}
+      {/* Identity documents — income proof only; IC is now handled by the KYC wizard */}
       <div className="bg-white rounded-xl border border-gray-200 p-6">
         <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">
-          Identity Documents
+          Income Proof
         </h2>
         <p className="text-xs text-gray-400 mb-4">
-          {user.role === 'LANDLORD'
-            ? tenantDocuments.length > 0
-              ? 'Your IC was submitted and is pending admin review. You may upload a replacement if needed.'
-              : 'Upload your IC copy so an admin can verify your identity before you can list properties.'
-            : 'Upload your IC copy and income proof. Landlords can view these only during an active tenancy.'}
+          {user.role === 'TENANT'
+            ? 'Upload your income proof. Landlords can view this only during an active tenancy.'
+            : 'Upload your income proof if required by tenants.'}
         </p>
         <TenantDocumentUploader
           initialDocuments={tenantDocuments.map((d) => ({

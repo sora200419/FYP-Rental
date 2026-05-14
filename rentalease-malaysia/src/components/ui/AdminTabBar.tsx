@@ -42,7 +42,7 @@ export function AdminNav({ active }: AdminNavProps) {
 
   return (
     <div className="flex gap-2 mb-6">
-      <a href="/dashboard/admin/verify" className={`${base} ${active === 'kyc' ? activeClass : inactiveClass}`}>
+      <a href="/dashboard/admin/kyc" className={`${base} ${active === 'kyc' ? activeClass : inactiveClass}`}>
         KYC
       </a>
       <a href="/dashboard/admin/properties" className={`${base} ${active === 'properties' ? activeClass : inactiveClass}`}>

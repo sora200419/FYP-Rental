@@ -1,29 +1,66 @@
 import Link from 'next/link';
 
+type KycState = 'none' | 'PENDING' | 'REJECTED';
+
 interface Props {
   role: string;
+  kycState: KycState;
+  rejectedReason?: string | null;
 }
 
-export default function KycPendingBanner({ role }: Props) {
+export default function KycPendingBanner({ role, kycState, rejectedReason }: Props) {
+  if (kycState === 'PENDING') {
+    return (
+      <div className="mb-6 flex items-start gap-3 rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800">
+        <svg className="mt-0.5 h-4 w-4 shrink-0 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+        <div>
+          <p className="font-semibold">Identity verification under review</p>
+          <p className="mt-0.5 text-xs text-blue-700">
+            An admin is reviewing your submission. You&apos;ll be notified once approved.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  if (kycState === 'REJECTED') {
+    return (
+      <div className="mb-6 flex items-start gap-3 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+        <svg className="mt-0.5 h-4 w-4 shrink-0 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+        </svg>
+        <div className="flex-1">
+          <p className="font-semibold">Identity verification rejected</p>
+          {rejectedReason && <p className="mt-0.5 text-xs text-red-700">{rejectedReason}</p>}
+          <Link href="/dashboard/kyc" className="mt-1 inline-block text-xs font-medium underline hover:text-red-900">
+            Resubmit verification
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  // kycState === 'none'
   const detail =
     role === 'LANDLORD'
       ? 'You cannot add properties or invite tenants until your identity is approved.'
       : 'You cannot accept tenancy invitations until your identity is approved.';
 
   return (
-    <div className="flex items-start gap-3 bg-amber-50 border border-amber-200 rounded-lg px-4 py-3 mb-6 text-sm text-amber-800">
-      <svg className="w-4 h-4 text-amber-500 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <div className="mb-6 flex items-start gap-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+      <svg className="mt-0.5 h-4 w-4 shrink-0 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
           d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
       </svg>
-      <div className="flex-1 min-w-0">
-        <p className="font-semibold">Account pending identity verification</p>
-        <p className="text-xs text-amber-700 mt-0.5 leading-relaxed">
-          {detail} An admin will review your IC photo and approve your account.{' '}
-          <Link href="/dashboard/profile" className="underline font-medium hover:text-amber-900">
-            View your profile
-          </Link>{' '}
-          to check your submission status.
+      <div className="flex-1">
+        <p className="font-semibold">Identity verification required</p>
+        <p className="mt-0.5 text-xs text-amber-700 leading-relaxed">
+          {detail}{' '}
+          <Link href="/dashboard/kyc" className="font-medium underline hover:text-amber-900">
+            Verify your identity
+          </Link>
         </p>
       </div>
     </div>
