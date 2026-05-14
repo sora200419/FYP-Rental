@@ -45,9 +45,9 @@ export async function GET(request: Request) {
     include: {
       createdBy: { select: { id: true, name: true, role: true } },
       acknowledgedBy: { select: { id: true, name: true } },
-      photos: {
-        orderBy: { createdAt: 'asc' },
-      },
+      reviewedBy: { select: { id: true, name: true } },
+      photos: { orderBy: { createdAt: 'asc' } },
+      checklistItems: { orderBy: { area: 'asc' } },
     },
     orderBy: { createdAt: 'desc' },
   });
