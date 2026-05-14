@@ -18,6 +18,8 @@ export async function PATCH(
   const reason = (body.reason as string)?.trim();
   if (!reason)
     return NextResponse.json({ error: 'Rejection reason is required' }, { status: 400 });
+  if (reason.length > 500)
+    return NextResponse.json({ error: 'Rejection reason must be 500 characters or fewer' }, { status: 400 });
 
   const submission = await prisma.kycSubmission.findUnique({
     where: { id },
@@ -38,7 +40,9 @@ export async function PATCH(
     },
   });
 
-  sendKycRejectedEmail(submission.user.email, submission.user.name, reason);
+  sendKycRejectedEmail(submission.user.email, submission.user.name, reason).catch((err) =>
+    console.error('[kyc] rejection email failed:', err),
+  );
 
   await createNotification(
     submission.userId,

@@ -35,7 +35,9 @@ export async function PATCH(
     }),
   ]);
 
-  sendKycApprovedEmail(submission.user.email, submission.user.name);
+  sendKycApprovedEmail(submission.user.email, submission.user.name).catch((err) =>
+    console.error('[kyc] approval email failed:', err),
+  );
 
   await createNotification(
     submission.userId,

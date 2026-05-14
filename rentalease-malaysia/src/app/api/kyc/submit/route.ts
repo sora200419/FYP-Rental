@@ -28,9 +28,9 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Your identity is already verified.' }, { status: 409 });
 
   const formData = await request.formData();
-  const icFront = formData.get('icFront') as File | null;
-  const icBack = formData.get('icBack') as File | null;
-  const selfie = formData.get('selfie') as File | null;
+  const icFront = formData.get('icFront') instanceof File ? (formData.get('icFront') as File) : null;
+  const icBack = formData.get('icBack') instanceof File ? (formData.get('icBack') as File) : null;
+  const selfie = formData.get('selfie') instanceof File ? (formData.get('selfie') as File) : null;
 
   if (!icFront || !icBack || !selfie)
     return NextResponse.json({ error: 'All three images are required' }, { status: 400 });
@@ -43,24 +43,41 @@ export async function POST(request: NextRequest) {
   }
 
   if (existing?.status === 'REJECTED') {
-    await Promise.allSettled([
+    const deletions = await Promise.allSettled([
       deleteKycImage(existing.icFrontPublicId),
       deleteKycImage(existing.icBackPublicId),
       deleteKycImage(existing.selfiePublicId),
     ]);
+    deletions.forEach((r, i) => {
+      if (r.status === 'rejected') console.error(`[kyc] old image cleanup failed [${i}]:`, r.reason);
+    });
   }
 
   const [icFrontBytes, icBackBytes, selfieBytes] = await Promise.all([
-    icFront.arrayBuffer().then(Buffer.from),
-    icBack.arrayBuffer().then(Buffer.from),
-    selfie.arrayBuffer().then(Buffer.from),
+    icFront.arrayBuffer().then((b) => Buffer.from(b)),
+    icBack.arrayBuffer().then((b) => Buffer.from(b)),
+    selfie.arrayBuffer().then((b) => Buffer.from(b)),
   ]);
 
-  const [icFrontResult, icBackResult, selfieResult] = await Promise.all([
+  const uploadResults = await Promise.allSettled([
     uploadKycImage(icFrontBytes, icFront.name, icFront.type),
     uploadKycImage(icBackBytes, icBack.name, icBack.type),
     uploadKycImage(selfieBytes, selfie.name, selfie.type),
   ]);
+
+  const uploadFailed = uploadResults.some((r) => r.status === 'rejected');
+  if (uploadFailed) {
+    await Promise.allSettled(
+      uploadResults
+        .filter((r): r is PromiseFulfilledResult<{ url: string; publicId: string }> => r.status === 'fulfilled')
+        .map((r) => deleteKycImage(r.value.publicId)),
+    );
+    return NextResponse.json({ error: 'Failed to upload images. Please try again.' }, { status: 500 });
+  }
+
+  const [icFrontResult, icBackResult, selfieResult] = uploadResults.map(
+    (r) => (r as PromiseFulfilledResult<{ url: string; publicId: string }>).value,
+  );
 
   const faceMatchScore = await compareFaces(icFrontBytes, selfieBytes);
 
@@ -98,7 +115,7 @@ export async function POST(request: NextRequest) {
     select: { id: true },
   });
 
-  await Promise.all(
+  await Promise.allSettled(
     admins.map((admin) =>
       createNotification(
         admin.id,

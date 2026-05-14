@@ -9,7 +9,7 @@ export async function GET() {
 
   const submission = await prisma.kycSubmission.findUnique({
     where: { userId: session.user.id },
-    select: { status: true, rejectedReason: true, submittedAt: true },
+    select: { status: true, rejectedReason: true },
   });
 
   if (!submission) return NextResponse.json({ status: null });
@@ -17,6 +17,5 @@ export async function GET() {
   return NextResponse.json({
     status: submission.status,
     rejectedReason: submission.rejectedReason,
-    submittedAt: submission.submittedAt,
   });
 }
