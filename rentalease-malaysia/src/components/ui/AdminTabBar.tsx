@@ -32,7 +32,7 @@ export default function AdminTabBar({ activeTab, pendingCount, verifiedCount }: 
 }
 
 interface AdminNavProps {
-  active: 'kyc' | 'properties' | 'users';
+  active: 'kyc' | 'properties' | 'users' | 'audit-log';
 }
 
 export function AdminNav({ active }: AdminNavProps) {
@@ -50,6 +50,9 @@ export function AdminNav({ active }: AdminNavProps) {
       </a>
       <a href="/dashboard/admin/users" className={`${base} ${active === 'users' ? activeClass : inactiveClass}`}>
         Users
+      </a>
+      <a href="/dashboard/admin/audit-log" className={`${base} ${active === 'audit-log' ? activeClass : inactiveClass}`}>
+        Audit Log
       </a>
     </div>
   );
