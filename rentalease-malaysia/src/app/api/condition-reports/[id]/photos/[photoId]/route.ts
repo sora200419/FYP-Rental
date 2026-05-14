@@ -27,7 +27,7 @@ export async function DELETE(
     },
     include: {
       report: {
-        select: { acknowledgedAt: true },
+        select: { status: true },
       },
     },
   });
@@ -38,13 +38,11 @@ export async function DELETE(
       { status: 404 },
     );
 
-  // Once acknowledged, the report is immutable — no deletions allowed.
-  if (photo.report.acknowledgedAt)
+  // Once locked, the report is immutable — no deletions allowed.
+  const LOCKED_STATUSES = ['ACCEPTED', 'DISPUTED', 'LOCKED'];
+  if (LOCKED_STATUSES.includes(photo.report.status))
     return NextResponse.json(
-      {
-        error:
-          'This report has been acknowledged and can no longer be modified.',
-      },
+      { error: 'This report is locked and can no longer be modified.' },
       { status: 409 },
     );
 

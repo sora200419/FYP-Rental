@@ -32,12 +32,10 @@ export async function POST(
       { status: 404 },
     );
 
-  if (report.acknowledgedAt)
+  const LOCKED_STATUSES = ['ACCEPTED', 'DISPUTED', 'LOCKED'];
+  if (LOCKED_STATUSES.includes(report.status))
     return NextResponse.json(
-      {
-        error:
-          'This report has already been acknowledged. No further changes are allowed.',
-      },
+      { error: 'This report is locked. No further changes are allowed.' },
       { status: 409 },
     );
 
