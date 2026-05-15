@@ -43,10 +43,13 @@ export interface TenancyForAgreement {
     phone?: string | null;
     icNumber?: string | null;
   };
+  companyRegistrationNo?: string | null;
+  authorizedSignatoryIC?: string | null;
   landlord: {
     name: string;
     email: string;
     phone?: string | null;
+    icNumber?: string | null;
   };
   negotiationContext?: string | null;
   coTenants?: { name: string; icNumber?: string | null }[];
@@ -210,9 +213,33 @@ export async function generateTenancyAgreement(
   const maskIc = (ic?: string | null) =>
     ic ? `****-**-${ic.slice(-4)}` : 'Not provided';
 
-  const tenantIcLine = tenancy.tenant.icNumber
-    ? `- Tenant IC Number: ${maskIc(tenancy.tenant.icNumber)} (last 4 digits only)`
-    : '- Tenant IC Number: Not provided (parties should verify identity separately)';
+  const formatLegalIdentity = (value?: string | null) =>
+    value?.trim() ? value.trim() : 'Not provided';
+
+  const individualIdentityBlock = `
+FINAL PARTY IDENTITY DETAILS
+- Landlord Name: ${tenancy.landlord.name}
+- Landlord Email: ${tenancy.landlord.email}
+- Landlord Phone: ${tenancy.landlord.phone ?? 'Not provided'}
+- Landlord IC/NRIC Number: ${formatLegalIdentity(tenancy.landlord.icNumber)}
+- Tenant Name: ${tenancy.tenant.name}
+- Tenant Email: ${tenancy.tenant.email}
+- Tenant Phone: ${tenancy.tenant.phone ?? 'Not provided'}
+- Tenant IC/NRIC Number: ${formatLegalIdentity(tenancy.tenant.icNumber)}
+`;
+
+  const corporateIdentityBlock =
+    tenancy.leasePartyType === 'CORPORATE'
+      ? `
+CORPORATE PARTY IDENTITY DETAILS
+- Company Name: ${tenancy.companyName ?? 'Not provided'}
+- Company Registration Number: ${tenancy.companyRegistrationNo ?? 'Not provided'}
+- Authorized Signatory Name: ${tenancy.authorizedSignatoryName ?? tenancy.tenant.name}
+- Authorized Signatory Role: ${tenancy.authorizedSignatoryRole ?? 'Not provided'}
+- Authorized Signatory IC/NRIC Number: ${formatLegalIdentity(tenancy.authorizedSignatoryIC ?? tenancy.tenant.icNumber)}
+- Authorized Signatory Email: ${tenancy.tenant.email}
+`
+      : '';
 
   const coTenantsBlock =
     tenancy.coTenants && tenancy.coTenants.length > 0
@@ -286,16 +313,12 @@ UTILITIES AND SERVICES
 ${utilitiesClause}
 The agreement MUST include a dedicated Utilities clause that clearly states which utilities are included in rent and which the Tenant is responsible for. Do not leave this ambiguous.
 
-PARTIES
-- Landlord Name: ${tenancy.landlord.name}
-- Landlord Email: ${tenancy.landlord.email}
-- Landlord Phone: ${tenancy.landlord.phone ?? 'Not provided'}
-- Tenant Name: ${tenancy.tenant.name}
-- Tenant Email: ${tenancy.tenant.email}
-- Tenant Phone: ${tenancy.tenant.phone ?? 'Not provided'}
-${tenantIcLine}
+${individualIdentityBlock}
+${corporateIdentityBlock}
 ${coTenantsBlock}
 ${corporateLeasePartyBlock}
+The rawContent must include a dedicated "Parties and Identity Details" section using the full identity details provided above. Do not mask IC/NRIC numbers in rawContent. Do not repeat full IC/NRIC numbers in plainLanguageSummary or redFlags unless legally necessary.
+
 FINANCIAL TERMS
 - Tenancy Start Date: ${startDate}
 - Tenancy End Date: ${endDate}

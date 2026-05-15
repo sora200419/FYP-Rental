@@ -90,7 +90,7 @@ export async function POST(request: NextRequest) {
 
     const landlord = await prisma.user.findUnique({
       where: { id: session.user.id },
-      select: { name: true, email: true, phone: true },
+      select: { name: true, email: true, phone: true, icNumber: true },
     });
 
     if (!landlord)
@@ -137,8 +137,10 @@ export async function POST(request: NextRequest) {
       depositAmount: tenancy.depositAmount,
       leasePartyType: tenancy.leasePartyType,
       companyName: tenancy.companyName,
+      companyRegistrationNo: tenancy.companyRegistrationNo,
       authorizedSignatoryName: tenancy.authorizedSignatoryName,
       authorizedSignatoryRole: tenancy.authorizedSignatoryRole,
+      authorizedSignatoryIC: tenancy.authorizedSignatoryIC,
       property: {
         address: tenancy.room.property.address,
         city: tenancy.room.property.city,
