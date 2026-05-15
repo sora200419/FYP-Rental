@@ -1,15 +1,9 @@
 import { RekognitionClient, CompareFacesCommand } from '@aws-sdk/client-rekognition';
 
-const MOCK_SCORE = 85.0;
-
 export async function compareFaces(
   sourceImageBytes: Buffer,
   targetImageBytes: Buffer,
 ): Promise<number> {
-  if (process.env.KYC_REKOGNITION_MODE !== 'aws') {
-    return MOCK_SCORE;
-  }
-
   const client = new RekognitionClient({
     region: process.env.AWS_REGION!,
     credentials: {
