@@ -174,14 +174,83 @@ export default function KycWizard() {
             </div>
           ) : cameraActive ? (
             <div className="mb-4 text-center">
-              {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
-              <video ref={videoRef} autoPlay playsInline className="mx-auto h-64 w-64 rounded-xl border border-gray-200 object-cover" />
+              <style>{`
+                @keyframes kyc-scan {
+                  0%   { transform: translateY(0px);   opacity: 0; }
+                  5%   { opacity: 1; }
+                  95%  { opacity: 1; }
+                  100% { transform: translateY(200px); opacity: 0; }
+                }
+              `}</style>
+
+              {/* Camera container — video + SVG overlay + scan line */}
+              <div className="relative mx-auto w-64 h-64">
+                {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
+                <video
+                  ref={videoRef}
+                  autoPlay
+                  playsInline
+                  className="w-full h-full rounded-xl object-cover"
+                />
+
+                {/* Dark overlay with oval face cutout */}
+                <svg
+                  className="absolute inset-0 w-full h-full rounded-xl pointer-events-none"
+                  viewBox="0 0 256 256"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <defs>
+                    <mask id="face-oval-mask">
+                      <rect width="256" height="256" fill="white" />
+                      <ellipse cx="128" cy="128" rx="80" ry="100" fill="black" />
+                    </mask>
+                  </defs>
+                  {/* Semi-transparent dark layer with oval hole */}
+                  <rect
+                    width="256"
+                    height="256"
+                    fill="rgba(0,0,0,0.55)"
+                    mask="url(#face-oval-mask)"
+                  />
+                  {/* White oval border */}
+                  <ellipse
+                    cx="128"
+                    cy="128"
+                    rx="80"
+                    ry="100"
+                    fill="none"
+                    stroke="white"
+                    strokeWidth="2"
+                    strokeOpacity="0.7"
+                  />
+                </svg>
+
+                {/* Animated scan line — sweeps inside the oval top-to-bottom */}
+                <div
+                  className="absolute pointer-events-none h-1 rounded-full bg-gradient-to-r from-transparent via-blue-400/60 to-transparent"
+                  style={{
+                    top: '28px',
+                    left: 'calc(50% - 80px)',
+                    width: '160px',
+                    animation: 'kyc-scan 2s linear infinite',
+                  }}
+                />
+              </div>
+
               <canvas ref={canvasRef} className="hidden" />
+              <p className="mt-3 text-xs text-gray-400">Position your face inside the oval</p>
+
               <div className="mt-3 flex justify-center gap-2">
-                <button onClick={captureFrame} className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700">
+                <button
+                  onClick={captureFrame}
+                  className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+                >
                   Capture
                 </button>
-                <button onClick={stopCamera} className="rounded-lg border border-gray-300 px-4 py-2 text-sm text-gray-600 hover:bg-gray-50">
+                <button
+                  onClick={stopCamera}
+                  className="rounded-lg border border-gray-300 px-4 py-2 text-sm text-gray-600 hover:bg-gray-50"
+                >
                   Cancel
                 </button>
               </div>
