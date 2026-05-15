@@ -3,7 +3,6 @@ import { authOptions } from '@/lib/auth';
 import { redirect } from 'next/navigation';
 import { prisma } from '@/lib/prisma';
 import ProfileForm from '@/components/ui/ProfileForm';
-import TenantDocumentUploader from '@/components/ui/TenantDocumentUploader';
 
 export default async function ProfilePage() {
   const session = await getServerSession(authOptions);
@@ -22,11 +21,6 @@ export default async function ProfilePage() {
       role: true,
       createdAt: true,
     },
-  });
-
-  const tenantDocuments = await prisma.tenantDocument.findMany({
-    where: { userId: session.user.id, type: 'INCOME_PROOF' },
-    orderBy: { uploadedAt: 'desc' },
   });
 
   const kycSubmission = await prisma.kycSubmission.findUnique({
@@ -152,24 +146,6 @@ export default async function ProfilePage() {
         />
       </div>
 
-      {/* Identity documents — income proof only; IC is now handled by the KYC wizard */}
-      <div className="bg-white rounded-xl border border-gray-200 p-6">
-        <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">
-          Income Proof
-        </h2>
-        <p className="text-xs text-gray-400 mb-4">
-          {user.role === 'TENANT'
-            ? 'Upload your income proof. Landlords can view this only during an active tenancy.'
-            : 'Upload your income proof if required by tenants.'}
-        </p>
-        <TenantDocumentUploader
-          initialDocuments={tenantDocuments.map((d) => ({
-            ...d,
-            type: d.type as 'INCOME_PROOF',
-            uploadedAt: d.uploadedAt.toISOString(),
-          }))}
-        />
-      </div>
     </div>
   );
 }

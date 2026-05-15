@@ -192,9 +192,6 @@ export const messagesEn: Record<string, string> = {
   profile_save: 'Save Changes',
   profile_saved: 'Profile updated successfully.',
   profile_documents: 'Identity Documents',
-  profile_ic_copy: 'IC Copy',
-  profile_income_proof: 'Income Proof',
-  profile_pdpa_notice: 'These documents are stored securely and encrypted at rest. They are only visible to landlords you have an active tenancy relationship with. You may delete them at any time.',
 
   // Notifications
   notifications_title: 'Notifications',
@@ -376,9 +373,6 @@ export const messagesMs: Record<string, string> = {
   profile_save: 'Simpan Perubahan',
   profile_saved: 'Profil berjaya dikemas kini.',
   profile_documents: 'Dokumen Pengenalan',
-  profile_ic_copy: 'Salinan IC',
-  profile_income_proof: 'Bukti Pendapatan',
-  profile_pdpa_notice: 'Dokumen-dokumen ini disimpan dengan selamat dan disulitkan. Ia hanya boleh dilihat oleh tuan tanah yang mempunyai hubungan penyewaan aktif dengan anda. Anda boleh memadamnya pada bila-bila masa.',
 
   // Notifications
   notifications_title: 'Pemberitahuan',

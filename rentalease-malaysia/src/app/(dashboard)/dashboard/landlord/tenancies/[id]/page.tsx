@@ -6,7 +6,6 @@ import Link from 'next/link';
 import GenerateAgreementButton from '@/components/ui/GenerateAgreementButton';
 import EditTenancyTerms from './EditTenancyTerms';
 import { EndOfTenancyBanner } from '@/components/ui/EndOfTenancyBanner';
-import TenantDocumentsCard from '@/components/ui/TenantDocumentsCard';
 import DepositVerificationCard from '@/components/ui/DepositVerificationCard';
 import CoTenantManager from '@/components/ui/CoTenantManager';
 import LandlordAgreementSignatureProofReview from '@/components/ui/LandlordAgreementSignatureProofReview';
@@ -374,8 +373,6 @@ export default async function TenancyDetailPage({
             </div>
           </div>
         </div>
-
-        <TenantDocumentsCard tenancyId={id} tenantName={tenancy.tenant.name} />
 
         {isCorporate ? (
           <>

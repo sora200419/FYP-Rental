@@ -51,7 +51,6 @@ model User {
   auditLogsAuthored AuditLog[] @relation("AuditLogActor")
 
   notifications       Notification[]
-  tenantDocuments     TenantDocument[]
   passwordResetTokens PasswordResetToken[]
 }
 
@@ -623,30 +622,6 @@ model AgreementPreferences {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-}
-
-// ─── TENANT DOCUMENT ─────────────────────────────────────────────────────────
-// Secure storage for tenant identity and income documents. Replaces the
-// insecure WhatsApp-based document sharing identified in the IR problem statement.
-// Access is scoped to landlords with an active tenancy relationship (PDPA measure).
-model TenantDocument {
-  id           String       @id @default(cuid())
-  userId       String
-  user         User         @relation(fields: [userId], references: [id])
-  type         DocumentType
-  imageUrl     String
-  publicId     String // Cloudinary public_id for deletion
-  originalName String // Original filename for display
-  fileSize     Int // bytes
-  mimeType     String // image/jpeg, image/png, application/pdf
-  uploadedAt   DateTime     @default(now())
-
-  @@unique([userId, type]) // one document per type per user; uploading replaces
-}
-
-enum DocumentType {
-  IC_COPY
-  INCOME_PROOF
 }
 
 // ─── DEPOSIT PROOF ───────────────────────────────────────────────────────────
