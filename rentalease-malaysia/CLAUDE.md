@@ -29,6 +29,10 @@ CLOUDINARY_API_SECRET="..."
 CLOUDINARY_UPLOAD_PRESET="rentalease_payments"
 BLOCKCHAIN_PRIVATE_KEY="0x..."   # Sepolia testnet wallet
 SEPOLIA_RPC_URL="https://..."
+AWS_REGION="ap-southeast-1"
+AWS_ACCESS_KEY_ID="<IAM user access key>"
+AWS_SECRET_ACCESS_KEY="<IAM user secret>"
+KYC_REKOGNITION_MODE="aws"       # kept for reference; code no longer checks this
 ```
 
 ## Architecture

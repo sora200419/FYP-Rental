@@ -1,4 +1,4 @@
-// Server-only — never import from a 'use client' component. Holds AWS credentials.
+import 'server-only';
 import { RekognitionClient, CompareFacesCommand } from '@aws-sdk/client-rekognition';
 
 if (!process.env.AWS_REGION || !process.env.AWS_ACCESS_KEY_ID || !process.env.AWS_SECRET_ACCESS_KEY) {
