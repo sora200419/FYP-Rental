@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useId } from 'react';
 import { useRouter } from 'next/navigation';
 
 type Step = 1 | 2 | 3;
@@ -19,6 +19,7 @@ export default function KycWizard() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const [cameraActive, setCameraActive] = useState(false);
+  const maskId = useId();
 
   useEffect(() => () => stopCamera(), []);
 
@@ -174,15 +175,6 @@ export default function KycWizard() {
             </div>
           ) : cameraActive ? (
             <div className="mb-4 text-center">
-              <style>{`
-                @keyframes kyc-scan {
-                  0%   { transform: translateY(0px);   opacity: 0; }
-                  5%   { opacity: 1; }
-                  95%  { opacity: 1; }
-                  100% { transform: translateY(200px); opacity: 0; }
-                }
-              `}</style>
-
               {/* Camera container — video + SVG overlay + scan line */}
               <div className="relative mx-auto w-64 h-64">
                 {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
@@ -195,12 +187,13 @@ export default function KycWizard() {
 
                 {/* Dark overlay with oval face cutout */}
                 <svg
+                  aria-hidden="true"
                   className="absolute inset-0 w-full h-full rounded-xl pointer-events-none"
                   viewBox="0 0 256 256"
                   xmlns="http://www.w3.org/2000/svg"
                 >
                   <defs>
-                    <mask id="face-oval-mask">
+                    <mask id={maskId}>
                       <rect width="256" height="256" fill="white" />
                       <ellipse cx="128" cy="128" rx="80" ry="100" fill="black" />
                     </mask>
@@ -210,7 +203,7 @@ export default function KycWizard() {
                     width="256"
                     height="256"
                     fill="rgba(0,0,0,0.55)"
-                    mask="url(#face-oval-mask)"
+                    mask={`url(#${maskId})`}
                   />
                   {/* White oval border */}
                   <ellipse
@@ -227,6 +220,7 @@ export default function KycWizard() {
 
                 {/* Animated scan line — sweeps inside the oval top-to-bottom */}
                 <div
+                  aria-hidden="true"
                   className="absolute pointer-events-none h-1 rounded-full bg-gradient-to-r from-transparent via-blue-400/60 to-transparent"
                   style={{
                     top: '28px',
