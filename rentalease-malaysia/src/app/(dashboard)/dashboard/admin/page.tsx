@@ -5,25 +5,26 @@ import { prisma } from '@/lib/prisma';
 import Link from 'next/link';
 import { AttentionHero, PageHeader, StatCard } from '@/components/ui/RedesignPrimitives';
 import { getDashboardAttention } from '@/lib/uiRedesign';
+import { getAdminVerificationHref } from '@/lib/kyc-workflow';
 
 export default async function AdminDashboard() {
   const session = await getServerSession(authOptions);
   if (!session || session.user.role !== 'ADMIN') redirect('/login');
 
-  const [totalUsers, unverifiedCount, totalProperties, unverifiedPropertiesCount] =
+  const [totalUsers, pendingKycCount, totalProperties, unverifiedPropertiesCount] =
     await Promise.all([
       prisma.user.count({ where: { role: { not: 'ADMIN' } } }),
-      prisma.user.count({ where: { isVerified: false, role: { not: 'ADMIN' } } }),
+      prisma.kycSubmission.count({ where: { status: 'PENDING' } }),
       prisma.property.count(),
       prisma.property.count({ where: { isVerified: false } }),
     ]);
 
   const attention = getDashboardAttention({
     role: 'ADMIN',
-    pendingKyc: unverifiedCount,
+    pendingKyc: pendingKycCount,
     pendingProperties: unverifiedPropertiesCount,
   });
-  const attentionHref = unverifiedCount > 0 ? '/dashboard/admin/verify' : '/dashboard/admin/properties';
+  const attentionHref = getAdminVerificationHref({ pendingKycSubmissions: pendingKycCount });
 
   return (
     <div>
@@ -41,7 +42,7 @@ export default async function AdminDashboard() {
         secondary={
           <div className="space-y-2">
             <p className="text-xs font-semibold uppercase tracking-wide text-blue-700">Blocking queues</p>
-            <QueueLine label="Pending KYC" value={unverifiedCount} />
+            <QueueLine label="Pending KYC" value={pendingKycCount} />
             <QueueLine label="Pending properties" value={unverifiedPropertiesCount} />
           </div>
         }
@@ -49,7 +50,7 @@ export default async function AdminDashboard() {
 
       <div className="mb-8 grid grid-cols-2 gap-4 md:grid-cols-4">
         <StatCard label="Total users" value={totalUsers} />
-        <StatCard label="Pending KYC" value={unverifiedCount} tone={unverifiedCount > 0 ? 'amber' : 'default'} />
+        <StatCard label="Pending KYC" value={pendingKycCount} tone={pendingKycCount > 0 ? 'amber' : 'default'} />
         <StatCard label="Properties" value={totalProperties} tone="blue" />
         <StatCard
           label="Pending properties"
@@ -60,10 +61,10 @@ export default async function AdminDashboard() {
 
       <div className="grid gap-4 md:grid-cols-2">
         <ReviewCard
-          href="/dashboard/admin/verify"
+          href="/dashboard/admin/kyc"
           title="KYC Verification Queue"
-          description="Review pending identity documents and approve users."
-          count={unverifiedCount}
+          description="Review pending KYC submissions and approve users."
+          count={pendingKycCount}
         />
         <ReviewCard
           href="/dashboard/admin/properties"

@@ -87,7 +87,17 @@
       "PowerShell(Push-Location \"C:\\\\Users\\\\ONG\\\\OneDrive\\\\Desktop\\\\FYP Rental\\\\rentalease-malaysia\"; $env:PRISMA_GENERATE_NO_ENGINE='1'; npm.cmd run build 2>&1 | Out-String | Select-String -Pattern \"\\\\.tsx?:\\\\d+\" | Select-Object -First 10; Pop-Location)",
       "PowerShell(Push-Location \"C:\\\\Users\\\\ONG\\\\OneDrive\\\\Desktop\\\\FYP Rental\\\\rentalease-malaysia\"; $env:PRISMA_GENERATE_NO_ENGINE='1'; npm.cmd run build 2>&1 | Out-String | Select-String -Pattern \"error TS|Type error|Failed to compile|compiled successfully|Build completed\" | Select-Object -First 20; Pop-Location)",
       "PowerShell(Push-Location \"C:\\\\Users\\\\ONG\\\\OneDrive\\\\Desktop\\\\FYP Rental\\\\rentalease-malaysia\"; $env:PRISMA_GENERATE_NO_ENGINE='1'; npm.cmd run build 2>&1 | Select-Object -Last 60; Pop-Location)",
-      "PowerShell(Push-Location \"C:\\\\Users\\\\ONG\\\\OneDrive\\\\Desktop\\\\FYP Rental\\\\rentalease-malaysia\"; $env:PRISMA_GENERATE_NO_ENGINE='1'; npm.cmd run build 2>&1 | Where-Object { $_ -match \"error|warning|Error|Warning|failed|Failed\" } | Select-Object -First 30; Pop-Location)"
+      "PowerShell(Push-Location \"C:\\\\Users\\\\ONG\\\\OneDrive\\\\Desktop\\\\FYP Rental\\\\rentalease-malaysia\"; $env:PRISMA_GENERATE_NO_ENGINE='1'; npm.cmd run build 2>&1 | Where-Object { $_ -match \"error|warning|Error|Warning|failed|Failed\" } | Select-Object -First 30; Pop-Location)",
+      "Bash(git rev-parse *)",
+      "Bash(node -e \"const r = require\\('./src/lib/rekognition'\\); console.log\\(typeof r.compareFaces\\);\")",
+      "Bash(node -e \"const pkg = require\\('./package.json'\\); console.log\\(pkg.dependencies['@aws-sdk/client-rekognition']\\);\")",
+      "Bash(node -e \"const pkg = require\\('./node_modules/@aws-sdk/client-rekognition/package.json'\\); console.log\\(pkg.version\\);\")",
+      "Bash(mkdir -p \"C:\\\\Users\\\\ONG\\\\OneDrive\\\\Desktop\\\\FYP Rental\\\\rentalease-malaysia\\\\src\\\\app\\\\api\\\\admin\\\\kyc\\\\[id]\\\\approve\")",
+      "Bash(mkdir -p \"C:\\\\Users\\\\ONG\\\\OneDrive\\\\Desktop\\\\FYP Rental\\\\rentalease-malaysia\\\\src\\\\app\\\\api\\\\admin\\\\kyc\\\\[id]\\\\reject\")",
+      "Bash(npx vitest *)",
+      "Bash(Sort-Object)",
+      "Bash(not exist *)",
+      "PowerShell(New-Item *)"
     ]
   }
 }

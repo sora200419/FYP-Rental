@@ -74,8 +74,8 @@ export async function sendWelcomeEmail(to: string, name: string, role: 'LANDLORD
     'Welcome to RentalEase!',
     base(
       `Welcome, ${name}!`,
-      p(`Your ${roleLabel} account has been created. Your identity documents are currently under review — you'll receive another email once verified.`) +
-      p('In the meantime, you can explore your dashboard and set up your profile.'),
+      p(`Your ${roleLabel} account has been created. Complete identity verification from your dashboard to unlock restricted features.`) +
+      p('You can still sign in, explore your dashboard, and set up your profile.'),
       { label: 'Go to Dashboard', url: `${process.env.NEXTAUTH_URL}/dashboard/${roleLabel}` },
     ),
   );
@@ -104,8 +104,8 @@ export async function sendKycRejectedEmail(to: string, name: string, reason: str
       `<div style="background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:12px 16px;margin:12px 0;">
         <p style="margin:0;font-size:14px;color:#dc2626;">${reason}</p>
       </div>` +
-      p('Please re-upload a clear photo of your IC from your profile page.'),
-      { label: 'Update Profile', url: `${process.env.NEXTAUTH_URL}/dashboard/profile` },
+      p('Please resubmit your identity verification with clearer photos.'),
+      { label: 'Resubmit Verification', url: `${process.env.NEXTAUTH_URL}/dashboard/kyc` },
     ),
   );
 }

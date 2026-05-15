@@ -30,6 +30,7 @@ export default async function LandlordDashboard() {
     unacknowledgedConditionReports,
     activeRentPayments,
     overduePayments,
+    landlord,
   ] = await Promise.all([
     prisma.property.findMany({
       where: { landlordId },
@@ -121,8 +122,14 @@ export default async function LandlordDashboard() {
       },
       select: { amount: true },
     }),
+
+    prisma.user.findUnique({
+      where: { id: landlordId },
+      select: { isVerified: true },
+    }),
   ]);
 
+  const isVerified = landlord?.isVerified ?? false;
   const totalRooms = properties.reduce((sum, p) => sum + p.rooms.length, 0);
   const activeRooms = properties.reduce(
     (sum, p) =>
@@ -154,18 +161,22 @@ export default async function LandlordDashboard() {
         description="Manage income, tenant progress, and property readiness from one queue."
         action={
           <div className="flex flex-wrap gap-2">
-            <Link
-              href="/dashboard/landlord/properties/new"
-              className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-blue-700"
-            >
-              Add Property
-            </Link>
-            <Link
-              href="/dashboard/landlord/tenancies/new"
-              className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm font-semibold text-gray-700 transition-colors hover:bg-gray-50"
-            >
-              Invite Tenant
-            </Link>
+            {isVerified && (
+              <>
+                <Link
+                  href="/dashboard/landlord/properties/new"
+                  className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-blue-700"
+                >
+                  Add Property
+                </Link>
+                <Link
+                  href="/dashboard/landlord/tenancies/new"
+                  className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm font-semibold text-gray-700 transition-colors hover:bg-gray-50"
+                >
+                  Invite Tenant
+                </Link>
+              </>
+            )}
             <Link
               href="/dashboard/landlord/payments"
               className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm font-semibold text-gray-700 transition-colors hover:bg-gray-50"

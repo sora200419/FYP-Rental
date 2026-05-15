@@ -96,14 +96,16 @@ const tenantLinks: NavLink[] = [
   { href: '/dashboard/tenant',              label: 'Dashboard',   Icon: HomeIcon },
   { href: '/dashboard/tenant/tenancy',      label: 'My Tenancy',  Icon: FileTextIcon },
   { href: '/dashboard/tenant/payments',     label: 'Payments',    Icon: CreditCardIcon },
+  { href: '/dashboard/tenant/conditions',   label: 'Conditions',  Icon: CheckSquareIcon },
   { href: '/dashboard/tenant/messages',     label: 'Messages',    Icon: MessageIcon },
 ];
 
 const adminLinks: NavLink[] = [
   { href: '/dashboard/admin',            label: 'Dashboard',           Icon: HomeIcon },
-  { href: '/dashboard/admin/verify',     label: 'KYC Verification',    Icon: ShieldIcon },
+  { href: '/dashboard/admin/kyc',        label: 'KYC Verification',    Icon: ShieldIcon },
   { href: '/dashboard/admin/properties', label: 'Property Verification', Icon: CheckSquareIcon },
   { href: '/dashboard/admin/users',      label: 'Users',               Icon: UsersIcon },
+  { href: '/dashboard/admin/audit-log',  label: 'Audit Log',           Icon: FileTextIcon },
 ];
 
 // ── Sidebar inner content (shared between desktop aside and mobile drawer) ──

@@ -3,19 +3,31 @@ import { authOptions } from '@/lib/auth';
 import { redirect } from 'next/navigation';
 import { prisma } from '@/lib/prisma';
 import KycWizard from '@/components/kyc/KycWizard';
+import { getKycPageState } from '@/lib/kyc-workflow';
 
 export default async function KycPage() {
   const session = await getServerSession(authOptions);
   if (!session) redirect('/login');
   if (session.user.role === 'ADMIN') redirect('/dashboard/admin');
 
-  const submission = await prisma.kycSubmission.findUnique({
-    where: { userId: session.user.id },
-    select: { status: true, rejectedReason: true },
+  const [user, submission] = await Promise.all([
+    prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: { isVerified: true },
+    }),
+    prisma.kycSubmission.findUnique({
+      where: { userId: session.user.id },
+      select: { status: true, rejectedReason: true },
+    }),
+  ]);
+
+  const pageState = getKycPageState({
+    isVerified: user?.isVerified ?? false,
+    submissionStatus: submission?.status ?? null,
   });
 
-  if (submission?.status === 'APPROVED') redirect('/dashboard/profile');
-  if (submission?.status === 'PENDING') {
+  if (pageState === 'redirect-profile') redirect('/dashboard/profile');
+  if (pageState === 'under-review') {
     return (
       <div className="max-w-lg">
         <div className="mb-6">

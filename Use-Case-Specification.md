@@ -1,4 +1,4 @@
-﻿# 4.2.2 Use Case Specification
+# 4.2.2 Use Case Specification
 
 ## Use Case 1: Register Account
 
@@ -12,17 +12,17 @@
 |  | 3. System is online. |
 | Post-Condition | 1. New user account is created. |
 |  | 2. Password is hashed. |
-|  | 3. IC document is stored. |
+|  | 3. IC document is stored for admin KYC review. |
 | Standard Process | 1. Open register page. |
 |  | 2. Enter name, email, password, role, phone, IC number, and IC photo. |
 |  | 3. Submit form. |
-|  | 4. System validates fields and file. |
-|  | 5. System creates user account. |
-|  | 6. System stores IC document. |
-| Alternative Flow | A1. IC upload fails after user creation; account may still be created depending on upload result handling. |
+|  | 4. System validates required fields, IC number, and uploaded file. |
+|  | 5. System hashes password and creates user account. |
+|  | 6. System stores IC document metadata. |
+| Alternative Flow | A1. IC upload fails after account creation; account may still exist but document review cannot proceed until corrected. |
 | Exception Flow | E1. Missing required fields. |
 |  | E2. Email already exists. |
-|  | E3. IC already exists. |
+|  | E3. IC number already exists. |
 |  | E4. Invalid IC format. |
 |  | E5. Invalid or oversized IC file. |
 
@@ -31,7 +31,7 @@
 | Field | Specification |
 |---|---|
 | Use Case | Login |
-| Description | Registered user authenticates into the system dashboard. |
+| Description | Registered user authenticates into the system and enters the correct role-based dashboard. |
 | Actor | 1. Tenant |
 |  | 2. Landlord |
 |  | 3. Admin |
@@ -41,9 +41,9 @@
 |  | 2. User enters role-based dashboard. |
 | Standard Process | 1. Open login page. |
 |  | 2. Enter email and password. |
-|  | 3. Submit form. |
+|  | 3. Submit login form. |
 |  | 4. System validates credentials. |
-|  | 5. System redirects user by role. |
+|  | 5. System creates session and redirects user by role. |
 | Alternative Flow | A1. User is already logged in and directly enters dashboard. |
 | Exception Flow | E1. Invalid credentials. |
 |  | E2. Authentication service failure. |
@@ -54,18 +54,18 @@
 | Field | Specification |
 |---|---|
 | Use Case | Reset Password |
-| Description | User requests password reset link and sets a new password using token. |
+| Description | User requests a password reset link and sets a new password using a valid token. |
 | Actor | 1. Tenant |
 |  | 2. Landlord |
 |  | 3. Admin |
 | Pre-Condition | 1. User knows account email. |
 |  | 2. Reset token is valid, not expired, and not used. |
 | Post-Condition | 1. Password is updated. |
-|  | 2. Reset token is marked used. |
+|  | 2. Reset token is marked as used. |
 | Standard Process | 1. User submits email in forgot password page. |
 |  | 2. System creates reset token and sends reset link. |
 |  | 3. User opens reset link. |
-|  | 4. User submits new password. |
+|  | 4. User enters new password. |
 |  | 5. System validates token and updates password. |
 | Alternative Flow | A1. Non-existing email still returns generic success for security. |
 | Exception Flow | E1. Token expired or invalid. |
@@ -77,29 +77,33 @@
 | Field | Specification |
 |---|---|
 | Use Case | Manage Profile |
-| Description | User updates profile details such as name, phone, language, or IC information. |
+| Description | User updates profile information and uploads or replaces verification-related documents. |
 | Actor | 1. Tenant |
 |  | 2. Landlord |
 | Pre-Condition | 1. User is logged in. |
 |  | 2. Profile exists. |
 | Post-Condition | 1. Profile details are updated. |
-|  | 2. Verification may be reset if IC changes. |
+|  | 2. Uploaded documents are stored or replaced. |
+|  | 3. Verification may be reset if IC information changes. |
 | Standard Process | 1. Open profile page. |
 |  | 2. Edit allowed profile fields. |
-|  | 3. Submit form. |
-|  | 4. System validates data. |
-|  | 5. System saves updated profile. |
+|  | 3. Upload or replace IC copy or income document if required. |
+|  | 4. Submit changes. |
+|  | 5. System validates profile data and file requirements. |
+|  | 6. System saves updated profile and document records. |
 | Alternative Flow | A1. User changes IC number; system marks account as unverified again. |
+|  | A2. User replaces an existing uploaded document. |
 | Exception Flow | E1. Invalid IC format. |
 |  | E2. Duplicate IC number. |
-|  | E3. Missing required name. |
+|  | E3. Invalid file type or oversized file. |
+|  | E4. Missing required name. |
 
 ## Use Case 5: View Notifications
 
 | Field | Specification |
 |---|---|
 | Use Case | View Notifications |
-| Description | User views in-app notifications about tenancy, agreement, payment, and verification events. |
+| Description | User views in-app notifications about tenancy, agreement, payment, verification, and account events. |
 | Actor | 1. Tenant |
 |  | 2. Landlord |
 | Pre-Condition | 1. User is logged in. |
@@ -108,7 +112,7 @@
 | Standard Process | 1. User clicks notification bell. |
 |  | 2. System retrieves notifications. |
 |  | 3. User views notification list. |
-|  | 4. User selects notification or marks all as read. |
+|  | 4. User opens a notification or marks notifications as read. |
 | Alternative Flow | A1. No notifications exist; system shows empty state. |
 | Exception Flow | E1. Notification loading fails. |
 
@@ -135,758 +139,336 @@
 |  | E2. Message too long. |
 |  | E3. Access denied. |
 
-## Use Case 7: Respond to Tenancy Invitation
+## Use Case 7: Manage Property Listing
 
 | Field | Specification |
 |---|---|
-| Use Case | Respond to Tenancy Invitation |
-| Description | Tenant accepts or declines tenancy invitation from landlord. |
-| Actor | 1. Tenant |
-| Pre-Condition | 1. Tenant is logged in. |
-|  | 2. Invitation exists. |
-|  | 3. Tenancy status is invited. |
-| Post-Condition | 1. If accepted, tenancy becomes pending. |
-|  | 2. If declined, invitation is cancelled and room becomes available. |
-| Standard Process | 1. Open tenancy invitation. |
-|  | 2. Review tenancy details. |
-|  | 3. Choose accept or decline. |
-|  | 4. System validates response. |
-|  | 5. System updates tenancy status. |
-| Alternative Flow | A1. Corporate authorized signatory responds on behalf of company. |
-| Exception Flow | E1. Invitation already responded. |
-|  | E2. Tenant is not verified. |
-|  | E3. Access denied. |
-
-## Use Case 8: Withdraw from Tenancy
-
-| Field | Specification |
-|---|---|
-| Use Case | Withdraw from Tenancy |
-| Description | Tenant cancels a pending tenancy before signing agreement. |
-| Actor | 1. Tenant |
-| Pre-Condition | 1. Tenant is logged in. |
-|  | 2. Tenancy status is pending. |
-|  | 3. Agreement is not signed. |
-| Post-Condition | 1. Tenancy is cancelled. |
-|  | 2. Room becomes available. |
-| Standard Process | 1. Open tenancy page. |
-|  | 2. Click withdraw from tenancy. |
-|  | 3. Confirm action. |
-|  | 4. System cancels tenancy. |
-|  | 5. System notifies landlord. |
-| Alternative Flow | A1. Tenant cancels before agreement is generated. |
-| Exception Flow | E1. Tenancy is not pending. |
-|  | E2. Access denied. |
-|  | E3. System method mismatch may prevent withdrawal until fixed. |
-
-## Use Case 9: View Tenancy Details
-
-| Field | Specification |
-|---|---|
-| Use Case | View Tenancy Details |
-| Description | User views tenancy details including property, room, agreement, deposit, and payment information. |
-| Actor | 1. Tenant |
-|  | 2. Landlord |
-| Pre-Condition | 1. User is logged in. |
-|  | 2. User has access to the tenancy. |
-| Post-Condition | 1. Tenancy details are displayed. |
-| Standard Process | 1. Open tenancy page. |
-|  | 2. System retrieves tenancy record. |
-|  | 3. System displays tenancy details and current status. |
-| Alternative Flow | A1. Different sections appear based on tenancy status. |
-| Exception Flow | E1. Tenancy not found. |
-|  | E2. Access denied. |
-
-## Use Case 10: Manage Property
-
-| Field | Specification |
-|---|---|
-| Use Case | Manage Property |
-| Description | Landlord creates, views, and deletes property records. |
+| Use Case | Manage Property Listing |
+| Description | Landlord creates and maintains property records, property photos, and room information. |
 | Actor | 1. Landlord |
 | Pre-Condition | 1. Landlord is logged in. |
 |  | 2. Landlord identity is verified. |
-| Post-Condition | 1. Property record is created, displayed, or deleted. |
+| Post-Condition | 1. Property details are saved or updated. |
+|  | 2. Property photos are stored. |
+|  | 3. Room records are created or updated. |
 | Standard Process | 1. Open properties page. |
-|  | 2. Add or view property. |
-|  | 3. Enter property details if creating. |
-|  | 4. Submit form. |
-|  | 5. System saves property. |
-| Alternative Flow | A1. Landlord deletes property if allowed. |
+|  | 2. Add or edit property details. |
+|  | 3. Upload property photos. |
+|  | 4. Add or edit room information such as room type, rent, furnishing, utilities, and preferences. |
+|  | 5. Submit changes. |
+|  | 6. System saves property, photo, and room records. |
+| Alternative Flow | A1. Landlord deletes a property photo. |
+|  | A2. Landlord deletes a room if it has no active tenancy. |
 | Exception Flow | E1. Missing property fields. |
-|  | E2. Invalid postcode. |
-|  | E3. Property has related active records. |
+|  | E2. Invalid postcode or room data. |
+|  | E3. Invalid photo file. |
+|  | E4. Property or room has related active records. |
+|  | E5. Access denied. |
 
-## Use Case 11: Upload Property Photos
-
-| Field | Specification |
-|---|---|
-| Use Case | Upload Property Photos |
-| Description | Landlord uploads photos for a property listing. |
-| Actor | 1. Landlord |
-| Pre-Condition | 1. Property exists. |
-|  | 2. Property belongs to landlord. |
-|  | 3. File is valid. |
-| Post-Condition | 1. Photo is stored and linked to property. |
-| Standard Process | 1. Open property details. |
-|  | 2. Choose photo. |
-|  | 3. Submit upload. |
-|  | 4. System stores photo. |
-|  | 5. Photo appears in gallery. |
-| Alternative Flow | A1. Landlord deletes uploaded photo. |
-| Exception Flow | E1. Invalid file type. |
-|  | E2. File too large. |
-|  | E3. Upload failure. |
-
-## Use Case 12: Manage Room
+## Use Case 8: Manage Tenancy Invitation
 
 | Field | Specification |
 |---|---|
-| Use Case | Manage Room |
-| Description | Landlord creates or deletes rentable room or unit under a property. |
+| Use Case | Manage Tenancy Invitation |
+| Description | Landlord looks up tenant, sends tenancy invitation, and tenant accepts or declines the invitation. |
 | Actor | 1. Landlord |
-| Pre-Condition | 1. Property exists. |
-|  | 2. Property belongs to landlord. |
-| Post-Condition | 1. Room record is created or deleted. |
-| Standard Process | 1. Open property details. |
-|  | 2. Add room. |
-|  | 3. Enter room type, rent, furnishing, utilities, and preferences. |
-|  | 4. Submit form. |
-|  | 5. System saves room. |
-| Alternative Flow | A1. Landlord deletes room when it has no active tenancy. |
-| Exception Flow | E1. Invalid room data. |
-|  | E2. Room is linked to active tenancy. |
-|  | E3. Access denied. |
-
-## Use Case 13: Look Up Tenant
-
-| Field | Specification |
-|---|---|
-| Use Case | Look Up Tenant |
-| Description | Landlord searches for a tenant account by email before invitation. |
-| Actor | 1. Landlord |
-| Pre-Condition | 1. Landlord is logged in. |
-|  | 2. Tenant email is entered. |
-| Post-Condition | 1. Tenant account result is displayed. |
-| Standard Process | 1. Open create tenancy page. |
-|  | 2. Enter tenant email. |
-|  | 3. Click look up. |
-|  | 4. System searches tenant account. |
-|  | 5. System displays result. |
-| Alternative Flow | A1. No account found; system asks landlord to tell tenant to register. |
-| Exception Flow | E1. Invalid email. |
-|  | E2. Access denied. |
-
-## Use Case 14: Invite Tenant
-
-| Field | Specification |
-|---|---|
-| Use Case | Invite Tenant |
-| Description | Landlord creates tenancy invitation for individual tenant or corporate signatory. |
-| Actor | 1. Landlord |
-| Pre-Condition | 1. Landlord is logged in. |
+|  | 2. Tenant |
+| Pre-Condition | 1. Landlord is logged in and owns the property. |
 |  | 2. Property is verified. |
 |  | 3. Room is available. |
 |  | 4. Tenant account exists. |
 | Post-Condition | 1. Tenancy invitation is created. |
-|  | 2. Room is reserved. |
-|  | 3. Tenant is notified. |
-| Standard Process | 1. Select available room. |
-|  | 2. Enter tenant and tenancy terms. |
-|  | 3. Submit invitation. |
-|  | 4. System validates room and tenant. |
-|  | 5. System creates invited tenancy. |
-| Alternative Flow | A1. Landlord creates corporate tenancy with authorized signatory and occupants. |
+|  | 2. Room is reserved while invitation is pending. |
+|  | 3. If accepted, tenancy becomes pending. |
+|  | 4. If declined, invitation is cancelled and room becomes available. |
+| Standard Process | 1. Landlord opens create tenancy page. |
+|  | 2. Landlord enters tenant email and looks up tenant account. |
+|  | 3. Landlord enters tenancy terms. |
+|  | 4. System validates tenant, room, and tenancy terms. |
+|  | 5. System creates invited tenancy and notifies tenant. |
+|  | 6. Tenant opens invitation and reviews details. |
+|  | 7. Tenant accepts or declines invitation. |
+|  | 8. System updates tenancy and room status. |
+| Alternative Flow | A1. Corporate authorized signatory responds on behalf of a company tenant. |
+|  | A2. Landlord corrects invitation recipient before the invitation is accepted. |
 | Exception Flow | E1. Tenant not found. |
 |  | E2. Room unavailable. |
 |  | E3. Property not verified. |
+|  | E4. Invitation already responded. |
+|  | E5. Tenant is not verified. |
+|  | E6. Access denied. |
 
-## Use Case 15: Manage Additional Occupants
-
-| Field | Specification |
-|---|---|
-| Use Case | Manage Additional Occupants |
-| Description | Landlord manages co-tenants or corporate occupants listed under tenancy. |
-| Actor | 1. Landlord |
-| Pre-Condition | 1. Tenancy exists. |
-|  | 2. Landlord owns the tenancy. |
-| Post-Condition | 1. Occupant list is updated. |
-| Standard Process | 1. Open tenancy details. |
-|  | 2. Add, edit, link, or remove occupant. |
-|  | 3. Submit changes. |
-|  | 4. System updates occupant record. |
-| Alternative Flow | A1. Corporate occupant is linked to registered tenant account. |
-| Exception Flow | E1. Missing occupant name. |
-|  | E2. Invalid linked email. |
-|  | E3. Access denied. |
-
-## Use Case 16: Configure Agreement Preferences
+## Use Case 9: Manage Tenancy
 
 | Field | Specification |
 |---|---|
-| Use Case | Configure Agreement Preferences |
-| Description | Landlord completes agreement wizard settings used for AI agreement generation. |
-| Actor | 1. Landlord |
-| Pre-Condition | 1. Tenancy exists. |
-|  | 2. Tenancy is accepted and pending. |
-| Post-Condition | 1. Agreement preferences are saved. |
-|  | 2. Wizard may be marked complete. |
-| Standard Process | 1. Open agreement wizard. |
-|  | 2. Complete house rules, utilities, financial, maintenance, ending, and deposit sections. |
-|  | 3. Save preferences. |
-|  | 4. System stores wizard data. |
-| Alternative Flow | A1. Landlord resumes incomplete wizard. |
-| Exception Flow | E1. Missing required wizard fields. |
-|  | E2. Invalid values. |
-|  | E3. Access denied. |
-
-## Use Case 17: Generate AI Agreement
-
-| Field | Specification |
-|---|---|
-| Use Case | Generate AI Agreement |
-| Description | Landlord generates AI tenancy agreement from tenancy data and preferences. |
-| Actor | 1. Landlord |
-| Pre-Condition | 1. Tenancy is pending. |
-|  | 2. Agreement preferences are complete. |
-|  | 3. Generation limit is not exceeded. |
-| Post-Condition | 1. Draft agreement is created. |
-|  | 2. Agreement revision and event are recorded. |
-| Standard Process | 1. Open tenancy or wizard page. |
-|  | 2. Click generate agreement. |
-|  | 3. System sends tenancy data to AI service. |
-|  | 4. System stores draft agreement, summary, and red flags. |
-| Alternative Flow | A1. Landlord regenerates agreement after tenant requests changes. |
-| Exception Flow | E1. Wizard incomplete. |
-|  | E2. AI generation failure. |
-|  | E3. Rate limit exceeded. |
-
-## Use Case 18: View Agreement
-
-| Field | Specification |
-|---|---|
-| Use Case | View Agreement |
-| Description | User views agreement content, plain-language summary, and red-flag analysis. |
-| Actor | 1. Tenant |
-|  | 2. Landlord |
-| Pre-Condition | 1. Agreement exists. |
-|  | 2. User has access to agreement. |
-| Post-Condition | 1. Agreement details are displayed. |
-| Standard Process | 1. Open agreement page. |
-|  | 2. System retrieves agreement. |
-|  | 3. System displays agreement content, summary, and red flags. |
-| Alternative Flow | A1. User switches English/Bahasa Malaysia summary and red-flag view. |
-| Exception Flow | E1. Agreement not found. |
-|  | E2. Access denied. |
-
-## Use Case 19: Request Agreement Changes
-
-| Field | Specification |
-|---|---|
-| Use Case | Request Agreement Changes |
-| Description | Tenant submits structured change requests for finalized agreement. |
-| Actor | 1. Tenant |
-| Pre-Condition | 1. Agreement is finalized. |
-|  | 2. Tenant has access. |
-| Post-Condition | 1. Agreement status becomes negotiating. |
-|  | 2. Landlord is notified. |
-| Standard Process | 1. Open agreement. |
-|  | 2. Choose request changes. |
-|  | 3. Enter category, requested change, reason, and note. |
-|  | 4. Submit request. |
-|  | 5. System saves change request. |
-| Alternative Flow | A1. Tenant submits multiple structured requests. |
-| Exception Flow | E1. No valid request entered. |
-|  | E2. Agreement not finalized. |
-|  | E3. Access denied. |
-
-## Use Case 20: Review / Revise Agreement
-
-| Field | Specification |
-|---|---|
-| Use Case | Review / Revise Agreement |
-| Description | Landlord edits draft or negotiating agreement manually or using AI assist. |
-| Actor | 1. Landlord |
-| Pre-Condition | 1. Agreement exists. |
-|  | 2. Agreement is draft or negotiating. |
-| Post-Condition | 1. Revised draft is saved. |
-|  | 2. New revision and event are recorded. |
-| Standard Process | 1. Open agreement page. |
-|  | 2. Review tenant requests or red flags. |
-|  | 3. Edit agreement content. |
-|  | 4. Save changes. |
-|  | 5. System records revision. |
-| Alternative Flow | A1. Landlord uses AI assist to suggest revisions. |
-|  | A2. Landlord refreshes AI analysis. |
-| Exception Flow | E1. Agreement already signed. |
-|  | E2. Agreement content too short. |
-|  | E3. Access denied. |
-
-## Use Case 21: Finalize Agreement
-
-| Field | Specification |
-|---|---|
-| Use Case | Finalize Agreement |
-| Description | Landlord sends agreement to tenant for review and signing. |
-| Actor | 1. Landlord |
-| Pre-Condition | 1. Agreement is draft or negotiating. |
-|  | 2. Agreement content exists. |
-|  | 3. Wizard is complete. |
-|  | 4. Required identity data exists. |
-|  | 5. Red flags reviewed. |
-| Post-Condition | 1. Agreement status becomes finalized. |
-|  | 2. Tenant is notified. |
-| Standard Process | 1. Open agreement. |
-|  | 2. Review checklist. |
-|  | 3. Confirm red flags reviewed. |
-|  | 4. Click finalize. |
-|  | 5. System updates agreement status. |
-| Alternative Flow | A1. Landlord resolves pending structured requests before finalizing. |
-| Exception Flow | E1. Checklist incomplete. |
-|  | E2. Pending change requests. |
-|  | E3. Invalid agreement status. |
-
-## Use Case 22: Sign Agreement
-
-| Field | Specification |
-|---|---|
-| Use Case | Sign Agreement |
-| Description | Tenant digitally signs finalized agreement after acknowledgement. |
-| Actor | 1. Tenant |
-| Pre-Condition | 1. Agreement is finalized. |
-|  | 2. Tenant has reviewed agreement. |
-| Post-Condition | 1. Digital signature is recorded. |
-|  | 2. Agreement waits for signed hard-copy proof. |
-| Standard Process | 1. Open finalized agreement. |
-|  | 2. Review content, summary, and red flags. |
-|  | 3. Tick acknowledgement. |
-|  | 4. Click sign. |
-|  | 5. System records signature metadata and content hash. |
-| Alternative Flow | A1. Corporate authorized signatory signs on behalf of company. |
-| Exception Flow | E1. Agreement not finalized. |
-|  | E2. Acknowledgement not checked. |
-|  | E3. Access denied. |
-
-## Use Case 23: Upload Signed Agreement Proof
-
-| Field | Specification |
-|---|---|
-| Use Case | Upload Signed Agreement Proof |
-| Description | Tenant uploads signed hard-copy agreement file for landlord approval. |
-| Actor | 1. Tenant |
-| Pre-Condition | 1. Digital signature is completed. |
-|  | 2. Agreement status is pending signature proof. |
-| Post-Condition | 1. Signature proof is uploaded. |
-|  | 2. Landlord is notified. |
-| Standard Process | 1. Choose signed file. |
-|  | 2. Submit upload. |
-|  | 3. System validates file. |
-|  | 4. System stores proof. |
-|  | 5. System marks proof under review. |
-| Alternative Flow | A1. Tenant re-uploads after landlord rejection. |
-| Exception Flow | E1. Invalid file type. |
-|  | E2. File too large. |
-|  | E3. Proof already under review. |
-
-## Use Case 24: Review Signed Agreement Proof
-
-| Field | Specification |
-|---|---|
-| Use Case | Review Signed Agreement Proof |
-| Description | Landlord approves or rejects tenant uploaded signed hard-copy agreement. |
-| Actor | 1. Landlord |
-| Pre-Condition | 1. Signature proof is under review. |
-|  | 2. Agreement is pending signature proof. |
-| Post-Condition | 1. If approved, agreement is signed and tenancy becomes active. |
-|  | 2. If rejected, tenant must re-upload proof. |
-| Standard Process | 1. Open tenancy details. |
-|  | 2. Open uploaded proof file. |
-|  | 3. Approve or reject proof. |
-|  | 4. System updates agreement and tenancy status. |
-| Alternative Flow | A1. Reject proof with reason. |
-| Exception Flow | E1. Proof not under review. |
-|  | E2. Missing rejection reason. |
-|  | E3. Access denied. |
-
-## Use Case 25: View / Download Signed Agreement
-
-| Field | Specification |
-|---|---|
-| Use Case | View / Download Signed Agreement |
-| Description | User views or downloads tenancy agreement PDF. |
-| Actor | 1. Tenant |
-|  | 2. Landlord |
-| Pre-Condition | 1. Agreement exists. |
-|  | 2. User has access. |
-| Post-Condition | 1. Agreement PDF is generated or downloaded. |
-| Standard Process | 1. Open agreement page. |
-|  | 2. Click download PDF. |
-|  | 3. System generates PDF. |
-|  | 4. User downloads file. |
-| Alternative Flow | A1. User downloads agreement before or after final signing. |
-| Exception Flow | E1. PDF generation failure. |
-|  | E2. Agreement not found. |
-|  | E3. Access denied. |
-
-## Use Case 26: Upload Deposit Proof
-
-| Field | Specification |
-|---|---|
-| Use Case | Upload Deposit Proof |
-| Description | Tenant uploads proof of security deposit payment. |
-| Actor | 1. Tenant |
-| Pre-Condition | 1. Tenancy exists. |
-|  | 2. Deposit is not confirmed paid. |
-| Post-Condition | 1. Deposit status becomes under review. |
-|  | 2. Landlord is notified. |
-| Standard Process | 1. Open tenancy or payments page. |
-|  | 2. Choose deposit proof file. |
-|  | 3. Submit upload. |
-|  | 4. System stores proof. |
-|  | 5. System updates deposit status. |
-| Alternative Flow | A1. Tenant re-uploads proof after rejection. |
-| Exception Flow | E1. Deposit already paid. |
-|  | E2. Invalid file. |
-|  | E3. Upload failure. |
-
-## Use Case 27: Verify / Reject Deposit Proof
-
-| Field | Specification |
-|---|---|
-| Use Case | Verify / Reject Deposit Proof |
-| Description | Landlord approves or rejects tenant deposit payment proof. |
-| Actor | 1. Landlord |
-| Pre-Condition | 1. Deposit proof is under review. |
-|  | 2. Landlord owns tenancy. |
-| Post-Condition | 1. Deposit is marked paid or rejected. |
-|  | 2. Tenant is notified. |
-| Standard Process | 1. Open payments or tenancy page. |
-|  | 2. View deposit proof. |
-|  | 3. Approve or reject. |
-|  | 4. System updates deposit status. |
-| Alternative Flow | A1. Reject with reason and request re-upload. |
-| Exception Flow | E1. Deposit not under review. |
-|  | E2. Missing rejection reason. |
-|  | E3. Access denied. |
-
-## Use Case 28: Upload Rent Payment Proof
-
-| Field | Specification |
-|---|---|
-| Use Case | Upload Rent Payment Proof |
-| Description | Tenant uploads monthly rent payment proof. |
-| Actor | 1. Tenant |
-| Pre-Condition | 1. Rent payment schedule exists. |
-|  | 2. Payment is not settled. |
-| Post-Condition | 1. Payment status becomes under review. |
-|  | 2. Landlord is notified. |
-| Standard Process | 1. Open payments page. |
-|  | 2. Select rent payment. |
-|  | 3. Choose proof file. |
-|  | 4. Upload proof. |
-|  | 5. System updates payment status. |
-| Alternative Flow | A1. Tenant replaces previous proof after rejection. |
-| Exception Flow | E1. Payment already paid. |
-|  | E2. Invalid file. |
-|  | E3. Access denied. |
-
-## Use Case 29: Verify / Reject Rent Payment Proof
-
-| Field | Specification |
-|---|---|
-| Use Case | Verify / Reject Rent Payment Proof |
-| Description | Landlord approves or rejects monthly rent payment proof. |
-| Actor | 1. Landlord |
-| Pre-Condition | 1. Rent payment proof is under review. |
-|  | 2. Landlord owns property for tenancy. |
-| Post-Condition | 1. Payment is marked paid or returned to pending. |
-|  | 2. Tenant is notified. |
-| Standard Process | 1. Open landlord payments page. |
-|  | 2. Review payment proof. |
-|  | 3. Approve or reject. |
-|  | 4. System updates payment status. |
-| Alternative Flow | A1. Reject with reason and request re-upload. |
-| Exception Flow | E1. Payment not under review. |
-|  | E2. Missing rejection reason. |
-|  | E3. Access denied. |
-
-## Use Case 30: View Rent Payment Schedule
-
-| Field | Specification |
-|---|---|
-| Use Case | View Rent Payment Schedule |
-| Description | Tenant views monthly rent schedule and payment statuses. |
-| Actor | 1. Tenant |
-| Pre-Condition | 1. Tenancy is active. |
-|  | 2. Rent payment schedule is generated. |
-| Post-Condition | 1. Payment schedule is displayed. |
-| Standard Process | 1. Open payments page. |
-|  | 2. System retrieves payment records. |
-|  | 3. User views due dates, amounts, and statuses. |
-| Alternative Flow | A1. System shows pending, under review, paid, or overdue status. |
-| Exception Flow | E1. No active tenancy. |
-|  | E2. No payment schedule found. |
-
-## Use Case 31: Create Condition Report
-
-| Field | Specification |
-|---|---|
-| Use Case | Create Condition Report |
-| Description | Tenant or landlord creates move-in, move-out, or inspection condition report. |
+| Use Case | Manage Tenancy |
+| Description | User views tenancy details and landlord or tenant performs allowed tenancy lifecycle actions. |
 | Actor | 1. Tenant |
 |  | 2. Landlord |
 | Pre-Condition | 1. User is logged in. |
 |  | 2. Tenancy exists. |
-|  | 3. User has access. |
+|  | 3. User has access to the tenancy. |
+| Post-Condition | 1. Tenancy details are displayed. |
+|  | 2. Tenancy status or related records may be updated. |
+| Standard Process | 1. Open tenancy page. |
+|  | 2. System retrieves tenancy record and status. |
+|  | 3. User views property, room, agreement, deposit, payment, occupant, and condition information. |
+|  | 4. Tenant may withdraw from pending tenancy before signing agreement. |
+|  | 5. Landlord may manage additional occupants. |
+|  | 6. Landlord may renew eligible tenancy. |
+|  | 7. Landlord may terminate tenancy with reason. |
+| Alternative Flow | A1. Different sections appear based on tenancy status. |
+|  | A2. Renewal creates a new invited tenancy. |
+| Exception Flow | E1. Tenancy not found. |
+|  | E2. Tenancy not eligible for selected action. |
+|  | E3. Missing termination reason. |
+|  | E4. Invalid renewal dates. |
+|  | E5. Access denied. |
+
+## Use Case 10: Manage Tenancy Agreement
+
+| Field | Specification |
+|---|---|
+| Use Case | Manage Tenancy Agreement |
+| Description | Landlord configures agreement preferences, generates AI agreement draft, revises and finalizes it, while tenant reviews, requests changes, signs, and downloads the signed agreement. |
+| Actor | 1. Tenant |
+|  | 2. Landlord |
+| Pre-Condition | 1. Tenancy exists. |
+|  | 2. Tenant has accepted invitation. |
+|  | 3. User has access to the agreement. |
+| Post-Condition | 1. Agreement may be drafted, revised, finalized, signed, or downloaded. |
+|  | 2. Agreement revisions and events are recorded. |
+|  | 3. Tenant and landlord are notified about important agreement changes. |
+| Standard Process | 1. Landlord opens agreement wizard. |
+|  | 2. Landlord configures agreement preferences. |
+|  | 3. Landlord generates AI tenancy agreement draft. |
+|  | 4. System stores draft agreement, summary, and red-flag analysis. |
+|  | 5. Tenant and landlord view agreement details. |
+|  | 6. Tenant may request agreement changes. |
+|  | 7. Landlord reviews change requests and revises agreement. |
+|  | 8. Landlord finalizes agreement after checklist and red-flag review. |
+|  | 9. Tenant signs finalized agreement. |
+|  | 10. Tenant uploads signed agreement proof. |
+|  | 11. Landlord reviews signed agreement proof. |
+|  | 12. User views or downloads signed agreement. |
+| Alternative Flow | A1. Landlord uses AI assist to suggest revisions. |
+|  | A2. User switches English or Bahasa Malaysia summary and red-flag view. |
+|  | A3. Landlord rejects signed proof and tenant re-uploads corrected proof. |
+| Exception Flow | E1. Wizard incomplete. |
+|  | E2. AI generation failure. |
+|  | E3. Agreement not finalized. |
+|  | E4. Pending change requests. |
+|  | E5. Invalid file type or oversized signed proof. |
+|  | E6. Access denied. |
+
+## Use Case 11: Manage Deposit Payment
+
+| Field | Specification |
+|---|---|
+| Use Case | Manage Deposit Payment |
+| Description | Tenant uploads deposit payment proof and landlord verifies or rejects the proof. |
+| Actor | 1. Tenant |
+|  | 2. Landlord |
+| Pre-Condition | 1. Tenancy exists. |
+|  | 2. Deposit is not confirmed paid. |
+|  | 3. User has access to the tenancy. |
+| Post-Condition | 1. Deposit proof is uploaded and stored. |
+|  | 2. Deposit status becomes under review, paid, or rejected. |
+|  | 3. Related party is notified. |
+| Standard Process | 1. Tenant opens tenancy or payments page. |
+|  | 2. Tenant chooses deposit proof file. |
+|  | 3. System validates and stores proof. |
+|  | 4. Landlord opens payments or tenancy page. |
+|  | 5. Landlord views deposit proof. |
+|  | 6. Landlord approves or rejects proof. |
+|  | 7. System updates deposit status. |
+| Alternative Flow | A1. Rejected deposit proof can be uploaded again by tenant. |
+| Exception Flow | E1. Deposit already paid. |
+|  | E2. Deposit not under review. |
+|  | E3. Invalid file. |
+|  | E4. Missing rejection reason. |
+|  | E5. Access denied. |
+
+## Use Case 12: Manage Rent Payment
+
+| Field | Specification |
+|---|---|
+| Use Case | Manage Rent Payment |
+| Description | Tenant views rent schedule and uploads rent proof, while landlord verifies or rejects rent payment proof. |
+| Actor | 1. Tenant |
+|  | 2. Landlord |
+| Pre-Condition | 1. Active tenancy exists. |
+|  | 2. Rent payment schedule exists. |
+|  | 3. User has access to the tenancy. |
+| Post-Condition | 1. Rent payment records are displayed. |
+|  | 2. Payment proof is stored. |
+|  | 3. Payment status becomes under review, paid, pending, or overdue. |
+| Standard Process | 1. User opens payments page. |
+|  | 2. System retrieves rent payment schedule. |
+|  | 3. Tenant selects a rent payment and uploads proof. |
+|  | 4. System stores proof and marks payment under review. |
+|  | 5. Landlord reviews payment proof. |
+|  | 6. Landlord approves or rejects payment. |
+|  | 7. System updates payment status. |
+| Alternative Flow | A1. Rejected payment returns to pending and tenant can upload proof again. |
+| Exception Flow | E1. No active tenancy. |
+|  | E2. No payment schedule found. |
+|  | E3. Payment already paid. |
+|  | E4. Invalid file. |
+|  | E5. Missing rejection reason. |
+|  | E6. Access denied. |
+
+## Use Case 13: Manage Condition Report
+
+| Field | Specification |
+|---|---|
+| Use Case | Manage Condition Report |
+| Description | Tenant or landlord creates condition report, uploads condition photos, and acknowledges the other party's report. |
+| Actor | 1. Tenant |
+|  | 2. Landlord |
+| Pre-Condition | 1. User is logged in. |
+|  | 2. Tenancy exists. |
+|  | 3. User has access to the tenancy. |
 | Post-Condition | 1. Condition report is created. |
-|  | 2. Other party is notified. |
+|  | 2. Condition photos are uploaded. |
+|  | 3. Report may be marked as acknowledged. |
 | Standard Process | 1. Open condition reports page. |
 |  | 2. Select report type. |
-|  | 3. Enter notes. |
+|  | 3. Enter condition notes. |
 |  | 4. Create report. |
-|  | 5. System stores report. |
-| Alternative Flow | A1. Either tenant or landlord creates the report. |
+|  | 5. Select room or area and upload condition photos. |
+|  | 6. Other party reviews notes and photos. |
+|  | 7. Other party acknowledges the report. |
+|  | 8. System stores report, photos, and acknowledgement record. |
+| Alternative Flow | A1. User deletes a condition photo before acknowledgement if allowed. |
 | Exception Flow | E1. Invalid report type. |
 |  | E2. Duplicate restricted report. |
-|  | E3. Access denied. |
+|  | E3. Invalid file. |
+|  | E4. User tries to acknowledge own report. |
+|  | E5. Report already acknowledged. |
+|  | E6. Access denied. |
 
-## Use Case 32: Upload Condition Photos
-
-| Field | Specification |
-|---|---|
-| Use Case | Upload Condition Photos |
-| Description | User uploads photos to support a condition report. |
-| Actor | 1. Tenant |
-|  | 2. Landlord |
-| Pre-Condition | 1. Condition report exists. |
-|  | 2. Report is not acknowledged. |
-| Post-Condition | 1. Photos are attached to condition report. |
-| Standard Process | 1. Open condition report. |
-|  | 2. Select room or area. |
-|  | 3. Choose photo. |
-|  | 4. Upload photo. |
-|  | 5. System stores photo. |
-| Alternative Flow | A1. Uploader deletes own photo before acknowledgement. |
-| Exception Flow | E1. Invalid file. |
-|  | E2. Upload failure. |
-|  | E3. Access denied. |
-
-## Use Case 33: Acknowledge Condition Report
-
-| Field | Specification |
-|---|---|
-| Use Case | Acknowledge Condition Report |
-| Description | Other party acknowledges that condition report has been reviewed. |
-| Actor | 1. Tenant |
-|  | 2. Landlord |
-| Pre-Condition | 1. Report exists. |
-|  | 2. Report was created by the other party. |
-|  | 3. Report has photos. |
-| Post-Condition | 1. Report is marked acknowledged. |
-|  | 2. Creator is notified. |
-| Standard Process | 1. Open condition report. |
-|  | 2. Review notes and photos. |
-|  | 3. Click acknowledge. |
-|  | 4. System records acknowledgement. |
-| Alternative Flow | A1. Tenant acknowledges landlord report, or landlord acknowledges tenant report. |
-| Exception Flow | E1. User tries to acknowledge own report. |
-|  | E2. Report already acknowledged. |
-|  | E3. Access denied. |
-
-## Use Case 34: Renew Tenancy
-
-| Field | Specification |
-|---|---|
-| Use Case | Renew Tenancy |
-| Description | Landlord creates renewal tenancy invitation from an existing tenancy. |
-| Actor | 1. Landlord |
-| Pre-Condition | 1. Existing tenancy is eligible for renewal. |
-|  | 2. Landlord owns tenancy. |
-| Post-Condition | 1. New invited renewal tenancy is created. |
-|  | 2. Tenant is notified. |
-| Standard Process | 1. Open tenancy details. |
-|  | 2. Click renew tenancy. |
-|  | 3. Enter new start date, end date, rent, and deposit. |
-|  | 4. Submit renewal. |
-|  | 5. System creates new invited tenancy. |
-| Alternative Flow | A1. Tenant must accept renewal invitation before new agreement workflow starts. |
-| Exception Flow | E1. Invalid dates. |
-|  | E2. Tenancy not eligible. |
-|  | E3. Access denied. |
-
-## Use Case 35: Terminate Tenancy
-
-| Field | Specification |
-|---|---|
-| Use Case | Terminate Tenancy |
-| Description | Landlord terminates an active tenancy early. |
-| Actor | 1. Landlord |
-| Pre-Condition | 1. Tenancy exists. |
-|  | 2. Landlord owns tenancy. |
-|  | 3. Termination reason is provided. |
-| Post-Condition | 1. Tenancy status becomes terminated. |
-|  | 2. Room becomes available. |
-| Standard Process | 1. Open tenancy details. |
-|  | 2. Click terminate tenancy. |
-|  | 3. Enter termination reason. |
-|  | 4. Confirm action. |
-|  | 5. System terminates tenancy. |
-| Alternative Flow | A1. Termination may be used before deposit settlement starts. |
-| Exception Flow | E1. Missing reason. |
-|  | E2. Tenancy not found. |
-|  | E3. Access denied. |
-
-## Use Case 36: Manage Deposit Settlement
+## Use Case 14: Manage Deposit Settlement
 
 | Field | Specification |
 |---|---|
 | Use Case | Manage Deposit Settlement |
-| Description | Landlord starts end-of-tenancy deposit refund process and manages proposed deductions. |
-| Actor | 1. Landlord |
+| Description | Landlord proposes deposit refund deductions, tenant accepts or disputes deductions, and landlord marks refund as paid. |
+| Actor | 1. Tenant |
+|  | 2. Landlord |
 | Pre-Condition | 1. Tenancy is expired or terminated. |
 |  | 2. Deposit has been confirmed paid. |
+|  | 3. User has access to the tenancy. |
 | Post-Condition | 1. Deposit refund proposal is created. |
-|  | 2. Tenant is notified. |
-| Standard Process | 1. Open deposit settlement page. |
-|  | 2. Start settlement. |
-|  | 3. Add deduction reason and amount if needed. |
-|  | 4. Submit proposal. |
-|  | 5. System creates refund record. |
-| Alternative Flow | A1. No deductions are added; settlement can become agreed directly. |
+|  | 2. Deduction response is recorded. |
+|  | 3. Refund status may become paid. |
+| Standard Process | 1. Landlord opens deposit settlement page. |
+|  | 2. Landlord proposes refund amount and deductions. |
+|  | 3. System creates refund proposal and notifies tenant. |
+|  | 4. Tenant views refund proposal. |
+|  | 5. Tenant accepts or disputes proposed deduction. |
+|  | 6. If agreed, landlord uploads refund payment proof. |
+|  | 7. System marks refund as paid. |
+| Alternative Flow | A1. Tenant disputes deduction and enters dispute note. |
+|  | A2. Landlord proposes full refund with no deduction. |
 | Exception Flow | E1. Tenancy not ended. |
 |  | E2. Deposit not paid. |
 |  | E3. Refund already exists. |
+|  | E4. Missing dispute note. |
+|  | E5. Settlement not agreed. |
+|  | E6. Invalid refund proof file. |
 
-## Use Case 37: View Deposit Refund Proposal
+## Use Case 15: View Admin Dashboard
 
 | Field | Specification |
 |---|---|
-| Use Case | View Deposit Refund Proposal |
-| Description | Tenant reviews landlord proposed deposit refund and deductions. |
-| Actor | 1. Tenant |
-| Pre-Condition | 1. Deposit refund proposal exists. |
-|  | 2. Tenant has access. |
-| Post-Condition | 1. Proposal details are displayed. |
-| Standard Process | 1. Open tenancy page. |
-|  | 2. View deposit settlement section. |
-|  | 3. System displays original deposit, deductions, and refund amount. |
-| Alternative Flow | A1. Tenant sees paid refund proof after landlord marks refund paid. |
-| Exception Flow | E1. No refund record found. |
+| Use Case | View Admin Dashboard |
+| Description | Admin views platform overview counts and shortcut links for pending review queues. |
+| Actor | 1. Admin |
+| Pre-Condition | 1. Admin is logged in. |
+| Post-Condition | 1. Dashboard statistics are displayed. |
+|  | 2. Admin can navigate to KYC or property verification queues. |
+| Standard Process | 1. Open admin dashboard. |
+|  | 2. System retrieves total users, pending KYC count, total properties, and pending property count. |
+|  | 3. System displays dashboard summary cards and blocking review queues. |
+|  | 4. Admin selects KYC or property review shortcut if action is needed. |
+| Alternative Flow | A1. No pending review items exist; system displays zero counts. |
+| Exception Flow | E1. Dashboard data fails to load. |
 |  | E2. Access denied. |
 
-## Use Case 38: Accept / Dispute Deduction
+## Use Case 16: Manage User KYC Verification
 
 | Field | Specification |
 |---|---|
-| Use Case | Accept / Dispute Deduction |
-| Description | Tenant accepts or disputes each proposed deposit deduction. |
-| Actor | 1. Tenant |
-| Pre-Condition | 1. Deduction is proposed. |
-|  | 2. Tenant has access to refund proposal. |
-| Post-Condition | 1. Deduction status becomes accepted or disputed. |
-|  | 2. Refund settlement status is updated. |
-| Standard Process | 1. Review proposed deduction. |
-|  | 2. Click accept or dispute. |
-|  | 3. If disputing, enter dispute note. |
-|  | 4. Submit response. |
-|  | 5. System updates deduction. |
-| Alternative Flow | A1. If all deductions are accepted, settlement becomes agreed. |
-| Exception Flow | E1. Missing dispute note. |
-|  | E2. Deduction already responded. |
-|  | E3. Access denied. |
-
-## Use Case 39: Mark Refund as Paid
-
-| Field | Specification |
-|---|---|
-| Use Case | Mark Refund as Paid |
-| Description | Landlord uploads refund payment proof and marks deposit refund as paid. |
-| Actor | 1. Landlord |
-| Pre-Condition | 1. Deposit settlement is agreed. |
-|  | 2. Refund proof file is valid. |
-| Post-Condition | 1. Refund status becomes paid. |
-|  | 2. Tenant is notified. |
-| Standard Process | 1. Open deposit settlement page. |
-|  | 2. Choose refund payment proof. |
-|  | 3. Upload proof. |
-|  | 4. System stores proof. |
-|  | 5. System marks refund as paid. |
-| Alternative Flow | A1. Tenant later views refund payment proof. |
-| Exception Flow | E1. Settlement not agreed. |
-|  | E2. Invalid file. |
-|  | E3. Upload failure. |
-
-## Use Case 40: View Pending KYC Submissions
-
-| Field | Specification |
-|---|---|
-| Use Case | View Pending KYC Submissions |
-| Description | Admin views users waiting for identity verification. |
+| Use Case | Manage User KYC Verification |
+| Description | Admin views pending user KYC submissions and approves, rejects, or revokes user identity verification. |
 | Actor | 1. Admin |
 | Pre-Condition | 1. Admin is logged in. |
-| Post-Condition | 1. KYC queue is displayed. |
+|  | 2. User KYC submission exists. |
+| Post-Condition | 1. User verification status is updated. |
+|  | 2. Rejection or revocation reason may be saved. |
+|  | 3. User is notified. |
 | Standard Process | 1. Open admin KYC verification page. |
-|  | 2. System retrieves unverified users. |
+|  | 2. System retrieves pending or verified users. |
 |  | 3. Admin reviews user details and IC document. |
-| Alternative Flow | A1. Previously rejected users are shown with rejection reason. |
-| Exception Flow | E1. Access denied. |
-|  | E2. Data loading failure. |
-
-## Use Case 41: Approve / Reject User KYC
-
-| Field | Specification |
-|---|---|
-| Use Case | Approve / Reject User KYC |
-| Description | Admin approves or rejects user identity verification. |
-| Actor | 1. Admin |
-| Pre-Condition | 1. User is pending verification. |
-|  | 2. Admin has reviewed KYC details. |
-| Post-Condition | 1. User is verified or rejection reason is saved. |
-|  | 2. User is notified. |
-| Standard Process | 1. Open pending KYC submission. |
-|  | 2. Review user IC details and document. |
-|  | 3. Click approve or reject. |
-|  | 4. If rejecting, enter reason. |
-|  | 5. System updates user verification status. |
-| Alternative Flow | A1. Rejected user may update documents and wait for review again. |
-| Exception Flow | E1. Missing rejection reason. |
+|  | 4. Admin approves, rejects, or revokes verification. |
+|  | 5. If rejecting or revoking, admin enters reason. |
+|  | 6. System updates user verification status and sends notification. |
+| Alternative Flow | A1. Admin views previously verified users before revoking verification. |
+| Exception Flow | E1. Missing rejection or revocation reason. |
 |  | E2. User not found. |
-|  | E3. Access denied. |
+|  | E3. User is not currently verified when revoking. |
+|  | E4. Access denied. |
 
-## Use Case 42: View Pending Property Verifications
+## Use Case 17: Manage Property Verification
 
 | Field | Specification |
 |---|---|
-| Use Case | View Pending Property Verifications |
-| Description | Admin views properties waiting for approval. |
+| Use Case | Manage Property Verification |
+| Description | Admin views pending property verifications and approves, rejects, or revokes property verification. |
 | Actor | 1. Admin |
 | Pre-Condition | 1. Admin is logged in. |
-| Post-Condition | 1. Property verification queue is displayed. |
+|  | 2. Property submission exists. |
+| Post-Condition | 1. Property verification status is updated. |
+|  | 2. Rejection or revocation reason may be saved. |
+|  | 3. Landlord is notified. |
 | Standard Process | 1. Open admin property verification page. |
-|  | 2. System retrieves unverified properties. |
-|  | 3. Admin reviews property details, landlord info, and photos. |
-| Alternative Flow | A1. Previously rejected properties are shown with rejection reason. |
-| Exception Flow | E1. Access denied. |
-|  | E2. Data loading failure. |
+|  | 2. System retrieves pending or verified properties. |
+|  | 3. Admin reviews property details, landlord information, and photos. |
+|  | 4. Admin approves, rejects, or revokes property verification. |
+|  | 5. If rejecting or revoking, admin enters reason. |
+|  | 6. System updates property verification status and sends notification. |
+| Alternative Flow | A1. Admin views additional property photos before deciding. |
+| Exception Flow | E1. Missing rejection or revocation reason. |
+|  | E2. Property not found. |
+|  | E3. Property is not currently verified when revoking. |
+|  | E4. Access denied. |
 
-## Use Case 43: Approve / Reject Property
+## Use Case 18: Manage User Accounts
 
 | Field | Specification |
 |---|---|
-| Use Case | Approve / Reject Property |
-| Description | Admin approves or rejects a landlord property listing. |
+| Use Case | Manage User Accounts |
+| Description | Admin views user accounts and suspends, reactivates, or deletes non-admin accounts when allowed. |
 | Actor | 1. Admin |
-| Pre-Condition | 1. Property is pending verification. |
-|  | 2. Admin has reviewed property details. |
-| Post-Condition | 1. Property is verified or rejection reason is saved. |
-|  | 2. Landlord is notified. |
-| Standard Process | 1. Open pending property submission. |
-|  | 2. Review property details and photos. |
-|  | 3. Click approve or reject. |
-|  | 4. If rejecting, enter reason. |
-|  | 5. System updates property verification status. |
-| Alternative Flow | A1. Rejected property remains visible for later re-review. |
-| Exception Flow | E1. Missing rejection reason. |
-|  | E2. Property not found. |
-|  | E3. Access denied. |
-
+| Pre-Condition | 1. Admin is logged in. |
+|  | 2. Target account is not an admin account. |
+| Post-Condition | 1. User list is displayed. |
+|  | 2. Account may be suspended, reactivated, or deleted. |
+|  | 3. User is notified for suspension or reactivation. |
+| Standard Process | 1. Open admin user management page. |
+|  | 2. Search or filter users by role or account status. |
+|  | 3. Select target user account. |
+|  | 4. Admin suspends or reactivates account. |
+|  | 5. System updates account status and sends notification. |
+|  | 6. Admin may delete account if there are no active obligations. |
+|  | 7. System deletes account after validation. |
+| Alternative Flow | A1. Suspended user is blocked from dashboard access and redirected to login with suspended message. |
+| Exception Flow | E1. Target user not found. |
+|  | E2. Target user is an admin. |
+|  | E3. Delete blocked by active tenancy. |
+|  | E4. Delete blocked by overdue payment. |
+|  | E5. Delete blocked by pending deposit refund. |
+|  | E6. Delete blocked by unfinished agreement. |
+|  | E7. Access denied. |

@@ -37,7 +37,7 @@ export async function GET(
     );
 
   const docs = await prisma.tenantDocument.findMany({
-    where: { userId: tenancy.tenantId },
+    where: { userId: tenancy.tenantId, type: 'INCOME_PROOF' },
     orderBy: { uploadedAt: 'desc' },
   });
 

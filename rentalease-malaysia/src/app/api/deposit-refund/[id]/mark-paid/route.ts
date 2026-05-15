@@ -82,7 +82,7 @@ export async function POST(
     select: { email: true, name: true },
   });
   if (tenantUser) {
-    sendDepositRefundPaidEmail(tenantUser.email, tenantUser.name, amountStr);
+    sendDepositRefundPaidEmail(tenantUser.email, tenantUser.name ?? 'Tenant', amountStr);
   }
 
   return NextResponse.json({ message: 'Deposit refund marked as paid' });

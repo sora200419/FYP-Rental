@@ -6,6 +6,9 @@ import { prisma } from '@/lib/prisma';
 import { createNotification } from '@/lib/notifications';
 import { v2 as cloudinary } from 'cloudinary';
 
+const ALLOWED_MIME_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp', 'application/pdf']);
+const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024;
+
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
   api_key: process.env.CLOUDINARY_API_KEY,
@@ -73,6 +76,20 @@ export async function POST(
 
   if (!file) {
     return NextResponse.json({ error: 'No file provided' }, { status: 400 });
+  }
+
+  if (!ALLOWED_MIME_TYPES.has(file.type)) {
+    return NextResponse.json(
+      { error: 'Invalid file type. Accepted: JPG, PNG, WebP, PDF' },
+      { status: 400 },
+    );
+  }
+
+  if (file.size <= 0 || file.size > MAX_FILE_SIZE_BYTES) {
+    return NextResponse.json(
+      { error: 'File must be between 1 byte and 10 MB.' },
+      { status: 400 },
+    );
   }
 
   // Convert the File to a base64 data URI for Cloudinary upload

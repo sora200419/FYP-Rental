@@ -154,7 +154,7 @@ export const messagesEn: Record<string, string> = {
   wizard_btn_back: '← Back',
   wizard_btn_complete: '✨ Complete & Generate Agreement',
   wizard_generating: 'Generating your agreement',
-  wizard_generating_desc: 'This takes about 15 seconds.',
+  wizard_generating_desc: 'This takes about 1 minute.',
   wizard_draft_in_progress: 'You have a draft in progress. Continue where you left off or adjust your answers.',
 
   // Payments
@@ -338,7 +338,7 @@ export const messagesMs: Record<string, string> = {
   wizard_btn_back: '← Kembali',
   wizard_btn_complete: '✨ Selesai & Jana Perjanjian',
   wizard_generating: 'Menjana perjanjian anda',
-  wizard_generating_desc: 'Ini mengambil masa kira-kira 15 saat.',
+  wizard_generating_desc: 'Ini mengambil masa kira-kira 1 minit.',
   wizard_draft_in_progress: 'Anda mempunyai draf yang sedang dalam proses. Teruskan dari mana anda berhenti atau laraskan jawapan anda.',
 
   // Payments

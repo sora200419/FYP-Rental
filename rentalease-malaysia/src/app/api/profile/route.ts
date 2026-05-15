@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
+import { shouldResetKycForIcChange } from '@/lib/kyc-workflow';
 
 // Malaysian IC (MyKad/NRIC) is always 12 digits in the format YYMMDD-PB-NNNC.
 // We accept both the formatted version (with hyphens) and the raw digit string,
@@ -79,10 +80,23 @@ export async function PATCH(request: NextRequest) {
       // undo an admin's approval.
       const current = await prisma.user.findUnique({
         where: { id: session.user.id },
-        select: { icNumber: true },
+        select: {
+          icNumber: true,
+          kycSubmission: { select: { id: true } },
+        },
       });
       if (data.icNumber !== current?.icNumber) {
         updateData.isVerified = false;
+        if (
+          shouldResetKycForIcChange({
+            previousIcNumber: current?.icNumber ?? null,
+            nextIcNumber: data.icNumber,
+            hasKycSubmission: !!current?.kycSubmission,
+          })
+        ) {
+          updateData.kycRejectedReason =
+            'IC number changed. Please resubmit identity verification.';
+        }
       }
     }
     if (data.language !== undefined) updateData.language = data.language;
@@ -93,18 +107,38 @@ export async function PATCH(request: NextRequest) {
         { status: 400 },
       );
 
-    const updated = await prisma.user.update({
-      where: { id: session.user.id },
-      data: updateData,
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        phone: true,
-        icNumber: true,
-        role: true,
-      },
-    });
+    const shouldRejectExistingKyc =
+      updateData.kycRejectedReason ===
+      'IC number changed. Please resubmit identity verification.';
+
+    const [updated] = await prisma.$transaction([
+      prisma.user.update({
+        where: { id: session.user.id },
+        data: updateData,
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          phone: true,
+          icNumber: true,
+          role: true,
+        },
+      }),
+      ...(shouldRejectExistingKyc
+        ? [
+            prisma.kycSubmission.update({
+              where: { userId: session.user.id },
+              data: {
+                status: 'REJECTED',
+                rejectedReason:
+                  'IC number changed. Please resubmit identity verification.',
+                reviewedById: null,
+                reviewedAt: null,
+              },
+            }),
+          ]
+        : []),
+    ]);
 
     return NextResponse.json(
       { message: 'Profile updated successfully.', user: updated },

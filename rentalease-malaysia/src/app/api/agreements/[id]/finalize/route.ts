@@ -124,7 +124,7 @@ export async function PATCH(
   if (tenantUser) {
     sendAgreementReadyEmail(
       tenantUser.email,
-      agreement.tenancy.tenant.name,
+      agreement.tenancy.tenant.name ?? 'Tenant',
       agreement.tenancy.room.property.address,
       id,
     );

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -21,7 +21,7 @@ const registerSchema = z
     icNumber: z
       .string()
       .min(1, 'IC number is required')
-      .regex(IC_REGEX, 'Invalid format — e.g. 900101-14-5678'),
+      .regex(IC_REGEX, 'Invalid format - e.g. 900101-14-5678'),
   })
   .refine((data) => data.password === data.confirmPassword, {
     message: 'Passwords do not match',
@@ -34,9 +34,6 @@ export default function RegisterPage() {
   const router = useRouter();
   const [serverError, setServerError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [icFile, setIcFile] = useState<File | null>(null);
-  const [icPreview, setIcPreview] = useState<string | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const {
     register,
@@ -47,22 +44,7 @@ export default function RegisterPage() {
     defaultValues: { role: 'TENANT' },
   });
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0] ?? null;
-    setIcFile(file);
-    if (file && file.type.startsWith('image/')) {
-      setIcPreview(URL.createObjectURL(file));
-    } else {
-      setIcPreview(null);
-    }
-  };
-
   const onSubmit = async (data: RegisterFormData) => {
-    if (!icFile) {
-      setServerError('Please upload a photo of your IC.');
-      return;
-    }
-
     setIsLoading(true);
     setServerError(null);
 
@@ -72,7 +54,6 @@ export default function RegisterPage() {
       Object.entries(fields).forEach(([key, value]) => {
         if (value !== undefined && value !== '') formData.append(key, value);
       });
-      formData.append('icPhoto', icFile);
 
       const response = await fetch('/api/register', { method: 'POST', body: formData });
       const result = await response.json();
@@ -92,7 +73,6 @@ export default function RegisterPage() {
 
   return (
     <div className="min-h-screen flex">
-      {/* Left panel — branding */}
       <div className="hidden lg:flex w-5/12 bg-gray-900 flex-col items-center justify-center p-12">
         <span className="text-4xl font-bold tracking-tight text-white">RentalEase</span>
         <p className="mt-4 max-w-sm text-center text-sm leading-relaxed text-gray-400">
@@ -115,17 +95,14 @@ export default function RegisterPage() {
         </ul>
       </div>
 
-      {/* Right panel — form */}
       <div className="flex-1 flex items-center justify-center bg-white px-6 py-12 overflow-y-auto">
         <div className="w-full max-w-md">
-          {/* Mobile logo */}
           <p className="lg:hidden text-2xl font-bold text-gray-900 mb-1">RentalEase</p>
 
           <h2 className="text-2xl font-bold text-gray-900 mb-1">Create account</h2>
           <p className="text-sm text-gray-500 mb-8">Join RentalEase today</p>
 
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
-            {/* Full Name */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1.5">Full Name</label>
               <input
@@ -137,7 +114,6 @@ export default function RegisterPage() {
               {errors.name && <p className="text-xs text-red-500 mt-1">{errors.name.message}</p>}
             </div>
 
-            {/* Email */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1.5">Email Address</label>
               <input
@@ -149,7 +125,6 @@ export default function RegisterPage() {
               {errors.email && <p className="text-xs text-red-500 mt-1">{errors.email.message}</p>}
             </div>
 
-            {/* Phone */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1.5">
                 Phone <span className="text-gray-400 font-normal">(optional)</span>
@@ -162,7 +137,6 @@ export default function RegisterPage() {
               />
             </div>
 
-            {/* IC Number */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1.5">
                 Malaysian IC Number <span className="text-red-500">*</span>
@@ -181,47 +155,6 @@ export default function RegisterPage() {
               )}
             </div>
 
-            {/* IC Photo Upload */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                IC Photo <span className="text-red-500">*</span>
-              </label>
-              <p className="text-xs text-gray-400 mb-2">
-                Upload a clear photo or scan of your MyKad for identity verification.
-              </p>
-              <div
-                onClick={() => fileInputRef.current?.click()}
-                className={`border-2 border-dashed rounded-xl p-6 text-center cursor-pointer transition-colors ${
-                  icFile
-                    ? 'border-green-400 bg-green-50'
-                    : 'border-gray-300 hover:border-blue-400 hover:bg-blue-50'
-                }`}
-              >
-                {icPreview ? (
-                  <img src={icPreview} alt="IC preview" className="max-h-24 mx-auto rounded object-contain" />
-                ) : icFile ? (
-                  <p className="text-sm text-green-700 font-medium">{icFile.name}</p>
-                ) : (
-                  <div>
-                    <svg className="w-8 h-8 text-gray-300 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
-                        d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                    </svg>
-                    <p className="text-sm text-gray-500">Click to upload IC photo</p>
-                    <p className="text-xs text-gray-400 mt-1">JPG, PNG, WebP, or PDF · max 10 MB</p>
-                  </div>
-                )}
-              </div>
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/jpeg,image/png,image/webp,application/pdf"
-                onChange={handleFileChange}
-                className="hidden"
-              />
-            </div>
-
-            {/* Password fields */}
             <PasswordInput
               registration={register('password')}
               label="Password"
@@ -235,9 +168,8 @@ export default function RegisterPage() {
               error={errors.confirmPassword?.message}
             />
 
-            {/* Role selector */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">I am a…</label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">I am a...</label>
               <div className="grid grid-cols-2 gap-3">
                 {(['TENANT', 'LANDLORD'] as const).map((r) => (
                   <label key={r} className="relative flex cursor-pointer">
@@ -264,7 +196,7 @@ export default function RegisterPage() {
               disabled={isLoading}
               className="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-medium py-2.5 rounded-lg transition-colors text-sm"
             >
-              {isLoading ? 'Creating account…' : 'Create Account'}
+              {isLoading ? 'Creating account...' : 'Create Account'}
             </button>
           </form>
 

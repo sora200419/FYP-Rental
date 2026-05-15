@@ -58,8 +58,8 @@ export default async function PropertiesPage() {
             <p className="font-semibold">Account not yet verified</p>
             <p className="mt-0.5 text-xs leading-relaxed text-amber-700">
               {hasIc
-                ? 'Your IC is pending admin review. You will be able to add properties once your identity is verified.'
-                : <>You need to upload your IC on your{' '}<Link href="/dashboard/profile" className="font-medium underline">Profile page</Link>{' '}and wait for admin approval before you can add properties.</>
+                ? <>Complete identity verification on your{' '}<Link href="/dashboard/kyc" className="font-medium underline">KYC page</Link>{' '}before adding properties.</>
+                : <>Add your IC number on your{' '}<Link href="/dashboard/profile" className="font-medium underline">Profile page</Link>{' '}then complete identity verification before adding properties.</>
               }
             </p>
           </div>

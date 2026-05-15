@@ -89,7 +89,7 @@ export async function PATCH(
       `/dashboard/tenant/payments`,
     );
 
-    if (tenantUser) sendPaymentApprovedEmail(tenantUser.email, tenantUser.name, amountStr, monthStr);
+    if (tenantUser) sendPaymentApprovedEmail(tenantUser.email, tenantUser.name ?? 'Tenant', amountStr, monthStr);
 
     return NextResponse.json({ ok: true, status: 'PAID' });
   }
@@ -108,7 +108,7 @@ export async function PATCH(
     `/dashboard/tenant/payments`,
   );
 
-  if (tenantUser) sendPaymentRejectedEmail(tenantUser.email, tenantUser.name, amountStr, monthStr, rejectionReason);
+  if (tenantUser) sendPaymentRejectedEmail(tenantUser.email, tenantUser.name ?? 'Tenant', amountStr, monthStr, rejectionReason);
 
   return NextResponse.json({ ok: true, status: 'PENDING' });
 }

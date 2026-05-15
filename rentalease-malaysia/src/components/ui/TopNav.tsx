@@ -62,7 +62,7 @@ export default function TopNav() {
 
   const adminLinks = [
     { href: '/dashboard/admin', label: 'Dashboard' },
-    { href: '/dashboard/admin/verify', label: 'KYC Verification' },
+    { href: '/dashboard/admin/kyc', label: 'KYC Verification' },
     { href: '/dashboard/admin/properties', label: 'Property Verification' },
   ];
 

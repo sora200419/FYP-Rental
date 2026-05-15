@@ -170,7 +170,7 @@ export function WizardContainer({ tenancyId, roomMeta, existingPreferences }: Wi
     const interval = setInterval(() => {
       msgIdx = (msgIdx + 1) % messages.length;
       setLoadingMessage(messages[msgIdx]);
-    }, 5000);
+    }, 20000);
 
     try {
       const res = await fetch('/api/agreements/generate', {
@@ -199,7 +199,7 @@ export function WizardContainer({ tenancyId, roomMeta, existingPreferences }: Wi
             <div className="absolute inset-0 border-4 border-blue-600 rounded-full border-t-transparent animate-spin" />
           </div>
           <h2 className="text-xl font-bold text-gray-900 mb-2">Generating your agreement</h2>
-          <p className="text-sm text-gray-500 mb-4">This takes about 15 seconds.</p>
+          <p className="text-sm text-gray-500 mb-4">This takes about 1 minute.</p>
           <p className="text-sm text-blue-600 font-medium animate-pulse">{loadingMessage}</p>
         </div>
       </div>

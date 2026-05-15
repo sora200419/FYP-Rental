@@ -1,22 +1,17 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import Image from 'next/image';
 
 interface TenantDocument {
   id: string;
-  type: 'IC_COPY' | 'INCOME_PROOF';
+  type: 'INCOME_PROOF';
   imageUrl: string;
   originalName: string;
   fileSize: number;
   mimeType: string;
   uploadedAt: string;
 }
-
-const TYPE_LABELS: Record<string, string> = {
-  IC_COPY: 'IC / NRIC Copy',
-  INCOME_PROOF: 'Income Proof',
-};
 
 interface Props {
   tenancyId: string;
@@ -55,7 +50,7 @@ export default function TenantDocumentsCard({ tenancyId, tenantName }: Props) {
         </h2>
         <div className="flex items-center gap-2 text-sm text-gray-400">
           <span className="w-4 h-4 border-2 border-gray-300 border-t-transparent rounded-full animate-spin" />
-          Loading documents…
+          Loading documents...
         </div>
       </div>
     );
@@ -101,30 +96,17 @@ export default function TenantDocumentsCard({ tenancyId, tenantName }: Props) {
           <svg className="w-8 h-8 text-gray-300 mb-2 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 7a2 2 0 012-2h4l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V7z" />
           </svg>
-          <p className="text-sm text-gray-500">{tenantName} has not uploaded any documents yet.</p>
-          <p className="text-xs text-gray-400 mt-1">They can upload IC copy and income proof from their profile page.</p>
+          <p className="text-sm text-gray-500">{tenantName} has not uploaded income proof yet.</p>
+          <p className="text-xs text-gray-400 mt-1">They can upload income proof from their profile page.</p>
         </div>
       ) : (
         <div className="space-y-3">
-          {(['IC_COPY', 'INCOME_PROOF'] as const).map((type) => {
-            const doc = docs.find((d) => d.type === type);
-            if (!doc) {
-              return (
-                <div key={type} className="flex items-center justify-between py-2 border-b border-gray-50 last:border-0">
-                  <div>
-                    <p className="text-sm font-medium text-gray-700">{TYPE_LABELS[type]}</p>
-                    <p className="text-xs text-gray-400">Not uploaded</p>
-                  </div>
-                  <span className="text-xs text-gray-400">—</span>
-                </div>
-              );
-            }
-
+          {docs.map((doc) => {
             const isPdf = doc.mimeType === 'application/pdf';
             const fileSizeKb = Math.round(doc.fileSize / 1024);
 
             return (
-              <div key={type} className="flex items-center justify-between py-2 border-b border-gray-50 last:border-0">
+              <div key={doc.id} className="flex items-center justify-between py-2 border-b border-gray-50 last:border-0">
                 <div className="flex items-center gap-3 min-w-0">
                   {isPdf ? (
                     <svg className="w-6 h-6 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -139,7 +121,7 @@ export default function TenantDocumentsCard({ tenancyId, tenantName }: Props) {
                     >
                       <Image
                         src={doc.imageUrl}
-                        alt={TYPE_LABELS[type]}
+                        alt="Income Proof"
                         fill
                         className="object-cover"
                         sizes="40px"
@@ -147,8 +129,8 @@ export default function TenantDocumentsCard({ tenancyId, tenantName }: Props) {
                     </a>
                   )}
                   <div className="min-w-0">
-                    <p className="text-sm font-medium text-gray-700">{TYPE_LABELS[type]}</p>
-                    <p className="text-xs text-gray-400 truncate">{doc.originalName} · {fileSizeKb} KB</p>
+                    <p className="text-sm font-medium text-gray-700">Income Proof</p>
+                    <p className="text-xs text-gray-400 truncate">{doc.originalName} - {fileSizeKb} KB</p>
                     <p className="text-xs text-gray-400">
                       {new Date(doc.uploadedAt).toLocaleDateString('en-MY', { day: 'numeric', month: 'short', year: 'numeric' })}
                     </p>
@@ -160,7 +142,7 @@ export default function TenantDocumentsCard({ tenancyId, tenantName }: Props) {
                   rel="noopener noreferrer"
                   className="text-xs font-medium text-blue-600 hover:underline flex-shrink-0 ml-3"
                 >
-                  View ↗
+                  View
                 </a>
               </div>
             );
