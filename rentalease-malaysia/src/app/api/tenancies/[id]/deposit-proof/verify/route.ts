@@ -14,11 +14,13 @@ export async function PATCH(
   }
 
   const { id: tenancyId } = await params;
-  const body = await request.json();
-  const { action, rejectionReason } = body as {
-    action: string;
-    rejectionReason?: string;
-  };
+  let body: { action: string; rejectionReason?: string };
+  try {
+    body = await request.json();
+  } catch {
+    return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
+  }
+  const { action, rejectionReason } = body;
 
   if (action !== 'APPROVE' && action !== 'REJECT') {
     return NextResponse.json({ error: 'Invalid action' }, { status: 400 });

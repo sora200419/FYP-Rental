@@ -16,8 +16,13 @@ export async function PATCH(
   }
 
   const { id } = await params;
-  const body = await request.json();
-  const { action } = body; // 'ACCEPT' | 'DECLINE'
+  let body: { action: string };
+  try {
+    body = await request.json();
+  } catch {
+    return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
+  }
+  const { action } = body;
 
   if (!['ACCEPT', 'DECLINE'].includes(action)) {
     return NextResponse.json({ error: 'Invalid action' }, { status: 400 });

@@ -71,7 +71,7 @@ export async function POST(request: NextRequest) {
       select: { id: true, name: true, email: true, role: true, createdAt: true },
     });
 
-    sendWelcomeEmail(validated.email, validated.name, validated.role as 'LANDLORD' | 'TENANT');
+    sendWelcomeEmail(validated.email, validated.name, validated.role as 'LANDLORD' | 'TENANT').catch(console.error);
 
     return NextResponse.json(
       { message: 'Account created successfully', user },

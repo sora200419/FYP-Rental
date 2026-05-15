@@ -21,7 +21,13 @@ export async function POST(
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   const { id: reportId } = await params;
-  const body = await request.json();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let body: any;
+  try {
+    body = await request.json();
+  } catch {
+    return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
+  }
   const { area, completionReason } = body;
 
   if (!area || typeof area !== 'string' || area.trim().length === 0)

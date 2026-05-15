@@ -16,8 +16,13 @@ export async function PATCH(
   }
 
   const { id: paymentId } = await params;
-  const body = await request.json();
-  const { action, rejectionReason } = body; // action: 'APPROVE' | 'REJECT'
+  let body: { action: string; rejectionReason?: string };
+  try {
+    body = await request.json();
+  } catch {
+    return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
+  }
+  const { action, rejectionReason } = body;
 
   if (!['APPROVE', 'REJECT'].includes(action)) {
     return NextResponse.json({ error: 'Invalid action' }, { status: 400 });
@@ -89,7 +94,7 @@ export async function PATCH(
       `/dashboard/tenant/payments`,
     );
 
-    if (tenantUser) sendPaymentApprovedEmail(tenantUser.email, tenantUser.name ?? 'Tenant', amountStr, monthStr);
+    if (tenantUser) sendPaymentApprovedEmail(tenantUser.email, tenantUser.name ?? 'Tenant', amountStr, monthStr).catch(console.error);
 
     return NextResponse.json({ ok: true, status: 'PAID' });
   }
@@ -108,7 +113,7 @@ export async function PATCH(
     `/dashboard/tenant/payments`,
   );
 
-  if (tenantUser) sendPaymentRejectedEmail(tenantUser.email, tenantUser.name ?? 'Tenant', amountStr, monthStr, rejectionReason);
+  if (tenantUser) sendPaymentRejectedEmail(tenantUser.email, tenantUser.name ?? 'Tenant', amountStr, monthStr, rejectionReason ?? '').catch(console.error);
 
   return NextResponse.json({ ok: true, status: 'PENDING' });
 }

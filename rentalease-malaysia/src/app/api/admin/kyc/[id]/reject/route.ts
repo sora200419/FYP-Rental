@@ -14,8 +14,13 @@ export async function PATCH(
   if (session.user.role !== 'ADMIN') return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
   const { id } = await params;
-  const body = await request.json();
-  const reason = (body.reason as string)?.trim();
+  let body: { reason?: string };
+  try {
+    body = await request.json();
+  } catch {
+    return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
+  }
+  const reason = body.reason?.trim();
   if (!reason)
     return NextResponse.json({ error: 'Rejection reason is required' }, { status: 400 });
   if (reason.length > 500)

@@ -72,7 +72,13 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const body = await request.json();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let body: any;
+  try {
+    body = await request.json();
+  } catch {
+    return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
+  }
   const leasePartyType =
     body.leasePartyType === 'CORPORATE' ? 'CORPORATE' : 'INDIVIDUAL';
   const { roomId, tenantEmail, startDate, endDate, monthlyRent, depositAmount } =
@@ -314,7 +320,7 @@ export async function POST(request: Request) {
       invitationName,
       `${room.property.address}, ${room.property.city}`,
       landlordUser?.name ?? 'Your landlord',
-    );
+    ).catch(console.error);
   }
 
   return NextResponse.json(tenancy, { status: 201 });

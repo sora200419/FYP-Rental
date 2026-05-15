@@ -230,7 +230,7 @@ export async function PATCH(
         newRecipient.name ?? 'Tenant',
         `${tenancy.room.property.address}, ${tenancy.room.property.city}`,
         landlordUser?.name ?? 'Your landlord',
-      );
+      ).catch(console.error);
     }
 
     return NextResponse.json(

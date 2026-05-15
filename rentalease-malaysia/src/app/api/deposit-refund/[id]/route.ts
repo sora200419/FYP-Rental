@@ -139,7 +139,7 @@ export async function POST(
       tenantUser.email,
       tenantUser.name,
       tenancyForAddress.room.property.address,
-    );
+    ).catch(console.error);
   }
 
   return NextResponse.json({ refund }, { status: 201 });

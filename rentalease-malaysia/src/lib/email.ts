@@ -12,6 +12,14 @@ function getResend(): Resend {
 }
 const FROM = process.env.EMAIL_FROM ?? 'RentalEase <onboarding@resend.dev>';
 
+function h(s: string): string {
+  return s
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
 async function send(to: string, subject: string, html: string) {
   try {
     await getResend().emails.send({ from: FROM, to, subject, html });
@@ -73,7 +81,7 @@ export async function sendWelcomeEmail(to: string, name: string, role: 'LANDLORD
     to,
     'Welcome to RentalEase!',
     base(
-      `Welcome, ${name}!`,
+      `Welcome, ${h(name)}!`,
       p(`Your ${roleLabel} account has been created. Complete identity verification from your dashboard to unlock restricted features.`) +
       p('You can still sign in, explore your dashboard, and set up your profile.'),
       { label: 'Go to Dashboard', url: `${process.env.NEXTAUTH_URL}/dashboard/${roleLabel}` },
@@ -87,7 +95,7 @@ export async function sendKycApprovedEmail(to: string, name: string) {
     'Your identity has been verified',
     base(
       'Identity Verified',
-      p(`Hi ${name}, your identity documents have been reviewed and approved.`) +
+      p(`Hi ${h(name)}, your identity documents have been reviewed and approved.`) +
       p('You can now accept tenancy invitations and use all features of RentalEase.'),
       { label: 'Go to Dashboard', url: `${process.env.NEXTAUTH_URL}/dashboard` },
     ),
@@ -100,9 +108,9 @@ export async function sendKycRejectedEmail(to: string, name: string, reason: str
     'Action required: identity verification',
     base(
       'Identity Verification Rejected',
-      p(`Hi ${name}, your identity documents were not approved for the following reason:`) +
+      p(`Hi ${h(name)}, your identity documents were not approved for the following reason:`) +
       `<div style="background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:12px 16px;margin:12px 0;">
-        <p style="margin:0;font-size:14px;color:#dc2626;">${reason}</p>
+        <p style="margin:0;font-size:14px;color:#dc2626;">${h(reason)}</p>
       </div>` +
       p('Please resubmit your identity verification with clearer photos.'),
       { label: 'Resubmit Verification', url: `${process.env.NEXTAUTH_URL}/dashboard/kyc` },
@@ -121,7 +129,7 @@ export async function sendInvitationEmail(
     'You have a new tenancy invitation',
     base(
       'Tenancy Invitation',
-      p(`Hi ${tenantName}, ${landlordName} has invited you to a tenancy at <strong>${propertyAddress}</strong>.`) +
+      p(`Hi ${h(tenantName)}, ${h(landlordName)} has invited you to a tenancy at <strong>${h(propertyAddress)}</strong>.`) +
       p('Log in to your dashboard to review the details and accept or decline.'),
       { label: 'View Invitation', url: `${process.env.NEXTAUTH_URL}/dashboard/tenant/tenancy` },
     ),
@@ -139,7 +147,7 @@ export async function sendAgreementReadyEmail(
     'Your tenancy agreement is ready to review',
     base(
       'Agreement Ready for Review',
-      p(`Hi ${tenantName}, your landlord has finalised the tenancy agreement for <strong>${propertyAddress}</strong>.`) +
+      p(`Hi ${h(tenantName)}, your landlord has finalised the tenancy agreement for <strong>${h(propertyAddress)}</strong>.`) +
       p('Please review and sign at your earliest convenience.'),
       { label: 'Review Agreement', url: `${process.env.NEXTAUTH_URL}/dashboard/tenant/tenancy` },
     ),
@@ -155,10 +163,10 @@ export async function sendAgreementSignedEmail(
 ) {
   await send(
     to,
-    `${tenantName} signed the tenancy agreement`,
+    `${h(tenantName)} signed the tenancy agreement`,
     base(
       'Agreement Signed',
-      p(`Hi ${landlordName}, ${tenantName} has signed the tenancy agreement for <strong>${propertyAddress}</strong>.`) +
+      p(`Hi ${h(landlordName)}, ${h(tenantName)} has signed the tenancy agreement for <strong>${h(propertyAddress)}</strong>.`) +
       p('The tenancy is now active and rent payments have been scheduled.'),
       { label: 'View Tenancy', url: `${process.env.NEXTAUTH_URL}/dashboard/landlord/tenancies/${tenancyId}` },
     ),
@@ -176,7 +184,7 @@ export async function sendPaymentApprovedEmail(
     'Your rent payment has been confirmed',
     base(
       'Payment Confirmed',
-      p(`Hi ${tenantName}, your rent payment of <strong>RM ${amount}</strong> for ${month} has been approved by your landlord.`),
+      p(`Hi ${h(tenantName)}, your rent payment of <strong>RM ${h(amount)}</strong> for ${h(month)} has been approved by your landlord.`),
       { label: 'View Payments', url: `${process.env.NEXTAUTH_URL}/dashboard/tenant/payments` },
     ),
   );
@@ -194,9 +202,9 @@ export async function sendPaymentRejectedEmail(
     'Action required: rent payment rejected',
     base(
       'Payment Proof Rejected',
-      p(`Hi ${tenantName}, your rent payment proof of <strong>RM ${amount}</strong> for ${month} was rejected.`) +
+      p(`Hi ${h(tenantName)}, your rent payment proof of <strong>RM ${h(amount)}</strong> for ${h(month)} was rejected.`) +
       `<div style="background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:12px 16px;margin:12px 0;">
-        <p style="margin:0;font-size:14px;color:#dc2626;">${reason}</p>
+        <p style="margin:0;font-size:14px;color:#dc2626;">${h(reason)}</p>
       </div>` +
       p('Please upload a new proof from your payments page.'),
       { label: 'View Payments', url: `${process.env.NEXTAUTH_URL}/dashboard/tenant/payments` },
@@ -214,7 +222,7 @@ export async function sendDepositSettlementEmail(
     'Your landlord has initiated deposit settlement',
     base(
       'Deposit Settlement Started',
-      p(`Hi ${tenantName}, your landlord has initiated the deposit settlement process for <strong>${propertyAddress}</strong>.`) +
+      p(`Hi ${h(tenantName)}, your landlord has initiated the deposit settlement process for <strong>${h(propertyAddress)}</strong>.`) +
       p('Please review the proposed deductions and respond to each one.'),
       { label: 'Review Settlement', url: `${process.env.NEXTAUTH_URL}/dashboard/tenant/tenancy` },
     ),
@@ -231,7 +239,7 @@ export async function sendDepositRefundPaidEmail(
     'Your deposit refund has been paid',
     base(
       'Deposit Refund Paid',
-      p(`Hi ${tenantName}, your landlord has transferred your deposit refund of <strong>RM ${amount}</strong>.`) +
+      p(`Hi ${h(tenantName)}, your landlord has transferred your deposit refund of <strong>RM ${h(amount)}</strong>.`) +
       p('Proof of payment has been uploaded to your tenancy page.'),
       { label: 'View Tenancy', url: `${process.env.NEXTAUTH_URL}/dashboard/tenant/tenancy` },
     ),
@@ -250,7 +258,7 @@ export async function sendTenancyEndingSoonEmail(
     `Tenancy ending in ${daysLeft} days`,
     base(
       `Tenancy Ending in ${daysLeft} Days`,
-      p(`Hi ${recipientName}, the tenancy for <strong>${propertyAddress}</strong> ends in <strong>${daysLeft} days</strong>.`) +
+      p(`Hi ${h(recipientName)}, the tenancy for <strong>${h(propertyAddress)}</strong> ends in <strong>${daysLeft} days</strong>.`) +
       p(daysLeft <= 7
         ? 'Please prepare for the upcoming move-out and ensure all keys are returned.'
         : 'Please plan ahead and discuss renewal or move-out arrangements with the other party.'),

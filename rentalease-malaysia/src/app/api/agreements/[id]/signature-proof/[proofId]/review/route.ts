@@ -5,6 +5,7 @@ import { prisma } from '@/lib/prisma';
 import { createNotification } from '@/lib/notifications';
 import { buildAgreementEvent } from '@/lib/agreements/history';
 import { buildRentScheduleEntries } from '@/lib/payments';
+import { sendAgreementSignedEmail } from '@/lib/email';
 
 export async function PATCH(
   request: Request,
@@ -16,11 +17,13 @@ export async function PATCH(
   }
 
   const { id, proofId } = await params;
-  const body = await request.json();
-  const { action, rejectionReason } = body as {
-    action: 'APPROVE' | 'REJECT';
-    rejectionReason?: string;
-  };
+  let body: { action: 'APPROVE' | 'REJECT'; rejectionReason?: string };
+  try {
+    body = await request.json();
+  } catch {
+    return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
+  }
+  const { action, rejectionReason } = body;
 
   if (action !== 'APPROVE' && action !== 'REJECT') {
     return NextResponse.json({ error: 'Invalid action' }, { status: 400 });
@@ -173,6 +176,14 @@ export async function PATCH(
     `Your signed agreement for ${agreement.tenancy.room.property.address} has been approved by the landlord. The tenancy is now active and move-in can start.`,
     '/dashboard/tenant/tenancy',
   );
+
+  sendAgreementSignedEmail(
+    session.user.email ?? '',
+    session.user.name ?? 'Landlord',
+    agreement.tenancy.tenant.name,
+    agreement.tenancy.room.property.address,
+    agreement.tenancyId,
+  ).catch(console.error);
 
   return NextResponse.json({ ok: true, status: 'SIGNED' });
 }

@@ -29,6 +29,9 @@ CLOUDINARY_API_SECRET="..."
 CLOUDINARY_UPLOAD_PRESET="rentalease_payments"
 BLOCKCHAIN_PRIVATE_KEY="0x..."   # Sepolia testnet wallet
 SEPOLIA_RPC_URL="https://..."
+RESEND_API_KEY="re_..."          # Transactional email (Resend)
+EMAIL_FROM="RentalEase <you@yourdomain.com>"  # defaults to onboarding@resend.dev if omitted
+CRON_SECRET="<random-secret>"    # Required — protects /api/cron/expire-tenancies
 ```
 
 ## Architecture
@@ -46,7 +49,7 @@ src/app/
 
 ### Auth
 
-NextAuth.js v4 with a Credentials provider. JWT tokens carry `id`, `email`, `role`, and `language`. Config lives in `src/lib/auth.ts`. Passwords are bcrypt-hashed. Role is an enum: `LANDLORD | TENANT | ADMIN`. Admin accounts are auto-bootstrapped from `.env` when the app is opened, with `POST /api/internal/bootstrap-admin` kept as a protected manual fallback; they have their own dashboard at `/dashboard/admin` and are blocked from landlord/tenant routes by middleware.
+NextAuth.js v4 with a Credentials provider. JWT tokens carry `id`, `email`, `role`, and `language`. Config lives in `src/lib/auth.ts`. Passwords are bcrypt-hashed. Role is an enum: `LANDLORD | TENANT | ADMIN`. Admin accounts are auto-bootstrapped from `.env` on first request. They have their own dashboard at `/dashboard/admin` and are blocked from landlord/tenant routes by middleware.
 
 ### Data Model (Prisma + PostgreSQL)
 

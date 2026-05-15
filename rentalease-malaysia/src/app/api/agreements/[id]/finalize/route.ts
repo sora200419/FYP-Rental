@@ -127,7 +127,7 @@ export async function PATCH(
       agreement.tenancy.tenant.name ?? 'Tenant',
       agreement.tenancy.room.property.address,
       id,
-    );
+    ).catch(console.error);
   }
 
   return NextResponse.json({ ok: true, checklist });
