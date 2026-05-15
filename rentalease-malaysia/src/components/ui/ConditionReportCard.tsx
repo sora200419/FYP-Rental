@@ -3,6 +3,8 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
+import ConditionEvidenceProgress from '@/components/ui/ConditionEvidenceProgress';
+import ConditionReviewActions from '@/components/ui/ConditionReviewActions';
 
 interface Photo {
   id: string;
@@ -12,54 +14,59 @@ interface Photo {
   uploadedById: string;
 }
 
+interface ChecklistItem {
+  area: string;
+  completionReason: string;
+}
+
 interface Props {
   reportId: string;
-  type: string;
+  type: 'MOVE_IN' | 'MOVE_OUT' | 'INSPECTION';
+  status: string;
   notes: string | null;
+  correctionNote: string | null;
+  counterNote: string | null;
   createdAt: string;
   createdByName: string;
   createdByRole: string;
   createdById: string;
-  acknowledgedAt: string | null;
-  acknowledgedByName: string | null;
+  reviewedAt: string | null;
+  reviewedByName: string | null;
   photos: Photo[];
+  checklistItems: ChecklistItem[];
   currentUserId: string;
 }
 
-const TYPE_LABELS: Record<string, { label: string }> = {
-  MOVE_IN: { label: 'Move-In' },
-  MOVE_OUT: { label: 'Move-Out' },
-  INSPECTION: { label: 'Inspection' },
+const TYPE_LABELS: Record<string, string> = {
+  MOVE_IN: 'Move-In',
+  MOVE_OUT: 'Move-Out',
+  INSPECTION: 'Inspection',
 };
 
-function DeletePhotoButton({
-  reportId,
-  photoId,
-}: {
-  reportId: string;
-  photoId: string;
-}) {
+const STATUS_BADGE: Record<string, { label: string; className: string }> = {
+  DRAFT: { label: 'Draft', className: 'bg-gray-100 text-gray-600' },
+  SUBMITTED: { label: 'Submitted', className: 'bg-blue-100 text-blue-700' },
+  PENDING_REVIEW: { label: 'Pending Review', className: 'bg-amber-100 text-amber-700' },
+  CORRECTION_REQUESTED: { label: 'Correction Requested', className: 'bg-orange-100 text-orange-700' },
+  COUNTER_EVIDENCE_ADDED: { label: 'Counter Evidence', className: 'bg-purple-100 text-purple-700' },
+  ACCEPTED: { label: 'Accepted', className: 'bg-green-100 text-green-700' },
+  DISPUTED: { label: 'Disputed', className: 'bg-red-100 text-red-700' },
+  LOCKED: { label: 'Locked', className: 'bg-gray-200 text-gray-700' },
+};
+
+function DeletePhotoButton({ reportId, photoId }: { reportId: string; photoId: string }) {
   const router = useRouter();
   const [isDeleting, setIsDeleting] = useState(false);
 
   const handleDelete = async (e: React.MouseEvent) => {
-    e.preventDefault(); // prevent the parent <a> from opening the image
+    e.preventDefault();
     e.stopPropagation();
-
     if (!confirm('Delete this photo? This cannot be undone.')) return;
-
     setIsDeleting(true);
     try {
-      const res = await fetch(
-        `/api/condition-reports/${reportId}/photos/${photoId}`,
-        { method: 'DELETE' },
-      );
-      if (res.ok) {
-        router.refresh();
-      }
-    } catch {
-      // silently fail — user can retry
-    } finally {
+      const res = await fetch(`/api/condition-reports/${reportId}/photos/${photoId}`, { method: 'DELETE' });
+      if (res.ok) router.refresh();
+    } catch { /* silent fail */ } finally {
       setIsDeleting(false);
     }
   };
@@ -76,102 +83,122 @@ function DeletePhotoButton({
   );
 }
 
-export default function ConditionReportCard({
-  reportId,
-  type,
-  notes,
-  createdAt,
-  createdByName,
-  createdByRole,
-  createdById,
-  acknowledgedAt,
-  acknowledgedByName,
-  photos,
-  currentUserId,
-}: Props) {
+function SubmitForReviewButton({ reportId }: { reportId: string }) {
   const router = useRouter();
-  const [isAcknowledging, setIsAcknowledging] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Group photos by room for the organized display
-  const photosByRoom = photos.reduce<Record<string, Photo[]>>((acc, photo) => {
-    if (!acc[photo.room]) acc[photo.room] = [];
-    acc[photo.room].push(photo);
-    return acc;
-  }, {});
-
-  const roomNames = Object.keys(photosByRoom).sort();
-  const isCreator = createdById === currentUserId;
-  const isAcknowledged = !!acknowledgedAt;
-  const canAcknowledge = !isCreator && !isAcknowledged;
-
-  const typeInfo = TYPE_LABELS[type] ?? { label: type };
-
-  const formatDate = (dateStr: string) =>
-    new Date(dateStr).toLocaleDateString('en-MY', {
-      day: 'numeric',
-      month: 'long',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
-
-  const handleAcknowledge = async () => {
-    setIsAcknowledging(true);
+  const handleSubmit = async () => {
+    setLoading(true);
     setError(null);
-
     try {
-      const response = await fetch(
-        `/api/condition-reports/${reportId}/acknowledge`,
-        { method: 'PATCH' },
-      );
-
-      if (!response.ok) {
-        const result = await response.json();
-        setError(result.error ?? 'Failed to acknowledge.');
+      const res = await fetch(`/api/condition-reports/${reportId}/submit`, { method: 'PATCH' });
+      if (!res.ok) {
+        const data = await res.json();
+        setError(data.error ?? 'Failed to submit.');
         return;
       }
-
       router.refresh();
     } catch {
       setError('Network error. Please try again.');
     } finally {
-      setIsAcknowledging(false);
+      setLoading(false);
     }
   };
 
   return (
-    <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-      {/* Report header */}
-      <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div>
-            <div className="flex items-center gap-2">
-              <p className="font-semibold text-gray-900 text-sm">
-                {typeInfo.label} Report
-              </p>
-              {isAcknowledged ? (
-                <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-green-100 text-green-700">
-                  Acknowledged
-                </span>
-              ) : (
-                <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-700">
-                  Pending Acknowledgement
-                </span>
+    <div>
+      <button
+        onClick={handleSubmit}
+        disabled={loading}
+        className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-sm font-semibold px-5 py-2.5 rounded-lg transition-colors"
+      >
+        {loading ? 'Submitting…' : 'Submit for Review'}
+      </button>
+      {error && <p className="text-red-500 text-xs mt-1">{error}</p>}
+    </div>
+  );
+}
+
+export default function ConditionReportCard({
+  reportId, type, status, notes, correctionNote, counterNote,
+  createdAt, createdByName, createdByRole, createdById,
+  reviewedAt, reviewedByName, photos, checklistItems, currentUserId,
+}: Props) {
+  const LOCKED_STATUSES = ['ACCEPTED', 'DISPUTED', 'LOCKED'];
+  const isLocked = LOCKED_STATUSES.includes(status);
+  const isCreator = createdById === currentUserId;
+  const canReview = !isCreator && ['SUBMITTED', 'PENDING_REVIEW', 'COUNTER_EVIDENCE_ADDED'].includes(status);
+  const canSubmit = isCreator && ['DRAFT', 'CORRECTION_REQUESTED'].includes(status);
+
+  const badge = STATUS_BADGE[status] ?? { label: status, className: 'bg-gray-100 text-gray-600' };
+  const typeLabel = TYPE_LABELS[type] ?? type;
+
+  const photosByRoom = photos.reduce<Record<string, Photo[]>>((acc, p) => {
+    if (!acc[p.room]) acc[p.room] = [];
+    acc[p.room].push(p);
+    return acc;
+  }, {});
+
+  const creatorPhotos = photos.filter((p) => p.uploadedById === createdById);
+  const counterPhotos = photos.filter((p) => p.uploadedById !== createdById);
+
+  const formatDate = (dateStr: string) =>
+    new Date(dateStr).toLocaleDateString('en-MY', {
+      day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit',
+    });
+
+  const renderPhotoGrid = (photoList: Photo[], showDelete: boolean) => {
+    const byRoom = photoList.reduce<Record<string, Photo[]>>((acc, p) => {
+      if (!acc[p.room]) acc[p.room] = [];
+      acc[p.room].push(p);
+      return acc;
+    }, {});
+
+    return Object.keys(byRoom).sort().map((room) => (
+      <div key={room}>
+        <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">{room}</p>
+        <div className="flex flex-wrap gap-3">
+          {byRoom[room].map((photo) => (
+            <div key={photo.id} className="group relative">
+              <a href={photo.imageUrl} target="_blank" rel="noopener noreferrer"
+                className="relative block w-28 h-28 rounded-lg overflow-hidden border border-gray-200 hover:opacity-90 transition-opacity"
+                title={photo.caption ?? `${room} photo`}>
+                <Image src={photo.imageUrl} alt={photo.caption ?? `${room} condition`}
+                  fill className="object-cover" sizes="112px" />
+              </a>
+              {showDelete && !isLocked && (
+                <DeletePhotoButton reportId={reportId} photoId={photo.id} />
+              )}
+              {photo.caption && (
+                <p className="text-xs text-gray-500 mt-1 max-w-[112px] truncate">{photo.caption}</p>
               )}
             </div>
-            <p className="text-xs text-gray-400 mt-0.5">
-              Created by {createdByName} ({createdByRole.toLowerCase()}) ·{' '}
-              {formatDate(createdAt)}
-            </p>
-          </div>
+          ))}
         </div>
-        <p className="text-xs text-gray-400">
-          {photos.length} {photos.length === 1 ? 'photo' : 'photos'}
-        </p>
+      </div>
+    ));
+  };
+
+  return (
+    <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+      {/* Header */}
+      <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+        <div>
+          <div className="flex items-center gap-2">
+            <p className="font-semibold text-gray-900 text-sm">{typeLabel} Report</p>
+            <span className={`text-xs font-semibold px-2.5 py-0.5 rounded-full ${badge.className}`}>
+              {badge.label}
+            </span>
+          </div>
+          <p className="text-xs text-gray-400 mt-0.5">
+            Created by {createdByName} ({createdByRole.toLowerCase()}) · {formatDate(createdAt)}
+          </p>
+        </div>
+        <p className="text-xs text-gray-400">{photos.length} {photos.length === 1 ? 'photo' : 'photos'}</p>
       </div>
 
-      {/* Notes section */}
+      {/* Notes */}
       {notes && (
         <div className="px-6 py-3 bg-gray-50 border-b border-gray-100">
           <p className="text-xs text-gray-400 mb-1">Notes</p>
@@ -179,65 +206,80 @@ export default function ConditionReportCard({
         </div>
       )}
 
-      {/* Photos grouped by room */}
-      <div className="px-6 py-4">
-        {roomNames.length === 0 ? (
+      {/* Correction note */}
+      {correctionNote && (
+        <div className="px-6 py-3 bg-orange-50 border-b border-orange-100">
+          <p className="text-xs font-semibold text-orange-700 mb-1">Correction Requested</p>
+          <p className="text-sm text-orange-800">{correctionNote}</p>
+        </div>
+      )}
+
+      {/* Evidence progress — shown when creator can still edit */}
+      {canSubmit && (
+        <div className="px-6 border-b border-gray-100">
+          <ConditionEvidenceProgress
+            reportType={type}
+            photoCount={photos.length}
+            checklistCount={checklistItems.length}
+          />
+        </div>
+      )}
+
+      {/* Photos — split view if disputed */}
+      <div className="px-6 py-4 space-y-5">
+        {status === 'DISPUTED' && counterPhotos.length > 0 ? (
+          <>
+            <div>
+              <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">
+                Original Evidence ({creatorPhotos.length} photos)
+              </p>
+              <div className="space-y-4">
+                {renderPhotoGrid(creatorPhotos, false)}
+              </div>
+            </div>
+            <div className="border-t border-red-100 pt-4">
+              <p className="text-xs font-bold text-red-500 uppercase tracking-wider mb-3">
+                Counter Evidence ({counterPhotos.length} photos)
+              </p>
+              {counterNote && (
+                <div className="bg-red-50 rounded-lg px-4 py-3 mb-3">
+                  <p className="text-xs text-red-600 font-medium mb-1">Counter note</p>
+                  <p className="text-sm text-red-800">{counterNote}</p>
+                </div>
+              )}
+              <div className="space-y-4">
+                {renderPhotoGrid(counterPhotos, false)}
+              </div>
+            </div>
+          </>
+        ) : photos.length === 0 ? (
           <div className="text-center py-8">
-            <svg className="w-8 h-8 text-gray-300 mb-2 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
-            </svg>
             <p className="text-gray-500 text-sm">No photos uploaded yet</p>
-            <p className="text-gray-400 text-xs mt-1">
-              Add photos to document the property condition.
-            </p>
           </div>
         ) : (
-          <div className="space-y-5">
-            {roomNames.map((room) => (
+          <div className="space-y-4">
+            {Object.keys(photosByRoom).sort().map((room) => (
               <div key={room}>
-                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
-                  {room}
-                </p>
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">{room}</p>
                 <div className="flex flex-wrap gap-3">
                   {photosByRoom[room].map((photo) => {
-                    // Only the uploader can delete, and only before acknowledgement
-                    const canDelete =
-                      photo.uploadedById === currentUserId && !isAcknowledged;
-
+                    const canDelete = photo.uploadedById === currentUserId && !isLocked;
                     return (
                       <div key={photo.id} className="group relative">
-                        <a
-                          href={photo.imageUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
+                        <a href={photo.imageUrl} target="_blank" rel="noopener noreferrer"
                           className="relative block w-28 h-28 rounded-lg overflow-hidden border border-gray-200 hover:opacity-90 transition-opacity"
-                          title={photo.caption ?? `${room} photo`}
-                        >
-                          <Image
-                            src={photo.imageUrl}
-                            alt={photo.caption ?? `${room} condition`}
-                            fill
-                            className="object-cover"
-                            sizes="112px"
-                          />
-                          {/* Show who uploaded this photo — useful when both parties contribute */}
+                          title={photo.caption ?? `${room} photo`}>
+                          <Image src={photo.imageUrl} alt={photo.caption ?? `${room} condition`}
+                            fill className="object-cover" sizes="112px" />
                           {photo.uploadedById !== createdById && (
                             <div className="absolute top-1 right-1 bg-blue-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">
                               Other party
                             </div>
                           )}
                         </a>
-                        {canDelete && (
-                          <DeletePhotoButton
-                            reportId={reportId}
-                            photoId={photo.id}
-                          />
-                        )}
+                        {canDelete && <DeletePhotoButton reportId={reportId} photoId={photo.id} />}
                         {photo.caption && (
-                          <p className="text-xs text-gray-500 mt-1 max-w-[112px] truncate">
-                            {photo.caption}
-                          </p>
+                          <p className="text-xs text-gray-500 mt-1 max-w-[112px] truncate">{photo.caption}</p>
                         )}
                       </div>
                     );
@@ -249,43 +291,30 @@ export default function ConditionReportCard({
         )}
       </div>
 
-      {/* Acknowledgement section */}
+      {/* Footer actions */}
       <div className="px-6 py-4 border-t border-gray-100 bg-gray-50">
-        {isAcknowledged && (
+        {status === 'ACCEPTED' && reviewedAt && (
           <div className="flex items-center gap-2 text-green-600 text-sm">
             <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
             </svg>
-            <span>
-              Acknowledged by {acknowledgedByName} on{' '}
-              {formatDate(acknowledgedAt!)}
-            </span>
+            <span>Accepted by {reviewedByName} on {formatDate(reviewedAt)}</span>
           </div>
         )}
 
-        {canAcknowledge && photos.length > 0 && (
-          <div>
-            <p className="text-sm text-gray-600 mb-3">
-              By acknowledging, you confirm you have reviewed all photos and
-              agree with the documented condition of the property.
-            </p>
-            <button
-              onClick={handleAcknowledge}
-              disabled={isAcknowledging}
-              className="bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white text-sm font-semibold px-5 py-2.5 rounded-lg transition-colors"
-            >
-              {isAcknowledging ? 'Acknowledging…' : 'Acknowledge Report'}
-            </button>
+        {status === 'DISPUTED' && reviewedAt && (
+          <div className="flex items-center gap-2 text-red-600 text-sm">
+            <span>Disputed — counter evidence submitted by {reviewedByName} on {formatDate(reviewedAt)}</span>
           </div>
         )}
 
-        {isCreator && !isAcknowledged && (
-          <p className="text-xs text-gray-400">
-            Waiting for the other party to acknowledge this report.
-          </p>
+        {canSubmit && <SubmitForReviewButton reportId={reportId} />}
+
+        {isCreator && !canSubmit && !isLocked && (
+          <p className="text-xs text-gray-400">Waiting for the other party to review.</p>
         )}
 
-        {error && <p className="text-red-500 text-xs mt-2">{error}</p>}
+        {canReview && <ConditionReviewActions reportId={reportId} />}
       </div>
     </div>
   );
