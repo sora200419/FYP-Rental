@@ -5,6 +5,7 @@ import { prisma } from '@/lib/prisma';
 import ConditionReportCard from '@/components/ui/ConditionReportCard';
 import ConditionPhotoUploader from '@/components/ui/ConditionPhotoUploader';
 import CreateConditionReport from '@/components/ui/CreateConditionReport';
+import ConditionChecklistEditor from '@/components/ui/ConditionChecklistEditor';
 
 export default async function TenantConditionsPage() {
   const session = await getServerSession(authOptions);
@@ -61,23 +62,20 @@ export default async function TenantConditionsPage() {
     where: { tenancyId: tenancy.id },
     include: {
       createdBy: { select: { id: true, name: true, role: true } },
-      acknowledgedBy: { select: { id: true, name: true } },
+      reviewedBy: { select: { id: true, name: true } },
       photos: {
-        select: {
-          id: true,
-          room: true,
-          imageUrl: true,
-          caption: true,
-          uploadedById: true,
-        },
+        select: { id: true, room: true, imageUrl: true, caption: true, uploadedById: true },
         orderBy: { createdAt: 'asc' },
       },
+      checklistItems: { orderBy: { area: 'asc' } },
     },
     orderBy: { createdAt: 'desc' },
   });
 
   const pendingAck = reports.filter(
-    (r) => !r.acknowledgedAt && r.createdBy.id !== session.user.id,
+    (r) =>
+      ['SUBMITTED', 'PENDING_REVIEW', 'COUNTER_EVIDENCE_ADDED'].includes(r.status) &&
+      r.createdBy.id !== session.user.id,
   ).length;
 
   return (
@@ -131,23 +129,42 @@ export default async function TenantConditionsPage() {
       ) : (
         <div className="space-y-6">
           {reports.map((report) => {
-            const canUpload = !report.acknowledgedAt;
+            const LOCKED_STATUSES = ['ACCEPTED', 'DISPUTED', 'LOCKED'];
+            const isLocked = LOCKED_STATUSES.includes(report.status);
+            const isCreator = report.createdBy.id === session.user.id;
+            const showChecklist = isCreator && ['DRAFT', 'CORRECTION_REQUESTED'].includes(report.status) && report.type !== 'INSPECTION';
             return (
               <div key={report.id} className="space-y-3">
                 <ConditionReportCard
                   reportId={report.id}
-                  type={report.type}
+                  type={report.type as 'MOVE_IN' | 'MOVE_OUT' | 'INSPECTION'}
+                  status={report.status}
                   notes={report.notes}
+                  correctionNote={report.correctionNote}
+                  counterNote={report.counterNote}
                   createdAt={report.createdAt.toISOString()}
                   createdByName={report.createdBy.name}
                   createdByRole={report.createdBy.role}
                   createdById={report.createdBy.id}
-                  acknowledgedAt={report.acknowledgedAt?.toISOString() ?? null}
-                  acknowledgedByName={report.acknowledgedBy?.name ?? null}
+                  reviewedAt={report.reviewedAt?.toISOString() ?? null}
+                  reviewedByName={report.reviewedBy?.name ?? null}
                   photos={report.photos}
+                  checklistItems={report.checklistItems.map((i) => ({
+                    area: i.area,
+                    completionReason: i.completionReason,
+                  }))}
                   currentUserId={session.user.id}
                 />
-                {canUpload && <ConditionPhotoUploader reportId={report.id} />}
+                {!isLocked && <ConditionPhotoUploader reportId={report.id} />}
+                {showChecklist && (
+                  <ConditionChecklistEditor
+                    reportId={report.id}
+                    existingItems={report.checklistItems.map((i) => ({
+                      area: i.area,
+                      completionReason: i.completionReason as 'PHOTO_UPLOADED' | 'NO_ISSUE_OBSERVED' | 'NOT_APPLICABLE' | 'CANNOT_ACCESS',
+                    }))}
+                  />
+                )}
               </div>
             );
           })}
