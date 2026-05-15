@@ -23,6 +23,13 @@ export default function KycWizard() {
 
   useEffect(() => () => stopCamera(), []);
 
+  // Attach the stream once the <video> element is in the DOM (cameraActive flips first)
+  useEffect(() => {
+    if (cameraActive && streamRef.current && videoRef.current) {
+      videoRef.current.srcObject = streamRef.current;
+    }
+  }, [cameraActive]);
+
   function handleFile(file: File, setter: (img: ImageFile) => void, currentPreview?: string) {
     if (!['image/jpeg', 'image/png'].includes(file.type)) {
       setError('Only JPG and PNG files are accepted.'); return;
@@ -39,8 +46,7 @@ export default function KycWizard() {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ video: true });
       streamRef.current = stream;
-      if (videoRef.current) videoRef.current.srcObject = stream;
-      setCameraActive(true);
+      setCameraActive(true); // useEffect will attach stream after <video> mounts
     } catch {
       setError('Could not access camera. Please upload a photo instead.');
     }
