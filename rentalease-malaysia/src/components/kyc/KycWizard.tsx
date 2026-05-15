@@ -260,12 +260,7 @@ export default function KycWizard() {
               <button onClick={startCamera} className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700">
                 Open Camera
               </button>
-              <p className="text-xs text-gray-400">or</p>
-              <label className="cursor-pointer text-sm text-blue-600 hover:underline">
-                Upload a photo instead
-                <input type="file" accept="image/jpeg,image/png" className="hidden"
-                  onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFile(f, setSelfie); }} />
-              </label>
+              <p className="text-xs text-gray-400">A live photo is required — uploads are not accepted.</p>
             </div>
           )}
 

@@ -7,12 +7,6 @@ import { AdminNav } from '@/components/ui/AdminTabBar';
 import { PageHeader } from '@/components/ui/RedesignPrimitives';
 import AdminKycActions from './AdminKycActions';
 
-function scoreLabel(score: number | null) {
-  if (score === null) return { text: 'No score', cls: 'bg-gray-100 text-gray-500' };
-  if (score >= 80) return { text: `${score.toFixed(1)}% — High confidence`, cls: 'bg-green-100 text-green-700' };
-  if (score >= 60) return { text: `${score.toFixed(1)}% — Moderate`, cls: 'bg-amber-100 text-amber-700' };
-  return { text: `${score.toFixed(1)}% — Low confidence`, cls: 'bg-red-100 text-red-700' };
-}
 
 export default async function AdminKycPage() {
   const session = await getServerSession(authOptions);
@@ -30,7 +24,7 @@ export default async function AdminKycPage() {
       <PageHeader
         eyebrow="Admin"
         title="KYC Review"
-        description="Review identity verification submissions. Face match score is AI-assisted — you make the final decision."
+        description="Review identity verification submissions. Compare the IC photos and selfie to approve or reject."
       />
 
       {submissions.length === 0 ? (
@@ -40,25 +34,18 @@ export default async function AdminKycPage() {
         </div>
       ) : (
         <div className="space-y-4">
-          {submissions.map((sub) => {
-            const score = scoreLabel(sub.faceMatchScore);
-            return (
-              <div key={sub.id} className="rounded-xl border border-gray-200 bg-white p-5">
-                <div className="mb-4 flex items-start justify-between">
-                  <div>
-                    <p className="font-semibold text-gray-900">{sub.user.name}</p>
-                    <p className="text-xs text-gray-500">{sub.user.email}</p>
-                    <p className="mt-0.5 text-xs text-gray-400">
-                      {sub.user.role} · Submitted{' '}
-                      {new Date(sub.submittedAt).toLocaleDateString('en-MY', {
-                        day: 'numeric', month: 'short', year: 'numeric',
-                      })}
-                    </p>
-                  </div>
-                  <span className={`rounded-full px-3 py-1 text-xs font-semibold ${score.cls}`}>
-                    {score.text}
-                  </span>
-                </div>
+          {submissions.map((sub) => (
+            <div key={sub.id} className="rounded-xl border border-gray-200 bg-white p-5">
+              <div className="mb-4">
+                <p className="font-semibold text-gray-900">{sub.user.name}</p>
+                <p className="text-xs text-gray-500">{sub.user.email}</p>
+                <p className="mt-0.5 text-xs text-gray-400">
+                  {sub.user.role} · Submitted{' '}
+                  {new Date(sub.submittedAt).toLocaleDateString('en-MY', {
+                    day: 'numeric', month: 'short', year: 'numeric',
+                  })}
+                </p>
+              </div>
 
                 <div className="mb-4 grid grid-cols-3 gap-3">
                   {[
@@ -75,10 +62,9 @@ export default async function AdminKycPage() {
                   ))}
                 </div>
 
-                <AdminKycActions submissionId={sub.id} />
-              </div>
-            );
-          })}
+              <AdminKycActions submissionId={sub.id} />
+            </div>
+          ))}
         </div>
       )}
     </div>

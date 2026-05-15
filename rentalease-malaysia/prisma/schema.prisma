@@ -810,8 +810,7 @@ model AuditLog {
 
 // ─── KYC SUBMISSION ──────────────────────────────────────────────────────────
 // One submission per user. Resubmission (after REJECTED) upserts this record
-// and deletes old Cloudinary images. faceMatchScore is admin-only — never
-// returned to the submitting user.
+// and deletes old Cloudinary images. Admin reviews photos manually.
 model KycSubmission {
   id              String    @id @default(cuid())
   userId          String    @unique
@@ -824,7 +823,6 @@ model KycSubmission {
   selfieUrl       String
   selfiePublicId  String
 
-  faceMatchScore  Float?
   status          KycStatus @default(PENDING)
   rejectedReason  String?   @db.Text
 

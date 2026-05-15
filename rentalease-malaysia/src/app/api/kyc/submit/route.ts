@@ -3,7 +3,6 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { uploadKycImage, deleteKycImage } from '@/lib/cloudinary';
-import { compareFaces } from '@/lib/rekognition';
 import { createNotification } from '@/lib/notifications';
 
 const ALLOWED_TYPES = ['image/jpeg', 'image/png'];
@@ -79,8 +78,6 @@ export async function POST(request: NextRequest) {
     (r) => (r as PromiseFulfilledResult<{ url: string; publicId: string }>).value,
   );
 
-  const faceMatchScore = await compareFaces(icFrontBytes, selfieBytes);
-
   await prisma.kycSubmission.upsert({
     where: { userId: session.user.id },
     create: {
@@ -91,7 +88,6 @@ export async function POST(request: NextRequest) {
       icBackPublicId: icBackResult.publicId,
       selfieUrl: selfieResult.url,
       selfiePublicId: selfieResult.publicId,
-      faceMatchScore,
       status: 'PENDING',
     },
     update: {
@@ -101,7 +97,6 @@ export async function POST(request: NextRequest) {
       icBackPublicId: icBackResult.publicId,
       selfieUrl: selfieResult.url,
       selfiePublicId: selfieResult.publicId,
-      faceMatchScore,
       status: 'PENDING',
       rejectedReason: null,
       reviewedById: null,
