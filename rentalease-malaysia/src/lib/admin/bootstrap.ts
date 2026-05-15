@@ -113,14 +113,16 @@ export async function ensureAdminBootstrap(): Promise<AdminBootstrapResult> {
   }
 
   const passwordHash = await bcrypt.hash(decision.password, 12);
-  await prisma.user.create({
-    data: {
+  await prisma.user.upsert({
+    where: { email: decision.email },
+    create: {
       name: decision.name,
       email: decision.email,
       password: passwordHash,
       role: 'ADMIN',
       isVerified: true,
     },
+    update: {},
   });
 
   return { ok: true, action: 'created', email: decision.email };
