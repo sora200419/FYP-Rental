@@ -22,14 +22,14 @@ type Props = {
 }
 
 const STATUS_BADGE: Record<string, { label: string; className: string }> = {
-  DRAFT:                  { label: 'Draft',             className: 'bg-gray-100 text-gray-600' },
-  SUBMITTED:              { label: 'Submitted',         className: 'bg-blue-100 text-blue-700' },
-  PENDING_REVIEW:         { label: 'Pending Review',    className: 'bg-blue-100 text-blue-700' },
-  CORRECTION_REQUESTED:   { label: 'Correction Needed', className: 'bg-amber-100 text-amber-700' },
-  COUNTER_EVIDENCE_ADDED: { label: 'Counter Evidence',  className: 'bg-orange-100 text-orange-700' },
-  ACCEPTED:               { label: 'Accepted',          className: 'bg-green-100 text-green-700' },
-  DISPUTED:               { label: 'Disputed',          className: 'bg-red-100 text-red-700' },
-  LOCKED:                 { label: 'Locked',            className: 'bg-gray-100 text-gray-600' },
+  DRAFT:                  { label: 'Draft',               className: 'bg-gray-100 text-gray-600' },
+  SUBMITTED:              { label: 'Submitted',           className: 'bg-blue-100 text-blue-700' },
+  PENDING_REVIEW:         { label: 'Pending Review',      className: 'bg-amber-100 text-amber-700' },
+  CORRECTION_REQUESTED:   { label: 'Correction Requested', className: 'bg-orange-100 text-orange-700' },
+  COUNTER_EVIDENCE_ADDED: { label: 'Counter Evidence',    className: 'bg-purple-100 text-purple-700' },
+  ACCEPTED:               { label: 'Accepted',            className: 'bg-green-100 text-green-700' },
+  DISPUTED:               { label: 'Disputed',            className: 'bg-red-100 text-red-700' },
+  LOCKED:                 { label: 'Locked',              className: 'bg-gray-200 text-gray-700' },
 }
 
 function StatusBadge({ status }: { status: string }) {
@@ -123,7 +123,7 @@ export default function ConditionComparisonView({
 
       {/* Summary bar */}
       <div className="grid grid-cols-2 gap-4 mb-6">
-        <div className="bg-white border border-gray-200 rounded-xl px-5 py-4" style={{ borderLeftWidth: 4, borderLeftColor: '#3b82f6' }}>
+        <div className="bg-white border border-gray-200 rounded-xl px-5 py-4 border-l-4 border-l-blue-500">
           <p className="text-xs font-semibold uppercase tracking-wide text-blue-500 mb-1">Move-In</p>
           <div className="flex items-center gap-2 flex-wrap">
             <span className="text-sm font-semibold text-gray-900">
@@ -139,7 +139,7 @@ export default function ConditionComparisonView({
           </p>
         </div>
 
-        <div className="bg-white border border-gray-200 rounded-xl px-5 py-4" style={{ borderLeftWidth: 4, borderLeftColor: '#f59e0b' }}>
+        <div className="bg-white border border-gray-200 rounded-xl px-5 py-4 border-l-4 border-l-amber-400">
           <p className="text-xs font-semibold uppercase tracking-wide text-amber-500 mb-1">Move-Out</p>
           <div className="flex items-center gap-2 flex-wrap">
             <span className="text-sm font-semibold text-gray-900">
