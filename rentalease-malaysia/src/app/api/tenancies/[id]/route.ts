@@ -139,6 +139,14 @@ export async function PATCH(
   try {
     const body = await request.json();
     const data = editSchema.parse(body);
+
+    const today = new Date().toISOString().split('T')[0];
+    if (data.startDate < today) {
+      return NextResponse.json(
+        { error: 'Start date cannot be in the past' },
+        { status: 400 },
+      );
+    }
     const normalizedInvitationEmail = data.invitationEmail?.toLowerCase() ?? null;
     let recipientUpdateData: Record<string, string | null> = {};
     let newRecipient:

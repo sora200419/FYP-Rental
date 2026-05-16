@@ -19,7 +19,12 @@ export default function RenewForm({ tenancyId, currentEndDate, currentMonthlyRen
   const defaultEnd = new Date(defaultStart);
   defaultEnd.setFullYear(defaultEnd.getFullYear() + 1);
 
-  const toDateInput = (d: Date) => d.toISOString().split('T')[0];
+  const toDateInput = (d: Date) => {
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  };
+
+  const _d = new Date();
+  const today = `${_d.getFullYear()}-${String(_d.getMonth() + 1).padStart(2, '0')}-${String(_d.getDate()).padStart(2, '0')}`;
 
   const [startDate, setStartDate] = useState(toDateInput(defaultStart));
   const [endDate, setEndDate] = useState(toDateInput(defaultEnd));
@@ -32,6 +37,17 @@ export default function RenewForm({ tenancyId, currentEndDate, currentMonthlyRen
     e.preventDefault();
     setSubmitting(true);
     setError(null);
+
+    if (startDate < today) {
+      setError('Start date cannot be in the past.');
+      setSubmitting(false);
+      return;
+    }
+    if (endDate <= startDate) {
+      setError('End date must be after the start date.');
+      setSubmitting(false);
+      return;
+    }
 
     try {
       const res = await fetch(`/api/tenancies/${tenancyId}/renew`, {
@@ -69,6 +85,7 @@ export default function RenewForm({ tenancyId, currentEndDate, currentMonthlyRen
           <input
             type="date"
             value={startDate}
+            min={today}
             onChange={(e) => setStartDate(e.target.value)}
             className={inputClass}
             required
@@ -79,6 +96,7 @@ export default function RenewForm({ tenancyId, currentEndDate, currentMonthlyRen
           <input
             type="date"
             value={endDate}
+            min={today}
             onChange={(e) => setEndDate(e.target.value)}
             className={inputClass}
             required

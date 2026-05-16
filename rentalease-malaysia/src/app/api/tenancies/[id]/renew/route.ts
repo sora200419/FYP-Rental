@@ -45,6 +45,11 @@ export async function POST(
   if (!parsed.success) return NextResponse.json({ error: parsed.error.issues[0].message }, { status: 400 });
 
   const { startDate, endDate, monthlyRent, depositAmount } = parsed.data;
+
+  const today = new Date().toISOString().split('T')[0];
+  if (startDate.slice(0, 10) < today)
+    return NextResponse.json({ error: 'Start date cannot be in the past' }, { status: 400 });
+
   if (new Date(endDate) <= new Date(startDate))
     return NextResponse.json({ error: 'End date must be after start date' }, { status: 400 });
 

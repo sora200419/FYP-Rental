@@ -109,7 +109,12 @@ const tenancySchema = z
     }
   })
   .refine(
-    (data) => data.startDate >= new Date().toISOString().split('T')[0],
+    (data) => {
+      // Use local date (not UTC) so Malaysian users aren't blocked before 8 AM
+      const d = new Date();
+      const localToday = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+      return data.startDate >= localToday;
+    },
     { message: 'Start date cannot be in the past', path: ['startDate'] },
   )
   .refine((data) => new Date(data.endDate) > new Date(data.startDate), {
@@ -136,7 +141,11 @@ export default function NewTenancyForm({
   propertyAddress: string;
 }) {
   const router = useRouter();
-  const today = new Date().toISOString().split('T')[0];
+  // Use local date components so the min attribute is correct in any timezone.
+  // new Date().toISOString() returns UTC — before 8 AM in Malaysia (UTC+8) it
+  // would yield yesterday's date, letting users pick past dates.
+  const _d = new Date();
+  const today = `${_d.getFullYear()}-${String(_d.getMonth() + 1).padStart(2, '0')}-${String(_d.getDate()).padStart(2, '0')}`;
   const [serverError, setServerError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [tenantLookup, setTenantLookup] = useState<TenantLookup>({

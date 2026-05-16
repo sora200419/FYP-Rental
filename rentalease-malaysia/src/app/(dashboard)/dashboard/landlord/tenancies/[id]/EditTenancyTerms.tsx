@@ -27,6 +27,10 @@ export default function EditTenancyTerms({
   currentInvitationEmail,
 }: Props) {
   const router = useRouter();
+
+  const _d = new Date();
+  const today = `${_d.getFullYear()}-${String(_d.getMonth() + 1).padStart(2, '0')}-${String(_d.getDate()).padStart(2, '0')}`;
+
   const [isOpen, setIsOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -133,6 +137,7 @@ export default function EditTenancyTerms({
           <input
             type="date"
             value={startDate}
+            min={today}
             onChange={(e) => setStartDate(e.target.value)}
             className={inputClass}
             required
@@ -145,6 +150,7 @@ export default function EditTenancyTerms({
           <input
             type="date"
             value={endDate}
+            min={today}
             onChange={(e) => setEndDate(e.target.value)}
             className={inputClass}
             required
