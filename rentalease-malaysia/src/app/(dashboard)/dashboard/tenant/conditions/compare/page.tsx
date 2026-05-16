@@ -14,7 +14,7 @@ export default async function TenantCompareConditionsPage() {
   const tenancy = await prisma.tenancy.findFirst({
     where: {
       tenantId: session.user.id,
-      status: { in: ['ACTIVE', 'EXPIRED', 'TERMINATED'] },
+      status: { in: ['PENDING', 'ACTIVE', 'EXPIRED', 'TERMINATED'] },
     },
     include: {
       room: {
