@@ -1,6 +1,7 @@
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { redirect } from 'next/navigation';
+import Link from 'next/link';
 import { prisma } from '@/lib/prisma';
 import ConditionReportCard from '@/components/ui/ConditionReportCard';
 import ConditionPhotoUploader from '@/components/ui/ConditionPhotoUploader';
@@ -72,6 +73,10 @@ export default async function TenantConditionsPage() {
     orderBy: { createdAt: 'desc' },
   });
 
+  const moveInExists = reports.some((r) => r.type === 'MOVE_IN');
+  const moveOutExists = reports.some((r) => r.type === 'MOVE_OUT');
+  const canCompare = moveInExists && moveOutExists;
+
   const pendingAck = reports.filter(
     (r) =>
       ['SUBMITTED', 'PENDING_REVIEW', 'COUNTER_EVIDENCE_ADDED'].includes(r.status) &&
@@ -96,6 +101,14 @@ export default async function TenantConditionsPage() {
             <span className="bg-amber-500 text-white text-xs font-bold px-2.5 py-1 rounded-full">
               {pendingAck} to review
             </span>
+          )}
+          {canCompare && (
+            <Link
+              href="/dashboard/tenant/conditions/compare"
+              className="inline-flex items-center text-sm font-medium px-4 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 transition-colors bg-white"
+            >
+              Compare Move-In vs Move-Out
+            </Link>
           )}
           <CreateConditionReport tenancyId={tenancy.id} />
         </div>
