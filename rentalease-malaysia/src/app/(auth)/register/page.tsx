@@ -10,6 +10,17 @@ import { PasswordInput } from '@/components/ui/PasswordInput';
 
 const IC_REGEX = /^\d{6}-?\d{2}-?\d{4}$/;
 
+function isValidIcDate(ic: string): boolean {
+  const digits = ic.replace(/-/g, '');
+  const mm = parseInt(digits.slice(2, 4), 10);
+  const dd = parseInt(digits.slice(4, 6), 10);
+  const yy = parseInt(digits.slice(0, 2), 10);
+  const currentYY = new Date().getFullYear() % 100;
+  const year = yy > currentYY ? 1900 + yy : 2000 + yy;
+  const date = new Date(year, mm - 1, dd);
+  return date.getFullYear() === year && date.getMonth() === mm - 1 && date.getDate() === dd;
+}
+
 const registerSchema = z
   .object({
     name: z.string().min(2, 'Name must be at least 2 characters'),
@@ -21,7 +32,8 @@ const registerSchema = z
     icNumber: z
       .string()
       .min(1, 'IC number is required')
-      .regex(IC_REGEX, 'Invalid format - e.g. 900101-14-5678'),
+      .regex(IC_REGEX, 'Invalid format - e.g. 900101-14-5678')
+      .refine(isValidIcDate, 'Invalid date in IC number'),
   })
   .refine((data) => data.password === data.confirmPassword, {
     message: 'Passwords do not match',
@@ -127,7 +139,7 @@ export default function RegisterPage() {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                Phone <span className="text-gray-400 font-normal">(optional)</span>
+                Phone <span className="text-gray-400">(optional)</span>
               </label>
               <input
                 {...register('phone')}
@@ -135,23 +147,41 @@ export default function RegisterPage() {
                 placeholder="e.g. 012-3456789"
                 className="w-full border border-gray-300 rounded-lg px-3.5 py-2.5 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-shadow"
               />
+              {errors.phone && <p className="text-xs text-red-500 mt-1">{errors.phone.message}</p>}
             </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1.5">
                 Malaysian IC Number <span className="text-red-500">*</span>
               </label>
-              <input
-                {...register('icNumber')}
-                type="text"
-                placeholder="e.g. 900101-14-5678"
-                maxLength={14}
-                className="w-full border border-gray-300 rounded-lg px-3.5 py-2.5 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-shadow"
-              />
+              {(() => {
+                const { ref: icRef, onChange: icRhfOnChange, ...icRest } = register('icNumber');
+                return (
+                  <input
+                    {...icRest}
+                    ref={icRef}
+                    type="text"
+                    placeholder="e.g. 900101-14-5678"
+                    maxLength={14}
+                    className="w-full border border-gray-300 rounded-lg px-3.5 py-2.5 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-shadow"
+                    onChange={(e) => {
+                      const el = e.target;
+                      const cursor = el.selectionStart ?? el.value.length;
+                      const digits = el.value.replace(/\D/g, '').slice(0, 12);
+                      let formatted = digits;
+                      if (digits.length > 6) formatted = digits.slice(0, 6) + '-' + digits.slice(6);
+                      if (digits.length > 8) formatted = formatted.slice(0, 9) + '-' + digits.slice(8);
+                      el.value = formatted;
+                      requestAnimationFrame(() => el.setSelectionRange(cursor, cursor));
+                      icRhfOnChange(e);
+                    }}
+                  />
+                );
+              })()}
               {errors.icNumber ? (
                 <p className="text-xs text-red-500 mt-1">{errors.icNumber.message}</p>
               ) : (
-                <p className="text-xs text-gray-400 mt-1">12 digits, dashes optional (YYMMDD-SS-####)</p>
+                <p className="text-xs text-gray-400 mt-1">Format: YYMMDD-SS-NNNN (dashes added automatically)</p>
               )}
             </div>
 

@@ -2,12 +2,14 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useSession } from 'next-auth/react';
 
 interface Props {
   // Pre-filled from the server component — the current stored values
   initialName: string;
   initialPhone: string | null;
   initialIcNumber: string | null;
+  kycStatus: string | null;
   email: string; // shown read-only — cannot be changed here
   role: string;
 }
@@ -23,10 +25,12 @@ export default function ProfileForm({
   initialName,
   initialPhone,
   initialIcNumber,
+  kycStatus,
   email,
   role,
 }: Props) {
   const router = useRouter();
+  const { update: updateSession } = useSession();
 
   const [name, setName] = useState(initialName);
   // Show the IC in formatted display for readability in the input
@@ -38,6 +42,9 @@ export default function ProfileForm({
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+
+  // IC is editable only when KYC is rejected — otherwise always locked
+  const icLocked = kycStatus !== 'REJECTED';
 
   // Track whether the user has changed anything so we can disable Save when not needed
   const hasChanges =
@@ -79,7 +86,8 @@ export default function ProfileForm({
       }
 
       setSuccess(true);
-      // Refresh the server component so the page title and session name update
+      // Push the new name into the JWT token so the sidebar updates immediately
+      await updateSession({ name: name.trim() });
       router.refresh();
       setTimeout(() => setSuccess(false), 4000);
     } catch {
@@ -133,7 +141,7 @@ export default function ProfileForm({
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Phone Number <span className="text-gray-400">(optional)</span>
+              Phone Number
             </label>
             <input
               type="tel"
@@ -171,10 +179,9 @@ export default function ProfileForm({
 
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
-            Malaysian IC Number (MyKad){' '}
-            {!initialIcNumber && <span className="text-gray-400">(optional)</span>}
+            Malaysian IC Number (MyKad)
           </label>
-          {initialIcNumber ? (
+          {icLocked ? (
             <>
               <input
                 type="text"
@@ -191,21 +198,27 @@ export default function ProfileForm({
               <input
                 type="text"
                 value={icNumber}
-                onChange={(e) => setIcNumber(e.target.value)}
+                onChange={(e) => {
+                  const digits = e.target.value.replace(/\D/g, '').slice(0, 12);
+                  let formatted = digits;
+                  if (digits.length > 6) formatted = digits.slice(0, 6) + '-' + digits.slice(6);
+                  if (digits.length > 8) formatted = formatted.slice(0, 9) + '-' + digits.slice(8);
+                  setIcNumber(formatted);
+                }}
                 placeholder="e.g. 901231-14-5678"
                 maxLength={14}
                 className={inputClass}
               />
-              <p className="text-xs text-gray-400 mt-1">
-                Format: YYMMDD-PB-NNNC (12 digits, hyphens optional). Example:
-                901231-14-5678
-              </p>
+              {kycStatus === 'REJECTED' && (
+                <p className="text-xs text-amber-600 mt-1">
+                  Your KYC was rejected. You may correct your IC number before resubmitting.
+                </p>
+              )}
             </>
           )}
         </div>
 
-        {/* Role badge — shown as context so the user understands what they're
-            signing up for in the tenancy workflow */}
+        {/* Role badge */}
         <div className="mt-4 flex items-center gap-2">
           <span
             className={`text-xs font-semibold px-2.5 py-1 rounded-full ${

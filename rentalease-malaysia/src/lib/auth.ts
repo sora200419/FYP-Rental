@@ -85,9 +85,10 @@ export const authOptions: NextAuthOptions = {
         token.language = (user as { language: string }).language ?? 'en';
         token.isSuspended = (user as { isSuspended: boolean }).isSuspended ?? false;
       }
-      // Allow updating language via session update() call
-      if (trigger === 'update' && updatedSession?.language) {
-        token.language = updatedSession.language;
+      // Allow updating name/language via session update() call
+      if (trigger === 'update') {
+        if (updatedSession?.language) token.language = updatedSession.language;
+        if (updatedSession?.name) token.name = updatedSession.name;
       }
       return token;
     },
