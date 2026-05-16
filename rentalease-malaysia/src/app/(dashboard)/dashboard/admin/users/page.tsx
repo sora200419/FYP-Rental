@@ -59,7 +59,7 @@ export default async function AdminUsersPage({
           select: { id: true },
         },
         tenancies: {
-          where: { status: { in: ['INVITED', 'PENDING', 'ACTIVE'] } },
+          where: { status: { in: ['INVITED', 'PENDING', 'ACTIVE', 'EXPIRED', 'TERMINATED'] } },
           select: { id: true },
         },
       },
@@ -136,7 +136,7 @@ export default async function AdminUsersPage({
             const activityLabel =
               user.role === 'LANDLORD'
                 ? `${activityCount} active propert${activityCount !== 1 ? 'ies' : 'y'}`
-                : `${activityCount} active tenanc${activityCount !== 1 ? 'ies' : 'y'}`;
+                : `${activityCount} tenanc${activityCount !== 1 ? 'ies' : 'y'}`;
 
             return (
               <div

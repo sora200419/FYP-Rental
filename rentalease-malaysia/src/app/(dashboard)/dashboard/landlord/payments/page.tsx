@@ -39,7 +39,7 @@ export default async function LandlordPaymentsPage() {
     prisma.tenancy.findMany({
       where: {
         room: { property: { landlordId: session.user.id } },
-        status: { in: ['PENDING', 'ACTIVE'] },
+        status: { in: ['INVITED', 'PENDING', 'ACTIVE', 'EXPIRED', 'TERMINATED'] },
         NOT: { depositStatus: 'PENDING' },
       },
       include: {

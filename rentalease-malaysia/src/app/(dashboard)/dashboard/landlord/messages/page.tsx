@@ -14,7 +14,7 @@ export default async function LandlordMessagesPage() {
   const tenancies = await prisma.tenancy.findMany({
     where: {
       room: { property: { landlordId: session.user.id } },
-      status: { in: ['PENDING', 'ACTIVE'] },
+      status: { in: ['INVITED', 'PENDING', 'ACTIVE', 'EXPIRED', 'TERMINATED'] },
     },
     include: {
       room: {
@@ -57,10 +57,10 @@ export default async function LandlordMessagesPage() {
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
           </svg>
           <p className="text-gray-700 font-semibold text-lg">
-            No active tenancies
+            No tenancies yet
           </p>
           <p className="text-gray-400 text-sm mt-1">
-            Messaging will be available once you have active tenancies.
+            Messaging will be available once you have tenancies with tenants.
           </p>
         </div>
       ) : (
