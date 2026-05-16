@@ -29,7 +29,7 @@ export default async function PropertyDetailPage({
       rooms: {
         include: {
           tenancies: {
-            where: { status: { in: ['INVITED', 'PENDING', 'ACTIVE'] } },
+            where: { status: { in: ['INVITED', 'PENDING', 'ACTIVE', 'EXPIRED', 'TERMINATED'] } },
             include: {
               tenant: { select: { name: true, email: true } },
               agreement: { select: { status: true } },
@@ -204,9 +204,19 @@ export default async function PropertyDetailPage({
                     </div>
                   ) : (
                     <div className="flex items-center justify-between">
-                      <span className="text-xs text-gray-400 font-medium">
-                        Vacant
-                      </span>
+                      <div className="flex items-center gap-3">
+                        <span className="text-xs text-gray-400 font-medium">
+                          Vacant
+                        </span>
+                        {currentTenancy && (
+                          <Link
+                            href={`/dashboard/landlord/tenancies/${currentTenancy.id}`}
+                            className="text-xs text-gray-400 hover:text-blue-600 transition-colors"
+                          >
+                            View last tenancy →
+                          </Link>
+                        )}
+                      </div>
                       <div className="flex items-center gap-3">
                         <DeleteRoomButton roomId={room.id} roomLabel={room.label} />
                         <Link

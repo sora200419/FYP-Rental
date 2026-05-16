@@ -11,7 +11,7 @@ export default async function TenantMessagesPage() {
   const tenancy = await prisma.tenancy.findFirst({
     where: {
       tenantId: session.user.id,
-      status: { in: ['PENDING', 'ACTIVE'] },
+      status: { in: ['PENDING', 'ACTIVE', 'EXPIRED', 'TERMINATED'] },
     },
     include: {
       room: {

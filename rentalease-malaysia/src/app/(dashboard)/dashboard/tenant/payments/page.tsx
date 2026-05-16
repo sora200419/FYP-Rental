@@ -32,7 +32,7 @@ export default async function TenantPaymentsPage() {
   const tenancy = await prisma.tenancy.findFirst({
     where: {
       tenantId: session.user.id,
-      status: { in: ['PENDING', 'ACTIVE'] },
+      status: { in: ['PENDING', 'ACTIVE', 'EXPIRED', 'TERMINATED'] },
     },
     orderBy: { createdAt: 'desc' },
     include: {
@@ -132,9 +132,9 @@ export default async function TenantPaymentsPage() {
       {/* No active tenancy */}
       {!tenancy && (
         <div className="bg-white rounded-xl border border-gray-200 p-12 text-center">
-          <p className="text-gray-700 font-semibold">No active tenancy</p>
+          <p className="text-gray-700 font-semibold">No tenancy found</p>
           <p className="text-sm text-gray-400 mt-1">
-            Payment tracking will be available once your tenancy is active.
+            Payment tracking will be available once your landlord links you to a tenancy.
           </p>
         </div>
       )}
