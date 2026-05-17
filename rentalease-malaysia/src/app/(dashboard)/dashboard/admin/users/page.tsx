@@ -8,10 +8,10 @@ import SuspendButton from '@/components/ui/SuspendButton';
 import DeleteUserButton from '@/components/ui/DeleteUserButton';
 
 function getKycBadge(isVerified: boolean, kycStatus: string | null) {
-  if (isVerified) return { label: 'Verified', cls: 'bg-green-100 text-green-700' };
-  if (kycStatus === 'PENDING') return { label: 'Pending', cls: 'bg-amber-100 text-amber-700' };
-  if (kycStatus === 'REJECTED') return { label: 'Rejected', cls: 'bg-red-100 text-red-700' };
-  return { label: 'Unverified', cls: 'bg-gray-100 text-gray-500' };
+  if (isVerified) return { label: 'Verified', cls: 'bg-[rgba(74,222,128,0.12)] text-[#4ade80]' };
+  if (kycStatus === 'PENDING') return { label: 'Pending', cls: 'bg-[rgba(250,204,21,0.12)] text-[#facc15]' };
+  if (kycStatus === 'REJECTED') return { label: 'Rejected', cls: 'bg-[rgba(248,113,113,0.12)] text-[#f87171]' };
+  return { label: 'Unverified', cls: 'bg-white/8 text-white/50' };
 }
 
 export default async function AdminUsersPage({
@@ -87,17 +87,17 @@ export default async function AdminUsersPage({
         <StatCard label="Breakdown" value={`${landlordCount}L · ${tenantCount}T`} />
       </div>
 
-      <form method="GET" className="mb-6 grid gap-3 rounded-xl border border-gray-200 bg-white p-4 md:grid-cols-3">
+      <form method="GET" className="mb-6 grid gap-3 rounded-xl border border-[rgba(196,154,60,0.15)] bg-[#1C2740] p-4 md:grid-cols-3">
         <input
           name="q"
           defaultValue={q}
           placeholder="Search name or email"
-          className="rounded-lg border border-gray-300 px-3.5 py-2.5 text-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+          className="bg-white/5 border border-[rgba(196,154,60,0.2)] text-white rounded-lg px-3 py-2 text-sm focus:border-[rgba(196,154,60,0.5)] focus:outline-none placeholder:text-white/30"
         />
         <select
           name="role"
           defaultValue={roleFilter}
-          className="rounded-lg border border-gray-300 px-3.5 py-2.5 text-sm"
+          className="bg-white/5 border border-[rgba(196,154,60,0.2)] text-white rounded-lg px-3 py-2 text-sm focus:border-[rgba(196,154,60,0.5)] focus:outline-none"
         >
           <option value="all">All roles</option>
           <option value="LANDLORD">Landlord</option>
@@ -106,7 +106,7 @@ export default async function AdminUsersPage({
         <select
           name="status"
           defaultValue={statusFilter}
-          className="rounded-lg border border-gray-300 px-3.5 py-2.5 text-sm"
+          className="bg-white/5 border border-[rgba(196,154,60,0.2)] text-white rounded-lg px-3 py-2 text-sm focus:border-[rgba(196,154,60,0.5)] focus:outline-none"
         >
           <option value="all">All statuses</option>
           <option value="active">Active</option>
@@ -114,16 +114,16 @@ export default async function AdminUsersPage({
         </select>
         <button
           type="submit"
-          className="rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-700 md:col-span-3"
+          className="rounded-lg bg-gradient-to-br from-[#C49A3C] to-[#E8B84B] px-4 py-2.5 text-sm font-semibold text-white hover:opacity-90 md:col-span-3"
         >
           Filter
         </button>
       </form>
 
       {users.length === 0 ? (
-        <div className="rounded-xl border border-gray-200 bg-white p-12 text-center">
-          <p className="text-base font-semibold text-gray-700">No users found</p>
-          <p className="mt-1 text-sm text-gray-400">Try adjusting your search or filters.</p>
+        <div className="rounded-xl border border-[rgba(196,154,60,0.15)] bg-[#1C2740] p-12 text-center">
+          <p className="text-base font-semibold text-white/70">No users found</p>
+          <p className="mt-1 text-sm text-white/40">Try adjusting your search or filters.</p>
         </div>
       ) : (
         <div className="space-y-3">
@@ -141,17 +141,17 @@ export default async function AdminUsersPage({
             return (
               <div
                 key={user.id}
-                className={`rounded-xl border bg-white p-4 ${user.isSuspended ? 'border-red-200' : 'border-gray-200'}`}
+                className={`rounded-xl border bg-[#1C2740] p-4 ${user.isSuspended ? 'border-[rgba(248,113,113,0.25)]' : 'border-[rgba(196,154,60,0.15)]'}`}
               >
                 <div className="flex flex-wrap items-start justify-between gap-4">
                   <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-2">
-                      <p className="truncate text-sm font-semibold text-gray-900">{user.name}</p>
+                      <p className="truncate text-sm font-semibold text-white">{user.name}</p>
                       <span
                         className={`rounded-full px-2 py-0.5 text-xs font-semibold ${
                           user.role === 'LANDLORD'
-                            ? 'bg-blue-100 text-blue-700'
-                            : 'bg-green-100 text-green-700'
+                            ? 'bg-[rgba(196,154,60,0.08)] text-[#C49A3C]'
+                            : 'bg-[rgba(74,222,128,0.12)] text-[#4ade80]'
                         }`}
                       >
                         {user.role === 'LANDLORD' ? 'Landlord' : 'Tenant'}
@@ -160,18 +160,18 @@ export default async function AdminUsersPage({
                         {kyc.label}
                       </span>
                       {user.isSuspended && (
-                        <span className="rounded-full bg-red-100 px-2 py-0.5 text-xs font-semibold text-red-700">
+                        <span className="rounded-full bg-[rgba(248,113,113,0.12)] px-2 py-0.5 text-xs font-semibold text-[#f87171]">
                           Suspended
                         </span>
                       )}
                       {user.deletedAt && (
-                        <span className="rounded-full bg-red-200 px-2 py-0.5 text-xs font-semibold text-red-800">
+                        <span className="rounded-full bg-[rgba(248,113,113,0.2)] px-2 py-0.5 text-xs font-semibold text-[#f87171]">
                           Deleted
                         </span>
                       )}
                     </div>
-                    <p className="mt-0.5 truncate text-xs text-gray-500">{user.email}</p>
-                    <p className="mt-1 text-xs text-gray-400">
+                    <p className="mt-0.5 truncate text-xs text-white/50">{user.email}</p>
+                    <p className="mt-1 text-xs text-white/40">
                       {activityLabel} · Joined {new Date(user.createdAt).toLocaleDateString('en-MY')}
                     </p>
                   </div>

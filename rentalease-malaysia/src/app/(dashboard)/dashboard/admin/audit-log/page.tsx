@@ -58,7 +58,7 @@ export default async function AuditLogPage({
         <select
           name="entity"
           defaultValue={entityFilter}
-          className="rounded-lg border border-gray-300 px-3.5 py-2.5 text-sm"
+          className="bg-white/5 border border-[rgba(196,154,60,0.2)] text-white rounded-lg px-3 py-2 text-sm focus:border-[rgba(196,154,60,0.5)] focus:outline-none"
         >
           <option value="all">All entities</option>
           {entities.map((e) => (
@@ -67,35 +67,35 @@ export default async function AuditLogPage({
         </select>
         <button
           type="submit"
-          className="rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-700"
+          className="rounded-lg bg-gradient-to-br from-[#C49A3C] to-[#E8B84B] px-4 py-2.5 text-sm font-semibold text-white hover:opacity-90"
         >
           Filter
         </button>
       </form>
 
       {logs.length === 0 ? (
-        <div className="rounded-xl border border-gray-200 bg-white p-12 text-center">
-          <p className="text-base font-semibold text-gray-700">No audit records found</p>
+        <div className="rounded-xl border border-[rgba(196,154,60,0.15)] bg-[#1C2740] p-12 text-center">
+          <p className="text-base font-semibold text-white/70">No audit records found</p>
         </div>
       ) : (
         <div className="space-y-3">
           {logs.map((log) => (
-            <div key={log.id} className="rounded-xl border border-gray-200 bg-white p-4">
+            <div key={log.id} className="rounded-xl border border-[rgba(196,154,60,0.15)] bg-[#1C2740] p-4">
               <div className="flex flex-wrap items-start justify-between gap-2">
                 <div>
-                  <span className="rounded-full bg-red-100 px-2 py-0.5 text-xs font-semibold text-red-700">
+                  <span className="rounded-full bg-[rgba(248,113,113,0.12)] px-2 py-0.5 text-xs font-semibold text-[#f87171]">
                     {ACTION_LABELS[log.action] ?? log.action}
                   </span>
-                  <p className="mt-1 text-sm font-semibold text-gray-900">
-                    {log.entityName} — <span className="font-mono text-xs text-gray-500">{log.entityId}</span>
+                  <p className="mt-1 text-sm font-semibold text-white">
+                    {log.entityName} — <span className="font-mono text-xs text-white/50">{log.entityId}</span>
                   </p>
-                  <p className="mt-0.5 text-xs text-gray-500">
+                  <p className="mt-0.5 text-xs text-white/50">
                     By {log.actor.name} ({log.actor.email})
                     {log.reason && <> · Reason: {log.reason}</>}
                     {log.ipAddress && <> · IP: {log.ipAddress}</>}
                   </p>
                 </div>
-                <p className="text-xs text-gray-400">
+                <p className="text-xs text-white/40">
                   {new Date(log.createdAt).toLocaleString('en-MY')}
                 </p>
               </div>
@@ -109,18 +109,18 @@ export default async function AuditLogPage({
           {page > 1 && (
             <a
               href={`?entity=${entityFilter}&page=${page - 1}`}
-              className="rounded-lg border border-gray-300 px-3 py-1.5 text-sm hover:bg-gray-50"
+              className="rounded-lg border border-[rgba(196,154,60,0.2)] px-3 py-1.5 text-sm text-white/70 hover:bg-white/5"
             >
               Previous
             </a>
           )}
-          <span className="rounded-lg bg-blue-600 px-3 py-1.5 text-sm text-white">
+          <span className="rounded-lg bg-gradient-to-br from-[#C49A3C] to-[#E8B84B] px-3 py-1.5 text-sm text-white">
             {page} / {totalPages}
           </span>
           {page < totalPages && (
             <a
               href={`?entity=${entityFilter}&page=${page + 1}`}
-              className="rounded-lg border border-gray-300 px-3 py-1.5 text-sm hover:bg-gray-50"
+              className="rounded-lg border border-[rgba(196,154,60,0.2)] px-3 py-1.5 text-sm text-white/70 hover:bg-white/5"
             >
               Next
             </a>

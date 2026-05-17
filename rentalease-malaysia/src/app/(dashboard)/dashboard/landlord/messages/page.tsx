@@ -45,21 +45,21 @@ export default async function LandlordMessagesPage() {
   return (
     <div>
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Messages</h1>
-        <p className="text-gray-500 mt-1 text-sm">
+        <h1 className="text-2xl font-bold text-white">Messages</h1>
+        <p className="text-white/50 mt-1 text-sm">
           In-platform messaging with your tenants.
         </p>
       </div>
 
       {tenancyList.length === 0 ? (
-        <div className="text-center py-20 bg-white rounded-xl border border-gray-200">
-          <svg className="w-12 h-12 text-gray-200 mb-4 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div className="text-center py-20 bg-[#1C2740] rounded-xl border border-[rgba(196,154,60,0.15)]">
+          <svg className="w-12 h-12 text-white/20 mb-4 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
           </svg>
-          <p className="text-gray-700 font-semibold text-lg">
+          <p className="text-white/70 font-semibold text-lg">
             No tenancies yet
           </p>
-          <p className="text-gray-400 text-sm mt-1">
+          <p className="text-white/40 text-sm mt-1">
             Messaging will be available once you have tenancies with tenants.
           </p>
         </div>

@@ -28,18 +28,18 @@ export default async function AdminKycPage() {
       />
 
       {submissions.length === 0 ? (
-        <div className="rounded-xl border border-gray-200 bg-white p-12 text-center">
-          <p className="font-semibold text-gray-700">No pending submissions</p>
-          <p className="mt-1 text-sm text-gray-400">New KYC submissions will appear here.</p>
+        <div className="rounded-xl border border-[rgba(196,154,60,0.15)] bg-[#1C2740] p-12 text-center">
+          <p className="font-semibold text-white/70">No pending submissions</p>
+          <p className="mt-1 text-sm text-white/40">New KYC submissions will appear here.</p>
         </div>
       ) : (
         <div className="space-y-4">
           {submissions.map((sub) => (
-            <div key={sub.id} className="rounded-xl border border-gray-200 bg-white p-5">
+            <div key={sub.id} className="rounded-xl border border-[rgba(196,154,60,0.15)] bg-[#1C2740] p-5">
               <div className="mb-4">
-                <p className="font-semibold text-gray-900">{sub.user.name}</p>
-                <p className="text-xs text-gray-500">{sub.user.email}</p>
-                <p className="mt-0.5 text-xs text-gray-400">
+                <p className="font-semibold text-white">{sub.user.name}</p>
+                <p className="text-xs text-white/50">{sub.user.email}</p>
+                <p className="mt-0.5 text-xs text-white/40">
                   {sub.user.role} · Submitted{' '}
                   {new Date(sub.submittedAt).toLocaleDateString('en-MY', {
                     day: 'numeric', month: 'short', year: 'numeric',
@@ -54,10 +54,10 @@ export default async function AdminKycPage() {
                     { url: sub.selfieUrl, label: 'Selfie' },
                   ].map(({ url, label }) => (
                     <a key={label} href={url} target="_blank" rel="noreferrer" className="group block">
-                      <div className="relative aspect-[4/3] overflow-hidden rounded-lg border border-gray-200 bg-gray-50">
+                      <div className="relative aspect-[4/3] overflow-hidden rounded-lg border border-[rgba(196,154,60,0.15)] bg-[#0f172a]">
                         <Image src={url} alt={label} fill className="object-cover group-hover:opacity-90 transition-opacity" sizes="200px" />
                       </div>
-                      <p className="mt-1 text-center text-xs text-gray-400">{label}</p>
+                      <p className="mt-1 text-center text-xs text-white/40">{label}</p>
                     </a>
                   ))}
                 </div>
