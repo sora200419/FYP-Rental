@@ -122,7 +122,7 @@ export default async function TenantDashboard() {
         href={primaryTenantHref}
         secondary={
           <div className="space-y-2 text-sm">
-            <p className="text-xs font-semibold uppercase tracking-wide text-blue-700">Current queue</p>
+            <p className="text-xs font-semibold uppercase tracking-wide text-[#C49A3C]">Current queue</p>
             <QueueMetric label="Pending invitations" value={pendingTenancies.length} />
             <QueueMetric label="Agreement reviews" value={pendingAgreementReviews} />
             <QueueMetric label="Payment follow-ups" value={rejectedPayments} />
@@ -149,20 +149,20 @@ export default async function TenantDashboard() {
       {pendingTenancies.length > 0 && (
         <div className="mb-8">
           <SectionCard title="Pending invitations">
-            <div className="divide-y divide-gray-100 overflow-hidden rounded-xl border border-gray-200 bg-white">
+            <div className="divide-y divide-[rgba(255,255,255,0.05)]">
               {pendingTenancies.map((tenancy) => (
-                <div key={tenancy.id} className="flex items-center justify-between px-5 py-3.5 transition-colors hover:bg-gray-50">
+                <div key={tenancy.id} className="flex items-center justify-between px-5 py-3.5 transition-colors hover:bg-white/5">
                   <div>
-                    <p className="text-sm font-medium text-gray-900">{tenancy.room.property.address}</p>
-                    <p className="mt-0.5 text-xs text-gray-500">
+                    <p className="text-sm font-medium text-white">{tenancy.room.property.address}</p>
+                    <p className="mt-0.5 text-xs text-white/40">
                       {tenancy.room.property.city} &middot; {tenancy.room.label} &middot; Landlord: {tenancy.room.property.landlord.name}
                     </p>
                   </div>
                   <div className="ml-4 flex items-center gap-2">
-                    <span className="inline-flex items-center rounded-full bg-yellow-50 px-2.5 py-0.5 text-xs font-medium text-yellow-700 ring-1 ring-yellow-200 ring-inset">
+                    <span className="inline-flex items-center rounded-full bg-[rgba(250,204,21,0.12)] px-2.5 py-0.5 text-xs font-medium text-[#facc15] border border-[rgba(250,204,21,0.3)]">
                       {tenancy.status}
                     </span>
-                    <Link href="/dashboard/tenant/tenancy" className="text-xs text-blue-600 hover:underline">
+                    <Link href="/dashboard/tenant/tenancy" className="text-xs text-[#C49A3C] hover:text-[#E8B84B]">
                       View
                     </Link>
                   </div>
@@ -175,7 +175,7 @@ export default async function TenantDashboard() {
 
       {activeTenancies.length > 0 ? (
         <section className="mb-8">
-          <h2 className="mb-4 text-lg font-semibold text-gray-900">Active tenancies</h2>
+          <h2 className="mb-4 font-serif text-lg font-semibold text-white">Active tenancies</h2>
           <div className="space-y-4">
             {activeTenancies.map((tenancy) => (
               <ActiveTenancyCard key={tenancy.id} tenancy={tenancy} />
@@ -184,8 +184,8 @@ export default async function TenantDashboard() {
         </section>
       ) : (
         tenancies.length === 0 && (
-          <div className="rounded-xl border border-gray-200 bg-white p-12 text-center">
-            <p className="text-sm text-gray-400">
+          <div className="rounded-xl border border-[rgba(196,154,60,0.15)] bg-[#1C2740] p-12 text-center">
+            <p className="text-sm text-white/40">
               You don&apos;t have any tenancies yet. Your landlord will send you an invitation when they list a room for you.
             </p>
           </div>
@@ -198,17 +198,21 @@ export default async function TenantDashboard() {
 const PILL_BASE = 'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium';
 
 const AGREEMENT_PILL: Record<string, string> = {
-  DRAFT: `${PILL_BASE} bg-gray-100 text-gray-500 ring-1 ring-gray-200 ring-inset`,
-  FINALIZED: `${PILL_BASE} bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200 ring-inset`,
-  NEGOTIATING: `${PILL_BASE} bg-purple-50 text-purple-700 ring-1 ring-purple-200 ring-inset`,
-  PENDING_TENANT: `${PILL_BASE} bg-yellow-50 text-yellow-700 ring-1 ring-yellow-200 ring-inset`,
+  DRAFT: `${PILL_BASE} bg-white/5 text-white/30 border border-white/10`,
+  FINALIZED: `${PILL_BASE} bg-[rgba(74,222,128,0.12)] text-[#4ade80] border border-[rgba(74,222,128,0.3)]`,
+  NEGOTIATING: `${PILL_BASE} bg-[rgba(196,154,60,0.12)] text-[#C49A3C] border border-[rgba(196,154,60,0.3)]`,
+  PENDING_TENANT: `${PILL_BASE} bg-[rgba(250,204,21,0.12)] text-[#facc15] border border-[rgba(250,204,21,0.3)]`,
 };
 
 function QueueMetric({ label, value }: { label: string; value: number }) {
   return (
-    <div className="flex items-center justify-between rounded-lg bg-white px-3 py-2">
-      <span className="font-medium text-gray-700">{label}</span>
-      <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${value > 0 ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-500'}`}>
+    <div className="flex items-center justify-between rounded-lg bg-white/5 px-3 py-2">
+      <span className="font-medium text-white/70">{label}</span>
+      <span
+        className={`rounded-full px-2 py-0.5 text-xs font-semibold ${
+          value > 0 ? 'bg-[#C49A3C] text-[#1C2740]' : 'bg-white/10 text-white/30'
+        }`}
+      >
         {value}
       </span>
     </div>
@@ -228,7 +232,7 @@ function ActiveTenancyCard({ tenancy }: { tenancy: ActiveTenancyType }) {
   );
 
   return (
-    <div className="overflow-hidden rounded-xl border border-gray-200 bg-white p-4">
+    <div className="overflow-hidden rounded-xl border border-[rgba(196,154,60,0.15)] bg-[#1C2740] p-4">
       <div className="grid gap-5 sm:grid-cols-[13rem_1fr]">
         <PropertyCover
           address={tenancy.room.property.address}
@@ -240,27 +244,27 @@ function ActiveTenancyCard({ tenancy }: { tenancy: ActiveTenancyType }) {
         <div className="min-w-0">
           <div className="flex items-start justify-between gap-4">
             <div className="min-w-0 flex-1">
-              <p className="truncate font-semibold text-gray-900">{tenancy.room.property.address}</p>
-              <p className="mt-0.5 text-sm text-gray-500">
+              <p className="truncate font-semibold text-white">{tenancy.room.property.address}</p>
+              <p className="mt-0.5 text-sm text-white/50">
                 {tenancy.room.property.city} &middot; {tenancy.room.label}
               </p>
-              <p className="mt-0.5 text-xs text-gray-400">
+              <p className="mt-0.5 text-xs text-white/30">
                 Landlord: {tenancy.room.property.landlord.name}
               </p>
             </div>
-            <Link href="/dashboard/tenant/tenancy" className="shrink-0 text-sm text-blue-600 hover:underline">
+            <Link href="/dashboard/tenant/tenancy" className="shrink-0 text-sm text-[#C49A3C] hover:text-[#E8B84B]">
               View details &rarr;
             </Link>
           </div>
 
           {agreementStatus && (
             <div className="mt-4 flex items-center gap-3">
-              <span className="text-xs text-gray-500">Agreement:</span>
-              <span className={AGREEMENT_PILL[agreementStatus] ?? `${PILL_BASE} bg-gray-100 text-gray-500`}>
+              <span className="text-xs text-white/40">Agreement:</span>
+              <span className={AGREEMENT_PILL[agreementStatus] ?? `${PILL_BASE} bg-white/5 text-white/30`}>
                 {agreementStatus.replace('_', ' ')}
               </span>
               {agreementStatus === 'FINALIZED' && (
-                <Link href="/dashboard/tenant/tenancy" className="text-xs font-medium text-blue-600 hover:underline">
+                <Link href="/dashboard/tenant/tenancy" className="text-xs font-medium text-[#C49A3C] hover:text-[#E8B84B]">
                   Review &amp; sign &rarr;
                 </Link>
               )}
@@ -269,15 +273,15 @@ function ActiveTenancyCard({ tenancy }: { tenancy: ActiveTenancyType }) {
 
           {nextPayment && (
             <div className="mt-3 flex flex-wrap items-center gap-3">
-              <span className="text-xs text-gray-500">Next payment:</span>
-              <span className="text-xs font-medium text-gray-900">
+              <span className="text-xs text-white/40">Next payment:</span>
+              <span className="text-xs font-medium text-white">
                 RM {Number(nextPayment.amount).toLocaleString('en-MY', { minimumFractionDigits: 2 })}
               </span>
-              <span className="text-xs text-gray-400">
+              <span className="text-xs text-white/30">
                 due {new Date(nextPayment.dueDate).toLocaleDateString('en-MY')}
               </span>
               {hasRejectedPayment && (
-                <span className="inline-flex items-center rounded-full bg-red-50 px-2.5 py-0.5 text-xs font-medium text-red-600 ring-1 ring-red-200 ring-inset">
+                <span className="inline-flex items-center rounded-full bg-[rgba(248,113,113,0.12)] px-2.5 py-0.5 text-xs font-medium text-[#f87171] border border-[rgba(248,113,113,0.3)]">
                   Proof rejected
                 </span>
               )}
