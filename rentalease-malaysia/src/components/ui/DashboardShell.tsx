@@ -38,7 +38,7 @@ export default function DashboardShell({ children }: { children: React.ReactNode
     role === 'LANDLORD' ? '/dashboard/landlord/messages' : '/dashboard/tenant/messages';
 
   return (
-    <div className="flex h-screen overflow-hidden bg-gray-50">
+    <div className="flex h-screen overflow-hidden bg-[#0f172a]">
       {/* Desktop sidebar */}
       <Sidebar />
 
@@ -48,7 +48,7 @@ export default function DashboardShell({ children }: { children: React.ReactNode
       {/* Main column */}
       <div className="flex-1 flex flex-col min-w-0 overflow-y-auto">
         {/* Top header bar */}
-        <header className="h-14 bg-white border-b border-gray-200 flex items-center px-4 sm:px-6 gap-3 shrink-0 sticky top-0 z-20">
+        <header className="h-14 bg-[#1C2740] border-b border-[rgba(196,154,60,0.15)] flex items-center px-4 sm:px-6 gap-3 shrink-0 sticky top-0 z-20">
           <MenuToggleButton onClick={() => setMobileOpen(true)} />
 
           {/* Spacer */}
@@ -58,7 +58,7 @@ export default function DashboardShell({ children }: { children: React.ReactNode
           {role !== 'ADMIN' && (
             <Link
               href={messagesHref}
-              className="relative p-2 rounded-lg text-gray-500 hover:bg-gray-100 transition-colors"
+              className="relative p-2 rounded-full bg-white/5 text-white/50 hover:bg-white/10 hover:text-white/80 transition-colors"
               aria-label={
                 unreadCounts.messageCount > 0
                   ? `Messages (${unreadCounts.messageCount} unread)`
@@ -70,7 +70,7 @@ export default function DashboardShell({ children }: { children: React.ReactNode
                   d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
               </svg>
               {unreadCounts.messageCount > 0 && (
-                <span className="absolute top-0.5 right-0.5 inline-flex items-center justify-center min-w-[16px] h-[16px] px-0.5 text-[9px] font-bold text-white bg-red-500 rounded-full">
+                <span className="absolute top-0.5 right-0.5 inline-flex items-center justify-center min-w-[16px] h-[16px] px-0.5 text-[9px] font-bold text-[#1C2740] bg-[#C49A3C] rounded-full border border-[#1C2740]">
                   {unreadCounts.messageCount > 9 ? '9+' : unreadCounts.messageCount}
                 </span>
               )}
