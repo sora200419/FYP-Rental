@@ -271,7 +271,7 @@ export function MenuToggleButton({ onClick }: { onClick: () => void }) {
   return (
     <button
       onClick={onClick}
-      className="p-1.5 rounded-lg text-gray-500 hover:bg-gray-100 transition-colors lg:hidden"
+      className="p-1.5 rounded-lg text-white/40 hover:bg-white/5 transition-colors lg:hidden"
       aria-label="Open navigation menu"
     >
       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
