@@ -49,14 +49,14 @@ export default async function PropertiesPage() {
   return (
     <div>
       {!isVerified && (
-        <div className="mb-6 flex items-start gap-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-          <svg className="mt-0.5 h-4 w-4 shrink-0 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div className="mb-6 flex items-start gap-3 rounded-lg border border-[rgba(251,191,36,0.25)] bg-[rgba(251,191,36,0.08)] px-4 py-3 text-sm text-[#facc15]">
+          <svg className="mt-0.5 h-4 w-4 shrink-0 text-[#facc15]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
               d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
           </svg>
           <div>
             <p className="font-semibold">Account not yet verified</p>
-            <p className="mt-0.5 text-xs leading-relaxed text-amber-700">
+            <p className="mt-0.5 text-xs leading-relaxed text-[#facc15]">
               {hasIc
                 ? <>Complete identity verification on your{' '}<Link href="/dashboard/kyc" className="font-medium underline">KYC page</Link>{' '}before adding properties.</>
                 : <>Add your IC number on your{' '}<Link href="/dashboard/profile" className="font-medium underline">Profile page</Link>{' '}then complete identity verification before adding properties.</>
@@ -74,7 +74,7 @@ export default async function PropertiesPage() {
           isVerified && (
             <Link
               href="/dashboard/landlord/properties/new"
-              className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-blue-700"
+              className="inline-flex items-center gap-2 rounded-lg bg-gradient-to-br from-[#C49A3C] to-[#E8B84B] px-4 py-2.5 text-sm font-semibold text-white transition-colors"
             >
               Add Property
             </Link>
@@ -105,7 +105,7 @@ export default async function PropertiesPage() {
             isVerified && (
               <Link
                 href="/dashboard/landlord/properties/new"
-                className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-blue-700"
+                className="inline-flex items-center gap-2 rounded-lg bg-gradient-to-br from-[#C49A3C] to-[#E8B84B] px-4 py-2.5 text-sm font-semibold text-white transition-colors"
               >
                 Add Property
               </Link>
@@ -131,15 +131,15 @@ export default async function PropertiesPage() {
               : 'Vacant';
 
             const occupancyPill = fullyOccupied
-              ? 'bg-green-50 text-green-700 ring-1 ring-green-200 ring-inset'
+              ? 'bg-[rgba(74,222,128,0.12)] text-[#4ade80] ring-1 ring-[rgba(74,222,128,0.3)] ring-inset'
               : noRooms
-              ? 'bg-gray-100 text-gray-400 ring-1 ring-gray-200 ring-inset'
+              ? 'bg-white/8 text-white/40 ring-1 ring-[rgba(196,154,60,0.15)] ring-inset'
               : hasVacancy
-              ? 'bg-amber-50 text-amber-700 ring-1 ring-amber-200 ring-inset'
-              : 'bg-gray-100 text-gray-500 ring-1 ring-gray-200 ring-inset';
+              ? 'bg-[rgba(251,191,36,0.08)] text-[#facc15] ring-1 ring-[rgba(251,191,36,0.25)] ring-inset'
+              : 'bg-white/8 text-white/50 ring-1 ring-[rgba(196,154,60,0.15)] ring-inset';
 
             return (
-              <article key={property.id} className="overflow-hidden rounded-xl border border-gray-200 bg-white transition-colors hover:border-gray-300">
+              <article key={property.id} className="overflow-hidden rounded-xl border border-[rgba(196,154,60,0.15)] bg-[#1C2740] transition-colors hover:border-[rgba(196,154,60,0.3)]">
                 <div className="relative">
                   <PropertyCover
                     address={property.address}
@@ -153,7 +153,7 @@ export default async function PropertiesPage() {
                       {occupancyLabel}
                     </span>
                     {!property.isVerified && (
-                      <span className="inline-flex items-center rounded-full bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-700 ring-1 ring-amber-200 ring-inset">
+                      <span className="inline-flex items-center rounded-full bg-[rgba(251,191,36,0.08)] px-2.5 py-1 text-xs font-semibold text-[#facc15] ring-1 ring-[rgba(251,191,36,0.25)] ring-inset">
                         Pending verification
                       </span>
                     )}
@@ -162,24 +162,24 @@ export default async function PropertiesPage() {
 
                 <div className="p-5">
                   {!property.isVerified && (
-                    <div className="mb-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2">
-                      <p className="text-xs font-medium text-amber-700">Pending admin verification</p>
+                    <div className="mb-3 rounded-lg border border-[rgba(251,191,36,0.25)] bg-[rgba(251,191,36,0.08)] px-3 py-2">
+                      <p className="text-xs font-medium text-[#facc15]">Pending admin verification</p>
                     </div>
                   )}
 
-                  <p className="text-sm font-semibold leading-snug text-gray-900">{property.address}</p>
-                  <p className="mt-0.5 text-xs text-gray-400">
+                  <p className="text-sm font-semibold leading-snug text-white">{property.address}</p>
+                  <p className="mt-0.5 text-xs text-white/40">
                     {property.city}, {property.state} {property.postcode}
                   </p>
-                  <div className="mt-3 flex items-center justify-between text-xs text-gray-500">
+                  <div className="mt-3 flex items-center justify-between text-xs text-white/50">
                     <span className="capitalize">{property.type}</span>
                     <span>{propertyTotalRooms} {propertyTotalRooms === 1 ? 'room' : 'rooms'}</span>
                   </div>
 
-                  <div className="mt-4 border-t border-gray-100 pt-4">
+                  <div className="mt-4 border-t border-[rgba(196,154,60,0.12)] pt-4">
                     <Link
                       href={`/dashboard/landlord/properties/${property.id}`}
-                      className="block rounded-lg py-1.5 text-center text-sm font-medium text-blue-600 transition-colors hover:bg-blue-50 hover:text-blue-700"
+                      className="block rounded-lg py-1.5 text-center text-sm font-medium text-[#C49A3C] transition-colors hover:bg-[rgba(196,154,60,0.1)] hover:text-[#E8B84B]"
                     >
                       {noRooms ? 'Add Rooms' : 'Manage'}
                     </Link>

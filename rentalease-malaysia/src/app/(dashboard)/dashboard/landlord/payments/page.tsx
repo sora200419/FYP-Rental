@@ -98,7 +98,7 @@ export default async function LandlordPaymentsPage() {
         title="Payments"
         description="Review rent and deposit proof across all active and pending tenancies."
         action={totalAwaiting > 0
-          ? <span className="rounded-full bg-amber-500 px-2.5 py-1 text-xs font-bold text-white">{totalAwaiting} awaiting review</span>
+          ? <span className="rounded-full bg-[rgba(251,191,36,0.2)] px-2.5 py-1 text-xs font-bold text-[#facc15]">{totalAwaiting} awaiting review</span>
           : undefined}
       />
 
@@ -137,12 +137,12 @@ export default async function LandlordPaymentsPage() {
                   tenancy={t}
                   formatRM={formatRM}
                 >
-                  <div className="mt-4 border-t border-gray-100 pt-4">
-                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-50 text-red-600 ring-1 ring-red-200 ring-inset">
+                  <div className="mt-4 border-t border-[rgba(196,154,60,0.12)] pt-4">
+                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-[rgba(248,113,113,0.12)] text-[#f87171] ring-1 ring-[rgba(248,113,113,0.3)] ring-inset">
                       Rejected — awaiting re-upload from tenant
                     </span>
                     {t.depositRejectionReason && (
-                      <p className="text-xs text-gray-400 mt-1.5">
+                      <p className="text-xs text-white/40 mt-1.5">
                         Reason: {t.depositRejectionReason}
                       </p>
                     )}
@@ -157,8 +157,8 @@ export default async function LandlordPaymentsPage() {
                   tenancy={t}
                   formatRM={formatRM}
                 >
-                  <div className="mt-4 border-t border-gray-100 pt-4 flex items-center gap-2">
-                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-50 text-green-700 ring-1 ring-green-200 ring-inset">
+                  <div className="mt-4 border-t border-[rgba(196,154,60,0.12)] pt-4 flex items-center gap-2">
+                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-[rgba(74,222,128,0.12)] text-[#4ade80] ring-1 ring-[rgba(74,222,128,0.3)] ring-inset">
                       Confirmed
                     </span>
                     {t.depositProofs.length > 0 && (
@@ -166,7 +166,7 @@ export default async function LandlordPaymentsPage() {
                         href={t.depositProofs[0].imageUrl}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-xs text-blue-600 hover:underline"
+                        className="text-xs text-[#C49A3C] hover:underline"
                       >
                         View proof
                       </a>
@@ -179,9 +179,9 @@ export default async function LandlordPaymentsPage() {
       )}
 
       {allPayments.length === 0 && allDepositTenancies.length === 0 && (
-        <div className="bg-white rounded-xl border border-gray-200 p-12 text-center">
-          <p className="text-gray-700 font-semibold">No payments yet</p>
-          <p className="text-sm text-gray-400 mt-1">
+        <div className="bg-[#1C2740] rounded-xl border border-[rgba(196,154,60,0.15)] p-12 text-center">
+          <p className="text-white/70 font-semibold">No payments yet</p>
+          <p className="text-sm text-white/40 mt-1">
             Payment schedules are generated when tenants sign their agreements.
           </p>
         </div>
@@ -228,13 +228,13 @@ export default async function LandlordPaymentsPage() {
                       <span
                         className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ring-1 ring-inset ${
                           isOverdue
-                            ? 'bg-red-50 text-red-600 ring-red-200'
-                            : 'bg-gray-100 text-gray-500 ring-gray-200'
+                            ? 'bg-[rgba(248,113,113,0.12)] text-[#f87171] ring-[rgba(248,113,113,0.3)]'
+                            : 'bg-white/8 text-white/50 ring-[rgba(196,154,60,0.15)]'
                         }`}
                       >
                         {isOverdue ? 'Overdue' : 'Pending'}
                       </span>
-                      <span className="text-xs text-gray-400 ml-2">
+                      <span className="text-xs text-white/40 ml-2">
                         Due {formatDate(payment.dueDate)}
                       </span>
                     </div>
@@ -257,10 +257,10 @@ export default async function LandlordPaymentsPage() {
                   formatRM={formatRM}
                 >
                   <div className="mt-2 flex items-center gap-2">
-                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-50 text-green-700 ring-1 ring-green-200 ring-inset">
+                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-[rgba(74,222,128,0.12)] text-[#4ade80] ring-1 ring-[rgba(74,222,128,0.3)] ring-inset">
                       {payment.status === 'WAIVED' ? 'Waived' : 'Paid'}
                     </span>
-                    <span className="text-xs text-gray-400">
+                    <span className="text-xs text-white/40">
                       Due {formatDate(payment.dueDate)}
                     </span>
                     {payment.proofs.length > 0 && (
@@ -268,7 +268,7 @@ export default async function LandlordPaymentsPage() {
                         href={payment.proofs[0].imageUrl}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-xs text-blue-600 hover:underline"
+                        className="text-xs text-[#C49A3C] hover:underline"
                       >
                         View proof
                       </a>
@@ -313,21 +313,21 @@ function PaymentRow({
   children: React.ReactNode;
 }) {
   return (
-    <div className="bg-white rounded-xl border border-gray-200 p-5">
+    <div className="bg-[#1C2740] rounded-xl border border-[rgba(196,154,60,0.15)] p-5">
       <div className="flex items-start justify-between mb-3">
         <div>
-          <p className="text-sm font-semibold text-gray-900">
+          <p className="text-sm font-semibold text-white">
             {payment.tenancy.room.property.address},{' '}
             {payment.tenancy.room.property.city}
           </p>
-          <p className="text-xs text-gray-400 mt-0.5">
+          <p className="text-xs text-white/40 mt-0.5">
             Room: {payment.tenancy.room.label} · Tenant:{' '}
             {payment.tenancy.tenant.name} · {formatRM(payment.amount)}
           </p>
         </div>
         <Link
           href={`/dashboard/landlord/tenancies/${payment.tenancy.id}`}
-          className="text-xs text-blue-600 hover:underline flex-shrink-0 ml-4"
+          className="text-xs text-[#C49A3C] hover:underline flex-shrink-0 ml-4"
         >
           View tenancy →
         </Link>
@@ -360,20 +360,20 @@ function DepositRow({
   children: React.ReactNode;
 }) {
   return (
-    <div className="bg-white rounded-xl border border-gray-200 p-5">
+    <div className="bg-[#1C2740] rounded-xl border border-[rgba(196,154,60,0.15)] p-5">
       <div className="flex items-start justify-between">
         <div>
-          <p className="text-sm font-semibold text-gray-900">
+          <p className="text-sm font-semibold text-white">
             {tenancy.room.property.address}, {tenancy.room.property.city}
           </p>
-          <p className="text-xs text-gray-400 mt-0.5">
+          <p className="text-xs text-white/40 mt-0.5">
             Room: {tenancy.room.label} · Tenant: {tenancy.tenant.name} ·{' '}
             {formatRM(tenancy.depositAmount)}
           </p>
         </div>
         <Link
           href={`/dashboard/landlord/tenancies/${tenancy.id}`}
-          className="text-xs text-blue-600 hover:underline flex-shrink-0 ml-4"
+          className="text-xs text-[#C49A3C] hover:underline flex-shrink-0 ml-4"
         >
           View tenancy →
         </Link>

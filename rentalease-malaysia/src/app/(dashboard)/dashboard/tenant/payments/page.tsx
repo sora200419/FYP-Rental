@@ -17,11 +17,11 @@ const STATUS_LABEL: Record<string, string> = {
 const PILL_BASE = 'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium';
 
 const STATUS_STYLE: Record<string, string> = {
-  PENDING:      `${PILL_BASE} bg-gray-100 text-gray-500 ring-1 ring-gray-200 ring-inset`,
-  UNDER_REVIEW: `${PILL_BASE} bg-blue-50 text-blue-700 ring-1 ring-blue-200 ring-inset`,
-  PAID:         `${PILL_BASE} bg-green-50 text-green-700 ring-1 ring-green-200 ring-inset`,
-  LATE:         `${PILL_BASE} bg-red-50 text-red-600 ring-1 ring-red-200 ring-inset`,
-  WAIVED:       `${PILL_BASE} bg-gray-100 text-gray-500 ring-1 ring-gray-200 ring-inset`,
+  PENDING:      `${PILL_BASE} bg-white/8 text-white/50 ring-1 ring-[rgba(196,154,60,0.15)] ring-inset`,
+  UNDER_REVIEW: `${PILL_BASE} bg-[rgba(196,154,60,0.12)] text-[#C49A3C] ring-1 ring-[rgba(196,154,60,0.3)] ring-inset`,
+  PAID:         `${PILL_BASE} bg-[rgba(74,222,128,0.12)] text-[#4ade80] ring-1 ring-[rgba(74,222,128,0.3)] ring-inset`,
+  LATE:         `${PILL_BASE} bg-[rgba(248,113,113,0.12)] text-[#f87171] ring-1 ring-[rgba(248,113,113,0.3)] ring-inset`,
+  WAIVED:       `${PILL_BASE} bg-white/8 text-white/50 ring-1 ring-[rgba(196,154,60,0.15)] ring-inset`,
 };
 
 export default async function TenantPaymentsPage() {
@@ -80,34 +80,34 @@ export default async function TenantPaymentsPage() {
       {/* ── Deposit card — pinned at top when tenancy exists ───────────────── */}
       {tenancy && (
         <div
-          className={`bg-white rounded-xl border p-5 mb-6 ${
+          className={`bg-[#1C2740] rounded-xl border p-5 mb-6 ${
             tenancy.depositStatus === 'UNDER_REVIEW'
-              ? 'border-amber-300'
+              ? 'border-[rgba(251,191,36,0.25)]'
               : tenancy.depositStatus === 'PAID'
-                ? 'border-green-200'
+                ? 'border-[rgba(74,222,128,0.3)]'
                 : tenancy.depositStatus === 'REJECTED'
-                  ? 'border-red-300'
-                  : 'border-gray-200'
+                  ? 'border-[rgba(248,113,113,0.3)]'
+                  : 'border-[rgba(196,154,60,0.15)]'
           }`}
         >
           <div className="flex items-center justify-between mb-3">
             <div>
-              <p className="text-sm font-semibold text-gray-900">
+              <p className="text-sm font-semibold text-white">
                 Security Deposit
               </p>
-              <p className="text-xs text-gray-400 mt-0.5">
+              <p className="text-xs text-white/40 mt-0.5">
                 {formatRM(tenancy.depositAmount)} · one-time payment
               </p>
             </div>
             <span
               className={`text-xs font-semibold px-2.5 py-1 rounded-full ${
                 tenancy.depositStatus === 'PAID'
-                  ? 'bg-green-100 text-green-700'
+                  ? 'bg-[rgba(74,222,128,0.12)] text-[#4ade80]'
                   : tenancy.depositStatus === 'UNDER_REVIEW'
-                    ? 'bg-amber-100 text-amber-700'
+                    ? 'bg-[rgba(251,191,36,0.08)] text-[#facc15]'
                     : tenancy.depositStatus === 'REJECTED'
-                      ? 'bg-red-100 text-red-600'
-                      : 'bg-gray-100 text-gray-500'
+                      ? 'bg-[rgba(248,113,113,0.12)] text-[#f87171]'
+                      : 'bg-white/8 text-white/50'
               }`}
             >
               {tenancy.depositStatus === 'UNDER_REVIEW'
@@ -131,18 +131,18 @@ export default async function TenantPaymentsPage() {
 
       {/* No active tenancy */}
       {!tenancy && (
-        <div className="bg-white rounded-xl border border-gray-200 p-12 text-center">
-          <p className="text-gray-700 font-semibold">No tenancy found</p>
-          <p className="text-sm text-gray-400 mt-1">
+        <div className="bg-[#1C2740] rounded-xl border border-[rgba(196,154,60,0.15)] p-12 text-center">
+          <p className="text-white/70 font-semibold">No tenancy found</p>
+          <p className="text-sm text-white/40 mt-1">
             Payment tracking will be available once your landlord links you to a tenancy.
           </p>
         </div>
       )}
 
       {tenancy && tenancy.rentPayments.length === 0 && (
-        <div className="bg-white rounded-xl border border-gray-200 p-12 text-center">
-          <p className="text-gray-700 font-semibold">No rent schedule yet</p>
-          <p className="text-sm text-gray-400 mt-1">
+        <div className="bg-[#1C2740] rounded-xl border border-[rgba(196,154,60,0.15)] p-12 text-center">
+          <p className="text-white/70 font-semibold">No rent schedule yet</p>
+          <p className="text-sm text-white/40 mt-1">
             Your monthly payment schedule will appear here once your agreement is signed.
           </p>
         </div>
@@ -156,37 +156,37 @@ export default async function TenantPaymentsPage() {
               {
                 label: 'Total',
                 value: tenancy.rentPayments.length,
-                color: 'text-gray-900',
+                color: 'text-white',
               },
               {
                 label: 'Paid',
                 value: tenancy.rentPayments.filter((p) => p.status === 'PAID')
                   .length,
-                color: 'text-green-600',
+                color: 'text-[#4ade80]',
               },
               {
                 label: 'Pending',
                 value: tenancy.rentPayments.filter(
                   (p) => p.status === 'PENDING' || p.status === 'LATE',
                 ).length,
-                color: 'text-amber-600',
+                color: 'text-[#facc15]',
               },
               {
                 label: 'Under Review',
                 value: tenancy.rentPayments.filter(
                   (p) => p.status === 'UNDER_REVIEW',
                 ).length,
-                color: 'text-blue-600',
+                color: 'text-[#C49A3C]',
               },
             ].map((stat) => (
               <div
                 key={stat.label}
-                className="bg-white rounded-xl border border-gray-200 p-4 text-center"
+                className="bg-[#1C2740] rounded-xl border border-[rgba(196,154,60,0.15)] p-4 text-center"
               >
                 <p className={`text-2xl font-bold ${stat.color}`}>
                   {stat.value}
                 </p>
-                <p className="text-xs text-gray-400 mt-1">{stat.label}</p>
+                <p className="text-xs text-white/40 mt-1">{stat.label}</p>
               </div>
             ))}
           </div>
@@ -201,24 +201,24 @@ export default async function TenantPaymentsPage() {
               return (
                 <div
                   key={payment.id}
-                  className="bg-white rounded-xl border border-gray-200 p-5"
+                  className="bg-[#1C2740] rounded-xl border border-[rgba(196,154,60,0.15)] p-5"
                 >
                   {/* Row header */}
                   <div className="flex items-center justify-between mb-4">
                     <div>
-                      <p className="text-sm font-semibold text-gray-900">
+                      <p className="text-sm font-semibold text-white">
                         {formatDate(payment.dueDate)}
                       </p>
-                      <p className="text-xs text-gray-400">
+                      <p className="text-xs text-white/40">
                         {formatRM(payment.amount)}
                       </p>
                     </div>
                     <span
                       className={`text-xs font-semibold px-2.5 py-1 rounded-full ${
                         isOverdue
-                          ? 'bg-red-100 text-red-600'
+                          ? 'bg-[rgba(248,113,113,0.12)] text-[#f87171]'
                           : (STATUS_STYLE[payment.status] ??
-                            'bg-gray-100 text-gray-500')
+                            'bg-white/8 text-white/50')
                       }`}
                     >
                       {isOverdue

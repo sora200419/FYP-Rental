@@ -107,17 +107,17 @@ export default async function TenantTenancyPage() {
     return (
       <div>
         <div className="mb-6">
-          <h1 className="text-2xl font-bold text-gray-900">My Tenancy</h1>
-          <p className="text-gray-500 mt-1 text-sm">
+          <h1 className="text-2xl font-bold text-white">My Tenancy</h1>
+          <p className="text-white/50 mt-1 text-sm">
             View your current tenancy agreement and details.
           </p>
         </div>
-        <div className="text-center py-20 bg-white rounded-xl border border-gray-200">
-          <svg className="w-12 h-12 text-gray-200 mb-4 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div className="text-center py-20 bg-[#1C2740] rounded-xl border border-[rgba(196,154,60,0.15)]">
+          <svg className="w-12 h-12 text-white/20 mb-4 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
           </svg>
-          <p className="text-gray-700 font-semibold text-lg">No tenancy yet</p>
-          <p className="text-gray-400 text-sm mt-1 max-w-sm mx-auto">
+          <p className="text-white/70 font-semibold text-lg">No tenancy yet</p>
+          <p className="text-white/40 text-sm mt-1 max-w-sm mx-auto">
             Your tenancy details will appear here once your landlord creates an
             invitation and you accept it.
           </p>
@@ -154,10 +154,10 @@ export default async function TenantTenancyPage() {
             key={step}
             className={`rounded-lg border px-3 py-2 text-center text-xs font-semibold ${
               index < activeStep
-                ? 'border-blue-200 bg-blue-50 text-blue-700'
+                ? 'border-[rgba(196,154,60,0.3)] bg-[rgba(196,154,60,0.12)] text-[#C49A3C]'
                 : index === activeStep
-                ? 'border-blue-400 bg-blue-100 text-blue-800 ring-1 ring-blue-300 ring-inset'
-                : 'border-gray-200 bg-gray-50 text-gray-400'
+                ? 'border-[#C49A3C] bg-[rgba(196,154,60,0.2)] text-[#E8B84B] ring-1 ring-[rgba(196,154,60,0.4)] ring-inset'
+                : 'border-[rgba(196,154,60,0.12)] bg-[#0f172a] text-white/40'
             }`}
           >
             {step}
@@ -168,7 +168,7 @@ export default async function TenantTenancyPage() {
       {/* Two-column guided layout */}
       <div className="mb-6 grid gap-5 xl:grid-cols-[1.4fr_0.8fr]">
         {/* Left: property cover + status */}
-        <section className="overflow-hidden rounded-2xl border border-gray-200 bg-white">
+        <section className="overflow-hidden rounded-2xl border border-[rgba(196,154,60,0.15)] bg-[#1C2740]">
           <PropertyCover
             address={property.address}
             imageUrl={cover?.imageUrl}
@@ -177,14 +177,14 @@ export default async function TenantTenancyPage() {
             heightClassName="h-56"
           />
           <div className="p-5">
-            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-gray-400">Current status</p>
-            <h2 className="mt-2 text-xl font-bold text-gray-900">{statusInfo.headline}</h2>
-            <p className="mt-2 text-sm text-gray-500">{statusInfo.description}</p>
+            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-white/40">Current status</p>
+            <h2 className="mt-2 text-xl font-bold text-white">{statusInfo.headline}</h2>
+            <p className="mt-2 text-sm text-white/50">{statusInfo.description}</p>
             <div className="mt-4 flex flex-wrap gap-3">
               {tenancy.agreement?.status === 'FINALIZED' && (
                 <a
                   href="#agreement-section"
-                  className="bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2.5 rounded-lg transition-colors"
+                  className="bg-gradient-to-br from-[#C49A3C] to-[#E8B84B] text-white text-sm font-medium px-4 py-2.5 rounded-lg transition-colors"
                 >
                   Review Agreement
                 </a>
@@ -194,12 +194,12 @@ export default async function TenantTenancyPage() {
         </section>
 
         {/* Right: next actions aside */}
-        <aside className="rounded-2xl border border-blue-100 bg-blue-50 p-5">
-          <h2 className="text-sm font-semibold text-blue-900">Next actions</h2>
+        <aside className="rounded-2xl border border-[rgba(196,154,60,0.15)] bg-[rgba(196,154,60,0.06)] p-5">
+          <h2 className="text-sm font-semibold text-[#E8B84B]">Next actions</h2>
           <div className="mt-4 space-y-3">
             <a
               href="#agreement-section"
-              className="flex items-center gap-3 rounded-xl border border-blue-200 bg-white px-4 py-3 text-sm font-medium text-blue-700 hover:bg-blue-50 transition-colors"
+              className="flex items-center gap-3 rounded-xl border border-[rgba(196,154,60,0.2)] bg-[#1C2740] px-4 py-3 text-sm font-medium text-[#C49A3C] hover:bg-[rgba(196,154,60,0.1)] transition-colors"
             >
               <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
@@ -208,7 +208,7 @@ export default async function TenantTenancyPage() {
             </a>
             <Link
               href="/dashboard/tenant/payments"
-              className="flex items-center gap-3 rounded-xl border border-blue-200 bg-white px-4 py-3 text-sm font-medium text-blue-700 hover:bg-blue-50 transition-colors"
+              className="flex items-center gap-3 rounded-xl border border-[rgba(196,154,60,0.2)] bg-[#1C2740] px-4 py-3 text-sm font-medium text-[#C49A3C] hover:bg-[rgba(196,154,60,0.1)] transition-colors"
             >
               <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
@@ -217,7 +217,7 @@ export default async function TenantTenancyPage() {
             </Link>
             <Link
               href="/dashboard/tenant/messages"
-              className="flex items-center gap-3 rounded-xl border border-blue-200 bg-white px-4 py-3 text-sm font-medium text-blue-700 hover:bg-blue-50 transition-colors"
+              className="flex items-center gap-3 rounded-xl border border-[rgba(196,154,60,0.2)] bg-[#1C2740] px-4 py-3 text-sm font-medium text-[#C49A3C] hover:bg-[rgba(196,154,60,0.1)] transition-colors"
             >
               <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
@@ -230,36 +230,36 @@ export default async function TenantTenancyPage() {
 
       <div className="space-y-5">
         {/* ── Tenancy summary card ───────────────────────────────────────────── */}
-        <div className="bg-white rounded-xl border border-gray-200 p-6">
-          <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-4">
+        <div className="bg-[#1C2740] rounded-xl border border-[rgba(196,154,60,0.15)] p-6">
+          <h2 className="text-sm font-semibold text-white/50 uppercase tracking-wider mb-4">
             Tenancy Details
           </h2>
           <div className="grid grid-cols-2 gap-4 text-sm mb-5">
             <div>
-              <p className="text-gray-400">Property</p>
-              <p className="font-medium text-gray-900 mt-0.5">
+              <p className="text-white/40">Property</p>
+              <p className="font-medium text-white mt-0.5">
                 {property.address}
               </p>
-              <p className="text-gray-400 text-xs">
+              <p className="text-white/40 text-xs">
                 {property.city}, {property.state}
               </p>
             </div>
             <div>
-              <p className="text-gray-400">Room</p>
-              <p className="font-medium text-gray-900 mt-0.5">
+              <p className="text-white/40">Room</p>
+              <p className="font-medium text-white mt-0.5">
                 {tenancy.room.label}
               </p>
-              <p className="text-gray-400 text-xs capitalize">
+              <p className="text-white/40 text-xs capitalize">
                 {property.type}
               </p>
             </div>
             <div>
-              <p className="text-gray-400">Status</p>
+              <p className="text-white/40">Status</p>
               <span
                 className={`inline-block mt-0.5 text-xs font-semibold px-2.5 py-1 rounded-full ${
                   tenancy.status === 'ACTIVE'
-                    ? 'bg-green-100 text-green-700'
-                    : 'bg-amber-100 text-amber-700'
+                    ? 'bg-[rgba(74,222,128,0.12)] text-[#4ade80]'
+                    : 'bg-[rgba(251,191,36,0.08)] text-[#facc15]'
                 }`}
               >
                 {tenancy.status.charAt(0) +
@@ -267,39 +267,39 @@ export default async function TenantTenancyPage() {
               </span>
             </div>
             <div>
-              <p className="text-gray-400">Tenancy Period</p>
-              <p className="font-medium text-gray-900 mt-0.5 text-xs">
+              <p className="text-white/40">Tenancy Period</p>
+              <p className="font-medium text-white mt-0.5 text-xs">
                 {formatDate(tenancy.startDate)} — {formatDate(tenancy.endDate)}
               </p>
             </div>
             <div>
-              <p className="text-gray-400">Monthly Rent</p>
-              <p className="font-medium text-gray-900 mt-0.5">
+              <p className="text-white/40">Monthly Rent</p>
+              <p className="font-medium text-white mt-0.5">
                 {formatRM(tenancy.monthlyRent)}
               </p>
             </div>
             <div>
-              <p className="text-gray-400">Security Deposit</p>
-              <p className="font-medium text-gray-900 mt-0.5">
+              <p className="text-white/40">Security Deposit</p>
+              <p className="font-medium text-white mt-0.5">
                 {formatRM(tenancy.depositAmount)}
               </p>
             </div>
           </div>
 
-          <div className="border-t border-gray-100 pt-4">
-            <p className="text-xs text-gray-400 mb-2">Landlord</p>
-            <p className="text-sm font-medium text-gray-800">{landlord.name}</p>
-            <p className="text-xs text-gray-400">{landlord.email}</p>
+          <div className="border-t border-[rgba(196,154,60,0.12)] pt-4">
+            <p className="text-xs text-white/40 mb-2">Landlord</p>
+            <p className="text-sm font-medium text-white/70">{landlord.name}</p>
+            <p className="text-xs text-white/40">{landlord.email}</p>
             {landlord.phone && (
-              <p className="text-xs text-gray-400">{landlord.phone}</p>
+              <p className="text-xs text-white/40">{landlord.phone}</p>
             )}
           </div>
         </div>
 
         {/* ── Deposit payment section — shown for PENDING and ACTIVE tenancies ── */}
         {(tenancy.status === 'PENDING' || tenancy.status === 'ACTIVE') && (
-          <div className="bg-white rounded-xl border border-gray-200 p-6">
-            <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-4">
+          <div className="bg-[#1C2740] rounded-xl border border-[rgba(196,154,60,0.15)] p-6">
+            <h2 className="text-sm font-semibold text-white/50 uppercase tracking-wider mb-4">
               Security Deposit
             </h2>
             <DepositProofUploader
@@ -332,20 +332,20 @@ export default async function TenantTenancyPage() {
 
         {/* ── Case 3: No agreement generated yet ────────────────────────────── */}
         {tenancy.status === 'PENDING' && !tenancy.agreement && (
-          <div className="bg-white rounded-xl border border-gray-200 p-6">
+          <div className="bg-[#1C2740] rounded-xl border border-[rgba(196,154,60,0.15)] p-6">
             <div className="text-center py-6">
-              <svg className="w-10 h-10 text-gray-200 mb-3 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-10 h-10 text-white/20 mb-3 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
               </svg>
-              <p className="text-gray-700 font-semibold">
+              <p className="text-white/70 font-semibold">
                 Agreement not ready yet
               </p>
-              <p className="text-gray-400 text-sm mt-1 max-w-sm mx-auto">
+              <p className="text-white/40 text-sm mt-1 max-w-sm mx-auto">
                 Your landlord is preparing the tenancy agreement. It will appear
                 here once they have finalised it.
               </p>
             </div>
-            <div className="border-t border-gray-100 pt-4 flex justify-end">
+            <div className="border-t border-[rgba(196,154,60,0.12)] pt-4 flex justify-end">
               <TenantWithdrawButton tenancyId={tenancy.id} />
             </div>
           </div>
@@ -353,11 +353,11 @@ export default async function TenantTenancyPage() {
 
         {/* ── Case 4: DRAFT ──────────────────────────────────────────────────── */}
         {tenancy.agreement?.status === 'DRAFT' && (
-          <div className="bg-amber-50 border border-amber-200 rounded-xl px-5 py-4">
-            <p className="text-amber-800 font-semibold text-sm">
+          <div className="bg-[rgba(251,191,36,0.08)] border border-[rgba(251,191,36,0.25)] rounded-xl px-5 py-4">
+            <p className="text-[#facc15] font-semibold text-sm">
               Agreement under review
             </p>
-            <p className="text-amber-600 text-xs mt-0.5">
+            <p className="text-[#facc15]/70 text-xs mt-0.5">
               Your landlord is reviewing the AI-generated agreement. It will
               appear here once they finalise it.
             </p>
@@ -367,18 +367,18 @@ export default async function TenantTenancyPage() {
         {/* ── Case 4: NEGOTIATING ────────────────────────────────────────────── */}
         {tenancy.agreement?.status === 'NEGOTIATING' && (
           <>
-            <div className="bg-blue-50 border border-blue-200 rounded-xl px-5 py-4">
-              <p className="text-blue-800 font-semibold text-sm">
+            <div className="bg-[rgba(196,154,60,0.08)] border border-[rgba(196,154,60,0.2)] rounded-xl px-5 py-4">
+              <p className="text-[#E8B84B] font-semibold text-sm">
                 Change request sent
               </p>
-              <p className="text-blue-600 text-xs mt-1">
+              <p className="text-[#C49A3C] text-xs mt-1">
                 Your landlord has been notified. They will revise the agreement
                 and send you a new version to review.
               </p>
               {tenancy.agreement.negotiationNotes && (
-                <div className="mt-3 bg-white rounded-lg border border-blue-200 px-4 py-3">
-                  <p className="text-xs text-gray-400 mb-1">Your request:</p>
-                  <p className="text-sm text-gray-700">
+                <div className="mt-3 bg-[#1C2740] rounded-lg border border-[rgba(196,154,60,0.15)] px-4 py-3">
+                  <p className="text-xs text-white/40 mb-1">Your request:</p>
+                  <p className="text-sm text-white/70">
                     {tenancy.agreement.negotiationNotes}
                   </p>
                 </div>
@@ -405,11 +405,11 @@ export default async function TenantTenancyPage() {
         {/* ── Case 5: SIGNED — now with audit trail props ───────────────────── */}
         {tenancy.agreement?.status === 'PENDING_SIGNATURE_PROOF' && (
           <div className="space-y-5">
-            <div className="bg-blue-50 border border-blue-200 rounded-xl px-5 py-4">
-              <p className="text-blue-800 font-semibold text-sm">
+            <div className="bg-[rgba(196,154,60,0.08)] border border-[rgba(196,154,60,0.2)] rounded-xl px-5 py-4">
+              <p className="text-[#E8B84B] font-semibold text-sm">
                 Digital signature recorded
               </p>
-              <p className="text-blue-600 text-xs mt-0.5">
+              <p className="text-[#C49A3C] text-xs mt-0.5">
                 Your digital signature has been stored, but the tenancy will
                 only start after you upload the signed hard-copy agreement and
                 the landlord approves it.
@@ -452,11 +452,11 @@ export default async function TenantTenancyPage() {
 
         {tenancy.agreement?.status === 'SIGNED' && (
           <>
-            <div className="bg-green-50 border border-green-200 rounded-xl px-5 py-4">
-              <p className="text-green-800 font-semibold text-sm">
+            <div className="bg-[rgba(74,222,128,0.12)] border border-[rgba(74,222,128,0.3)] rounded-xl px-5 py-4">
+              <p className="text-[#4ade80] font-semibold text-sm">
                 Agreement fully approved — Tenancy is active
               </p>
-              <p className="text-green-600 text-xs mt-0.5">
+              <p className="text-[#4ade80]/70 text-xs mt-0.5">
                 Your digital signature and hard-copy proof have both been
                 approved. Your tenancy is now live and your payment schedule
                 has been generated.
@@ -534,11 +534,11 @@ export default async function TenantTenancyPage() {
 
         {/* End-of-tenancy status card */}
         {(tenancy.status === 'EXPIRED' || tenancy.status === 'TERMINATED') && !tenancy.depositRefund && (
-          <div className="bg-gray-50 border border-gray-200 rounded-xl px-5 py-4">
-            <p className="font-semibold text-gray-700 text-sm">
+          <div className="bg-[#0f172a] border border-[rgba(196,154,60,0.15)] rounded-xl px-5 py-4">
+            <p className="font-semibold text-white/70 text-sm">
               {tenancy.status === 'TERMINATED' ? 'Tenancy Terminated' : 'Tenancy Expired'}
             </p>
-            <p className="text-gray-400 text-xs mt-1">
+            <p className="text-white/40 text-xs mt-1">
               Your landlord will initiate the deposit settlement process. You will be notified when it is ready for your review.
             </p>
           </div>
