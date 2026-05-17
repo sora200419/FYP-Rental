@@ -94,7 +94,7 @@ export default async function LoginPage({
 
         {/* Bottom footnote */}
         <p className="relative z-10 text-[10px] text-white/20 tracking-wide">
-          RentalEase Malaysia &nbsp;·&nbsp; Asia Pacific University · FYP 2025
+          RentalEase Malaysia &nbsp;·&nbsp; Asia Pacific University · FYP 2026
         </p>
       </div>
 
