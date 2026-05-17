@@ -165,13 +165,13 @@ export default async function LandlordDashboard() {
               <>
                 <Link
                   href="/dashboard/landlord/properties/new"
-                  className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-blue-700"
+                  className="inline-flex items-center gap-2 rounded-lg bg-gradient-to-br from-[#C49A3C] to-[#E8B84B] px-4 py-2.5 text-sm font-bold text-[#1C2740] transition-opacity hover:opacity-90"
                 >
                   Add Property
                 </Link>
                 <Link
                   href="/dashboard/landlord/tenancies/new"
-                  className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm font-semibold text-gray-700 transition-colors hover:bg-gray-50"
+                  className="inline-flex items-center gap-2 rounded-lg border border-[rgba(196,154,60,0.25)] bg-[rgba(196,154,60,0.08)] px-4 py-2.5 text-sm font-semibold text-[#C49A3C] transition-colors hover:bg-[rgba(196,154,60,0.15)]"
                 >
                   Invite Tenant
                 </Link>
@@ -179,7 +179,7 @@ export default async function LandlordDashboard() {
             )}
             <Link
               href="/dashboard/landlord/payments"
-              className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm font-semibold text-gray-700 transition-colors hover:bg-gray-50"
+              className="inline-flex items-center gap-2 rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-sm font-semibold text-white/60 transition-colors hover:bg-white/10"
             >
               View Payments
             </Link>
@@ -201,7 +201,7 @@ export default async function LandlordDashboard() {
         href={primaryHref}
         secondary={
           <div className="space-y-3">
-            <p className="text-xs font-semibold uppercase tracking-wide text-blue-700">Priority queue</p>
+            <p className="text-xs font-semibold uppercase tracking-wide text-[#C49A3C]">Priority queue</p>
             <PriorityLink href="/dashboard/landlord/payments" label="Payment proofs" value={pendingPaymentVerifications} />
             <PriorityLink href="/dashboard/landlord/tenancies" label="Agreement reviews" value={pendingChangesRequested} />
             <PriorityLink href="/dashboard/landlord/properties" label="Condition reports" value={unacknowledgedConditionReports} />
@@ -234,12 +234,12 @@ export default async function LandlordDashboard() {
           <SectionCard
             title="Active & pending tenancies"
             action={
-              <Link href="/dashboard/landlord/tenancies" className="text-sm font-medium text-blue-600 hover:underline">
+              <Link href="/dashboard/landlord/tenancies" className="text-sm font-medium text-[#C49A3C] hover:text-[#E8B84B]">
                 View all
               </Link>
             }
           >
-            <div className="divide-y divide-gray-100 overflow-hidden rounded-xl border border-gray-200 bg-white">
+            <div className="divide-y divide-[rgba(255,255,255,0.05)]">
               {recentTenancies.map((tenancy) => (
                 <TenancyRow key={tenancy.id} tenancy={tenancy} />
               ))}
@@ -247,10 +247,10 @@ export default async function LandlordDashboard() {
           </SectionCard>
         </div>
       ) : (
-        <div className="mb-8 rounded-xl border border-gray-200 bg-white p-12 text-center">
-          <p className="text-sm text-gray-400">
+        <div className="mb-8 rounded-xl border border-[rgba(196,154,60,0.15)] bg-[#1C2740] p-12 text-center">
+          <p className="text-sm text-white/40">
             No active tenancies yet.{' '}
-            <Link href="/dashboard/landlord/tenancies/new" className="text-blue-600 hover:underline">
+            <Link href="/dashboard/landlord/tenancies/new" className="text-[#C49A3C] hover:text-[#E8B84B]">
               Invite a tenant
             </Link>{' '}
             to get started.
@@ -262,7 +262,7 @@ export default async function LandlordDashboard() {
         <SectionCard
           title="Your properties"
           action={
-            <Link href="/dashboard/landlord/properties" className="text-sm font-medium text-blue-600 hover:underline">
+            <Link href="/dashboard/landlord/properties" className="text-sm font-medium text-[#C49A3C] hover:text-[#E8B84B]">
               View all
             </Link>
           }
@@ -273,7 +273,10 @@ export default async function LandlordDashboard() {
               const occupiedCount = property.rooms.filter((r) => !r.isAvailable).length;
 
               return (
-                <div key={property.id} className="overflow-hidden rounded-xl border border-gray-200 bg-white transition-colors hover:border-gray-300">
+                <div
+                  key={property.id}
+                  className="overflow-hidden rounded-xl border border-[rgba(196,154,60,0.15)] bg-[#0f172a] transition-colors hover:border-[rgba(196,154,60,0.3)]"
+                >
                   <PropertyCover
                     address={property.address}
                     imageUrl={cover?.imageUrl}
@@ -282,18 +285,18 @@ export default async function LandlordDashboard() {
                     heightClassName="h-36"
                   />
                   <div className="p-5">
-                    <p className="truncate text-sm font-semibold text-gray-900">{property.address}</p>
-                    <p className="mt-0.5 text-xs text-gray-500">
+                    <p className="truncate text-sm font-semibold text-white">{property.address}</p>
+                    <p className="mt-0.5 text-xs text-white/40">
                       {property.city}, {property.state}
                     </p>
-                    <div className="mt-3 flex items-center gap-3 text-xs text-gray-500">
+                    <div className="mt-3 flex items-center gap-3 text-xs text-white/30">
                       <span>{property.rooms.length} room{property.rooms.length !== 1 ? 's' : ''}</span>
                       <span>&middot;</span>
                       <span>{occupiedCount} occupied</span>
                     </div>
                     <Link
                       href={`/dashboard/landlord/properties/${property.id}`}
-                      className="mt-3 inline-flex text-xs font-semibold text-blue-600 hover:underline"
+                      className="mt-3 inline-flex text-xs font-semibold text-[#C49A3C] hover:text-[#E8B84B]"
                     >
                       Manage &rarr;
                     </Link>
@@ -318,9 +321,16 @@ function PriorityLink({
   value: number;
 }) {
   return (
-    <Link href={href} className="flex items-center justify-between rounded-lg bg-white px-3 py-2 text-sm transition-colors hover:bg-blue-100">
-      <span className="font-medium text-gray-700">{label}</span>
-      <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${value > 0 ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-500'}`}>
+    <Link
+      href={href}
+      className="flex items-center justify-between rounded-lg bg-white/5 px-3 py-2 text-sm transition-colors hover:bg-white/8"
+    >
+      <span className="font-medium text-white/70">{label}</span>
+      <span
+        className={`rounded-full px-2 py-0.5 text-xs font-semibold ${
+          value > 0 ? 'bg-[#C49A3C] text-[#1C2740]' : 'bg-white/10 text-white/30'
+        }`}
+      >
         {value}
       </span>
     </Link>
@@ -330,34 +340,34 @@ function PriorityLink({
 const PILL_BASE = 'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium';
 
 const STATUS_PILL: Record<string, string> = {
-  INVITED: `${PILL_BASE} bg-yellow-50 text-yellow-700 ring-1 ring-yellow-200 ring-inset`,
-  PENDING: `${PILL_BASE} bg-blue-50 text-blue-700 ring-1 ring-blue-200 ring-inset`,
-  ACTIVE: `${PILL_BASE} bg-green-50 text-green-700 ring-1 ring-green-200 ring-inset`,
-  EXPIRED: `${PILL_BASE} bg-gray-100 text-gray-500 ring-1 ring-gray-200 ring-inset`,
-  TERMINATED: `${PILL_BASE} bg-red-50 text-red-600 ring-1 ring-red-200 ring-inset`,
+  INVITED: `${PILL_BASE} bg-[rgba(250,204,21,0.12)] text-[#facc15] border border-[rgba(250,204,21,0.3)]`,
+  PENDING: `${PILL_BASE} bg-[rgba(196,154,60,0.12)] text-[#C49A3C] border border-[rgba(196,154,60,0.3)]`,
+  ACTIVE: `${PILL_BASE} bg-[rgba(74,222,128,0.12)] text-[#4ade80] border border-[rgba(74,222,128,0.3)]`,
+  EXPIRED: `${PILL_BASE} bg-white/5 text-white/30 border border-white/10`,
+  TERMINATED: `${PILL_BASE} bg-[rgba(248,113,113,0.12)] text-[#f87171] border border-[rgba(248,113,113,0.3)]`,
 };
 
 function TenancyRow({ tenancy }: { tenancy: ReturnType<typeof buildTenancyRow> }) {
   const hasProofToVerify = tenancy.rentPayments.length > 0;
 
   return (
-    <div className="flex items-center justify-between px-5 py-3.5 transition-colors hover:bg-gray-50">
+    <div className="flex items-center justify-between px-5 py-3.5 transition-colors hover:bg-white/5">
       <div className="min-w-0 flex-1">
-        <p className="truncate text-sm font-medium text-gray-900">{tenancy.tenant.name}</p>
-        <p className="mt-0.5 truncate text-xs text-gray-500">
+        <p className="truncate text-sm font-medium text-white">{tenancy.tenant.name}</p>
+        <p className="mt-0.5 truncate text-xs text-white/40">
           {tenancy.room.property.address}, {tenancy.room.property.city}
         </p>
       </div>
       <div className="ml-4 flex shrink-0 items-center gap-3">
         {hasProofToVerify && (
-          <span className="inline-flex items-center rounded-full bg-amber-50 px-2.5 py-0.5 text-xs font-medium text-amber-700 ring-1 ring-amber-200 ring-inset">
+          <span className="inline-flex items-center rounded-full bg-[rgba(251,191,36,0.12)] px-2.5 py-0.5 text-xs font-medium text-[#facc15] border border-[rgba(251,191,36,0.3)]">
             Proof to verify
           </span>
         )}
-        <span className={STATUS_PILL[tenancy.status] ?? `${PILL_BASE} bg-gray-100 text-gray-500`}>
+        <span className={STATUS_PILL[tenancy.status] ?? `${PILL_BASE} bg-white/5 text-white/30`}>
           {tenancy.status}
         </span>
-        <Link href={`/dashboard/landlord/tenancies/${tenancy.id}`} className="text-xs text-blue-600 hover:underline">
+        <Link href={`/dashboard/landlord/tenancies/${tenancy.id}`} className="text-xs text-[#C49A3C] hover:text-[#E8B84B]">
           View
         </Link>
       </div>
