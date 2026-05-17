@@ -42,6 +42,9 @@ const registerSchema = z
 
 type RegisterFormData = z.infer<typeof registerSchema>;
 
+const INPUT = 'w-full rounded-lg border border-white/10 bg-white/5 px-3.5 py-2.5 text-sm text-white placeholder:text-white/20 focus:border-[rgba(196,154,60,0.5)] focus:outline-none focus:ring-0 transition-colors';
+const LABEL = 'mb-1.5 block text-xs font-semibold uppercase tracking-[0.1em] text-white/40';
+
 export default function RegisterPage() {
   const router = useRouter();
   const [serverError, setServerError] = useState<string | null>(null);
@@ -84,159 +87,151 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="min-h-screen flex">
-      <div className="hidden lg:flex w-5/12 bg-gray-900 flex-col items-center justify-center p-12">
-        <span className="text-4xl font-bold tracking-tight text-white">RentalEase</span>
-        <p className="mt-4 max-w-sm text-center text-sm leading-relaxed text-gray-400">
-          A guided tenancy workspace for Malaysian rentals, from invitation to agreement, payment, and handover records.
-        </p>
-        <ul className="mt-10 space-y-3 text-sm text-gray-400 max-w-xs w-full">
-          {[
-            'AI-assisted tenancy agreement review',
-            'Identity and property verification workflows',
-            'Payment proof and deposit records',
-            'Tenant-landlord messages in context',
-          ].map((item) => (
-            <li key={item} className="flex items-center gap-2.5">
-              <svg className="w-4 h-4 text-blue-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-              </svg>
-              {item}
-            </li>
-          ))}
-        </ul>
+    <div className="relative min-h-screen overflow-hidden bg-[#0f172a] flex items-center justify-center px-4 py-12">
+      {/* Decorative gold rings — top right */}
+      <div className="pointer-events-none absolute -top-24 -right-24">
+        <div className="h-[400px] w-[400px] rounded-full border border-[rgba(196,154,60,0.08)]" />
+        <div className="absolute inset-10 rounded-full border border-[rgba(196,154,60,0.06)]" />
+        <div className="absolute inset-20 rounded-full border border-[rgba(196,154,60,0.04)]" />
+      </div>
+      {/* Decorative gold rings — bottom left */}
+      <div className="pointer-events-none absolute -bottom-16 -left-16">
+        <div className="h-[300px] w-[300px] rounded-full border border-[rgba(196,154,60,0.06)]" />
+        <div className="absolute inset-8 rounded-full bg-[rgba(196,154,60,0.02)]" />
       </div>
 
-      <div className="flex-1 flex items-center justify-center bg-white px-6 py-12 overflow-y-auto">
-        <div className="w-full max-w-md">
-          <p className="lg:hidden text-2xl font-bold text-gray-900 mb-1">RentalEase</p>
-
-          <h2 className="text-2xl font-bold text-gray-900 mb-1">Create account</h2>
-          <p className="text-sm text-gray-500 mb-8">Join RentalEase today</p>
-
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">Full Name</label>
-              <input
-                {...register('name')}
-                type="text"
-                placeholder="e.g. Ahmad bin Abdullah"
-                className="w-full border border-gray-300 rounded-lg px-3.5 py-2.5 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-shadow"
-              />
-              {errors.name && <p className="text-xs text-red-500 mt-1">{errors.name.message}</p>}
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">Email Address</label>
-              <input
-                {...register('email')}
-                type="email"
-                placeholder="you@example.com"
-                className="w-full border border-gray-300 rounded-lg px-3.5 py-2.5 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-shadow"
-              />
-              {errors.email && <p className="text-xs text-red-500 mt-1">{errors.email.message}</p>}
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                Phone <span className="text-gray-400">(optional)</span>
-              </label>
-              <input
-                {...register('phone')}
-                type="tel"
-                placeholder="e.g. 012-3456789"
-                className="w-full border border-gray-300 rounded-lg px-3.5 py-2.5 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-shadow"
-              />
-              {errors.phone && <p className="text-xs text-red-500 mt-1">{errors.phone.message}</p>}
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                Malaysian IC Number <span className="text-red-500">*</span>
-              </label>
-              {(() => {
-                const { ref: icRef, onChange: icRhfOnChange, ...icRest } = register('icNumber');
-                return (
-                  <input
-                    {...icRest}
-                    ref={icRef}
-                    type="text"
-                    placeholder="e.g. 900101-14-5678"
-                    maxLength={14}
-                    className="w-full border border-gray-300 rounded-lg px-3.5 py-2.5 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-shadow"
-                    onChange={(e) => {
-                      const el = e.target;
-                      const cursor = el.selectionStart ?? el.value.length;
-                      const digits = el.value.replace(/\D/g, '').slice(0, 12);
-                      let formatted = digits;
-                      if (digits.length > 6) formatted = digits.slice(0, 6) + '-' + digits.slice(6);
-                      if (digits.length > 8) formatted = formatted.slice(0, 9) + '-' + digits.slice(8);
-                      el.value = formatted;
-                      requestAnimationFrame(() => el.setSelectionRange(cursor, cursor));
-                      icRhfOnChange(e);
-                    }}
-                  />
-                );
-              })()}
-              {errors.icNumber ? (
-                <p className="text-xs text-red-500 mt-1">{errors.icNumber.message}</p>
-              ) : (
-                <p className="text-xs text-gray-400 mt-1">Format: YYMMDD-SS-NNNN (dashes added automatically)</p>
-              )}
-            </div>
-
-            <PasswordInput
-              registration={register('password')}
-              label="Password"
-              placeholder="At least 8 characters"
-              error={errors.password?.message}
-            />
-            <PasswordInput
-              registration={register('confirmPassword')}
-              label="Confirm Password"
-              placeholder="Re-enter your password"
-              error={errors.confirmPassword?.message}
-            />
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">I am a...</label>
-              <div className="grid grid-cols-2 gap-3">
-                {(['TENANT', 'LANDLORD'] as const).map((r) => (
-                  <label key={r} className="relative flex cursor-pointer">
-                    <input {...register('role')} type="radio" value={r} className="sr-only peer" />
-                    <div className="w-full text-center py-2.5 rounded-lg border-2 border-gray-200 text-sm font-medium text-gray-600 peer-checked:border-blue-500 peer-checked:text-blue-600 peer-checked:bg-blue-50 transition-all">
-                      {r === 'TENANT' ? 'Tenant' : 'Landlord'}
-                    </div>
-                  </label>
-                ))}
-              </div>
-            </div>
-
-            {serverError && (
-              <div className="flex items-start gap-3 bg-red-50 border border-red-200 rounded-lg px-4 py-3 text-sm text-red-800">
-                <svg className="w-4 h-4 text-red-500 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                {serverError}
-              </div>
-            )}
-
-            <button
-              type="submit"
-              disabled={isLoading}
-              className="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-medium py-2.5 rounded-lg transition-colors text-sm"
-            >
-              {isLoading ? 'Creating account...' : 'Create Account'}
-            </button>
-          </form>
-
-          <p className="text-center text-sm text-gray-500 mt-6">
-            Already have an account?{' '}
-            <Link href="/login" className="text-blue-600 hover:underline font-medium">
-              Sign in
-            </Link>
+      {/* Glass card */}
+      <div className="relative z-10 w-full max-w-md rounded-2xl border border-[rgba(196,154,60,0.25)] bg-[rgba(28,39,64,0.75)] p-8 shadow-2xl backdrop-blur-md">
+        {/* Logo */}
+        <div className="mb-8 text-center">
+          <p className="font-serif text-base font-bold tracking-[0.3em] text-[#C49A3C] uppercase">
+            RentalEase
           </p>
+          <div className="mx-auto mt-2 h-px w-10 bg-gradient-to-r from-transparent via-[#C49A3C] to-transparent" />
+          <p className="mt-2 text-[10px] uppercase tracking-widest text-white/30">Malaysia</p>
         </div>
+
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+          <div>
+            <label className={LABEL}>Full Name</label>
+            <input
+              {...register('name')}
+              type="text"
+              placeholder="e.g. Ahmad bin Abdullah"
+              className={INPUT}
+            />
+            {errors.name && <p className="mt-1 text-xs text-[#f87171]">{errors.name.message}</p>}
+          </div>
+
+          <div>
+            <label className={LABEL}>Email Address</label>
+            <input
+              {...register('email')}
+              type="email"
+              placeholder="you@example.com"
+              className={INPUT}
+            />
+            {errors.email && <p className="mt-1 text-xs text-[#f87171]">{errors.email.message}</p>}
+          </div>
+
+          <div>
+            <label className={LABEL}>
+              Phone <span className="text-white/20 normal-case tracking-normal">(optional)</span>
+            </label>
+            <input
+              {...register('phone')}
+              type="tel"
+              placeholder="e.g. 012-3456789"
+              className={INPUT}
+            />
+          </div>
+
+          <div>
+            <label className={LABEL}>
+              Malaysian IC Number <span className="text-[#f87171]">*</span>
+            </label>
+            {(() => {
+              const { ref: icRef, onChange: icRhfOnChange, ...icRest } = register('icNumber');
+              return (
+                <input
+                  {...icRest}
+                  ref={icRef}
+                  type="text"
+                  placeholder="e.g. 900101-14-5678"
+                  maxLength={14}
+                  className={INPUT}
+                  onChange={(e) => {
+                    const el = e.target;
+                    const cursor = el.selectionStart ?? el.value.length;
+                    const digits = el.value.replace(/\D/g, '').slice(0, 12);
+                    let formatted = digits;
+                    if (digits.length > 6) formatted = digits.slice(0, 6) + '-' + digits.slice(6);
+                    if (digits.length > 8) formatted = formatted.slice(0, 9) + '-' + digits.slice(8);
+                    el.value = formatted;
+                    requestAnimationFrame(() => el.setSelectionRange(cursor, cursor));
+                    icRhfOnChange(e);
+                  }}
+                />
+              );
+            })()}
+            {errors.icNumber ? (
+              <p className="mt-1 text-xs text-[#f87171]">{errors.icNumber.message}</p>
+            ) : (
+              <p className="mt-1 text-xs text-white/25">Format: YYMMDD-SS-NNNN (dashes auto-added)</p>
+            )}
+          </div>
+
+          <PasswordInput
+            registration={register('password')}
+            label="Password"
+            placeholder="At least 8 characters"
+            error={errors.password?.message}
+          />
+          <PasswordInput
+            registration={register('confirmPassword')}
+            label="Confirm Password"
+            placeholder="Re-enter your password"
+            error={errors.confirmPassword?.message}
+          />
+
+          <div>
+            <label className={LABEL}>I am a…</label>
+            <div className="grid grid-cols-2 gap-3">
+              {(['TENANT', 'LANDLORD'] as const).map((r) => (
+                <label key={r} className="relative flex cursor-pointer">
+                  <input {...register('role')} type="radio" value={r} className="sr-only peer" />
+                  <div className="w-full text-center py-2.5 rounded-lg border border-white/10 bg-white/5 text-sm font-medium text-white/40 peer-checked:border-[rgba(196,154,60,0.5)] peer-checked:text-[#C49A3C] peer-checked:bg-[rgba(196,154,60,0.08)] transition-all">
+                    {r === 'TENANT' ? 'Tenant' : 'Landlord'}
+                  </div>
+                </label>
+              ))}
+            </div>
+          </div>
+
+          {serverError && (
+            <div className="flex items-start gap-3 rounded-lg border border-[rgba(248,113,113,0.25)] bg-[rgba(248,113,113,0.08)] px-4 py-3 text-sm text-[#f87171]">
+              <svg className="mt-0.5 h-4 w-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              {serverError}
+            </div>
+          )}
+
+          <button
+            type="submit"
+            disabled={isLoading}
+            className="w-full rounded-lg bg-gradient-to-br from-[#C49A3C] to-[#E8B84B] py-2.5 text-sm font-bold text-[#1C2740] transition-opacity disabled:opacity-50 hover:opacity-90"
+          >
+            {isLoading ? 'Creating account…' : 'Create Account'}
+          </button>
+        </form>
+
+        <p className="mt-6 text-center text-sm text-white/40">
+          Already have an account?{' '}
+          <Link href="/login" className="text-[#C49A3C] hover:text-[#E8B84B] transition-colors">
+            Sign in
+          </Link>
+        </p>
       </div>
     </div>
   );
