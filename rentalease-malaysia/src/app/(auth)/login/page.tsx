@@ -11,7 +11,7 @@ const FEATURES = [
       </svg>
     ),
     title: 'AI-Generated Agreements',
-    description: 'Legally sound tenancy contracts drafted in minutes by Gemini AI — in English and Bahasa Malaysia.',
+    description: 'Structured tenancy contracts drafted in minutes by Gemini AI — in English and Bahasa Malaysia.',
   },
   {
     icon: (
@@ -21,7 +21,7 @@ const FEATURES = [
       </svg>
     ),
     title: 'Blockchain-Anchored',
-    description: 'Every signed agreement is hashed and written to the Ethereum Sepolia testnet — tamper-proof and verifiable.',
+    description: 'Every signed agreement is hashed and anchored to the Ethereum Sepolia network — tamper-proof and verifiable.',
   },
   {
     icon: (
