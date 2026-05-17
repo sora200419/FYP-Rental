@@ -138,12 +138,14 @@ export function SidebarContent({ onClose }: SidebarContentProps) {
   return (
     <>
       {/* Logo */}
-      <div className="h-16 flex items-center px-5 border-b border-gray-800 shrink-0">
-        <span className="text-white font-bold text-lg tracking-tight">RentalEase</span>
+      <div className="h-16 flex items-center px-5 border-b border-[rgba(196,154,60,0.15)] shrink-0">
+        <span className="font-serif text-sm font-bold tracking-[0.25em] text-[#C49A3C] uppercase">
+          RentalEase
+        </span>
       </div>
 
       {/* Section label */}
-      <p className="px-5 pt-5 pb-1.5 text-[10px] font-semibold text-gray-500 uppercase tracking-wider shrink-0">
+      <p className="px-5 pt-5 pb-1.5 text-[10px] font-semibold text-white/30 uppercase tracking-wider shrink-0">
         Navigation
       </p>
 
@@ -158,11 +160,11 @@ export function SidebarContent({ onClose }: SidebarContentProps) {
               onClick={onClose}
               className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
                 active
-                  ? 'bg-blue-600 text-white'
-                  : 'text-gray-300 hover:bg-gray-800 hover:text-white'
+                  ? 'bg-[rgba(196,154,60,0.12)] text-[#C49A3C] border border-[rgba(196,154,60,0.25)]'
+                  : 'text-white/50 hover:bg-white/5 hover:text-white/80'
               }`}
             >
-              <Icon className={`w-4 h-4 shrink-0 ${active ? 'text-blue-200' : 'text-gray-400'}`} />
+              <Icon className={`w-4 h-4 shrink-0 ${active ? 'text-[#C49A3C]' : 'text-white/30'}`} />
               {label}
             </Link>
           );
@@ -170,18 +172,18 @@ export function SidebarContent({ onClose }: SidebarContentProps) {
       </nav>
 
       {/* Bottom — user, sign out */}
-      <div className="border-t border-gray-800 p-3 space-y-0.5 shrink-0">
+      <div className="border-t border-[rgba(196,154,60,0.15)] p-3 space-y-0.5 shrink-0">
         {/* User info — admin gets a non-clickable display, others link to profile */}
         {role === 'ADMIN' ? (
           <div className="flex items-center gap-3 px-3 py-2.5 rounded-lg">
-            <div className="w-7 h-7 rounded-full bg-blue-600 flex items-center justify-center text-white text-xs font-semibold shrink-0">
+            <div className="w-7 h-7 rounded-full bg-[#C49A3C] flex items-center justify-center text-[#1C2740] text-xs font-semibold shrink-0">
               {session.user.name?.[0]?.toUpperCase() ?? '?'}
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium text-white truncate leading-tight">
                 {session.user.name}
               </p>
-              <p className="text-xs text-gray-400 capitalize truncate leading-tight">
+              <p className="text-xs text-white/40 capitalize truncate leading-tight">
                 {role?.toLowerCase()}
               </p>
             </div>
@@ -190,16 +192,16 @@ export function SidebarContent({ onClose }: SidebarContentProps) {
           <Link
             href="/dashboard/profile"
             onClick={onClose}
-            className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-gray-800 transition-colors"
+            className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-white/5 transition-colors"
           >
-            <div className="w-7 h-7 rounded-full bg-blue-600 flex items-center justify-center text-white text-xs font-semibold shrink-0">
+            <div className="w-7 h-7 rounded-full bg-[#C49A3C] flex items-center justify-center text-[#1C2740] text-xs font-semibold shrink-0">
               {session.user.name?.[0]?.toUpperCase() ?? '?'}
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium text-white truncate leading-tight">
                 {session.user.name}
               </p>
-              <p className="text-xs text-gray-400 capitalize truncate leading-tight">
+              <p className="text-xs text-white/40 capitalize truncate leading-tight">
                 {role?.toLowerCase()}
               </p>
             </div>
@@ -223,7 +225,7 @@ export function SidebarContent({ onClose }: SidebarContentProps) {
 
 export default function Sidebar() {
   return (
-    <aside className="hidden lg:flex w-60 min-h-screen bg-gray-900 flex-col shrink-0 sticky top-0 h-screen overflow-y-auto z-30">
+    <aside className="hidden lg:flex w-60 min-h-screen bg-[#1C2740] flex-col shrink-0 sticky top-0 h-screen overflow-y-auto z-30">
       <SidebarContent />
     </aside>
   );
@@ -256,7 +258,7 @@ export function MobileSidebarDrawer({
         aria-hidden="true"
       />
       {/* Drawer */}
-      <aside className="relative z-50 flex w-60 h-full bg-gray-900 flex-col">
+      <aside className="relative z-50 flex w-60 h-full bg-[#1C2740] flex-col">
         <SidebarContent onClose={onClose} />
       </aside>
     </div>
