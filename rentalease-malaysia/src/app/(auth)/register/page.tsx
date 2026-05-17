@@ -28,7 +28,7 @@ const registerSchema = z
     password: z.string().min(8, 'Password must be at least 8 characters'),
     confirmPassword: z.string().min(1, 'Please confirm your password'),
     role: z.enum(['LANDLORD', 'TENANT']),
-    phone: z.string().optional(),
+    phone: z.string().min(1, 'Phone number is required'),
     icNumber: z
       .string()
       .min(1, 'IC number is required')
@@ -135,15 +135,14 @@ export default function RegisterPage() {
           </div>
 
           <div>
-            <label className={LABEL}>
-              Phone <span className="text-white/20 normal-case tracking-normal">(optional)</span>
-            </label>
+            <label className={LABEL}>Phone Number</label>
             <input
               {...register('phone')}
               type="tel"
               placeholder="e.g. 012-3456789"
               className={INPUT}
             />
+            {errors.phone && <p className="mt-1 text-xs text-[#f87171]">{errors.phone.message}</p>}
           </div>
 
           <div>
