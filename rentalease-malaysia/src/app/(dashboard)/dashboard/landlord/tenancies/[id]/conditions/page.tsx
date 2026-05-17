@@ -95,7 +95,7 @@ export default async function LandlordConditionsPage({
               Compare Move-In vs Move-Out
             </Link>
           )}
-          <CreateConditionReport tenancyId={tenancyId} />
+          <CreateConditionReport tenancyId={tenancyId} tenancyStatus={tenancy.status} />
         </div>
       </div>
 

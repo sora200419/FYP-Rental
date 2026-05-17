@@ -110,17 +110,19 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Access denied' }, { status: 403 });
   }
 
-  // BUG-11: Guard on tenancy status — must be at least PENDING before creating reports
+  // MOVE_IN requires the agreement to be signed (tenancy ACTIVE).
+  // MOVE_OUT and INSPECTION are allowed once the tenancy is live or has ended.
   const allowedStatuses =
-    type === 'MOVE_OUT'
-      ? ['ACTIVE', 'EXPIRED', 'TERMINATED']
-      : ['PENDING', 'ACTIVE', 'EXPIRED', 'TERMINATED'];
+    type === 'MOVE_IN'
+      ? ['ACTIVE']
+      : ['ACTIVE', 'EXPIRED', 'TERMINATED'];
 
   if (!allowedStatuses.includes(tenancy.status)) {
-    return NextResponse.json(
-      { error: 'A condition report cannot be created for a tenancy that has not yet been accepted.' },
-      { status: 409 },
-    );
+    const message =
+      type === 'MOVE_IN'
+        ? 'A move-in report can only be created after the tenancy agreement is signed.'
+        : 'A condition report cannot be created for a tenancy that has not yet started.';
+    return NextResponse.json({ error: message }, { status: 409 });
   }
 
   // IMP-04: Prevent duplicate reports of the same non-INSPECTION type

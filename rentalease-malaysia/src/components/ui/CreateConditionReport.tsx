@@ -5,9 +5,10 @@ import { useRouter } from 'next/navigation';
 
 interface Props {
   tenancyId: string;
+  tenancyStatus: string;
 }
 
-const REPORT_TYPES = [
+const ALL_REPORT_TYPES = [
   {
     value: 'MOVE_IN',
     label: 'Move-In Report',
@@ -25,10 +26,19 @@ const REPORT_TYPES = [
   },
 ];
 
-export default function CreateConditionReport({ tenancyId }: Props) {
+function availableTypes(status: string) {
+  if (status === 'ACTIVE') return ALL_REPORT_TYPES;
+  if (status === 'EXPIRED' || status === 'TERMINATED') {
+    return ALL_REPORT_TYPES.filter((t) => t.value !== 'MOVE_IN');
+  }
+  return []; // INVITED / PENDING — agreement not yet signed
+}
+
+export default function CreateConditionReport({ tenancyId, tenancyStatus }: Props) {
   const router = useRouter();
+  const types = availableTypes(tenancyStatus);
   const [isOpen, setIsOpen] = useState(false);
-  const [selectedType, setSelectedType] = useState('MOVE_IN');
+  const [selectedType, setSelectedType] = useState(types[0]?.value ?? 'MOVE_IN');
   const [notes, setNotes] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -68,6 +78,22 @@ export default function CreateConditionReport({ tenancyId }: Props) {
   };
 
   if (!isOpen) {
+    if (types.length === 0) {
+      return (
+        <div className="text-right">
+          <button
+            disabled
+            title="The tenancy agreement must be signed before creating condition reports"
+            className="bg-gray-100 text-gray-400 text-sm font-semibold px-5 py-2.5 rounded-lg cursor-not-allowed"
+          >
+            + New Condition Report
+          </button>
+          <p className="text-xs text-gray-400 mt-1">
+            Available after agreement is signed
+          </p>
+        </div>
+      );
+    }
     return (
       <button
         onClick={() => setIsOpen(true)}
@@ -86,7 +112,7 @@ export default function CreateConditionReport({ tenancyId }: Props) {
 
       {/* Report type selector */}
       <div className="space-y-2 mb-4">
-        {REPORT_TYPES.map((type) => (
+        {types.map((type) => (
           <label
             key={type.value}
             className={`flex items-start gap-3 p-3 rounded-lg border-2 cursor-pointer transition-all ${
