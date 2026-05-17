@@ -11,7 +11,7 @@ const FEATURES = [
       </svg>
     ),
     title: 'AI-Generated Agreements',
-    description: 'Legally sound tenancy contracts drafted in seconds by Gemini AI — in English and Bahasa Malaysia.',
+    description: 'Legally sound tenancy contracts drafted in minutes by Gemini AI — in English and Bahasa Malaysia.',
   },
   {
     icon: (
@@ -94,7 +94,7 @@ export default async function LoginPage({
 
         {/* Bottom footnote */}
         <p className="relative z-10 text-[10px] text-white/20 tracking-wide">
-          RentalEase Malaysia &nbsp;·&nbsp; Built for APEC Digital Economy Framework
+          RentalEase Malaysia &nbsp;·&nbsp; Asia Pacific University · FYP 2025
         </p>
       </div>
 
