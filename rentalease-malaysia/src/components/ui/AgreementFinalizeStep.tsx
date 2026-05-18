@@ -259,9 +259,13 @@ export default function AgreementFinalizeStep({
           },
         }),
       });
-      const result = await res.json();
       if (!res.ok) {
-        setFinalizeError(result.error || 'Failed to finalize');
+        let errorMsg = 'Failed to finalize';
+        try {
+          const errBody = await res.json();
+          errorMsg = errBody.error || errorMsg;
+        } catch { /* non-JSON body — keep default message */ }
+        setFinalizeError(errorMsg);
         setStep('confirming');
         return;
       }
