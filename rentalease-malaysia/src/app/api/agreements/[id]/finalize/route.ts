@@ -15,10 +15,12 @@ const confirmedTermsSchema = z
   .object({
     startDate: z
       .string()
-      .regex(/^\d{4}-\d{2}-\d{2}$/, 'startDate must be YYYY-MM-DD'),
+      .regex(/^\d{4}-\d{2}-\d{2}$/, 'startDate must be YYYY-MM-DD')
+      .refine((s) => !isNaN(new Date(s).getTime()), 'startDate is not a valid calendar date'),
     endDate: z
       .string()
-      .regex(/^\d{4}-\d{2}-\d{2}$/, 'endDate must be YYYY-MM-DD'),
+      .regex(/^\d{4}-\d{2}-\d{2}$/, 'endDate must be YYYY-MM-DD')
+      .refine((s) => !isNaN(new Date(s).getTime()), 'endDate is not a valid calendar date'),
     monthlyRent: z.coerce
       .number()
       .positive('Monthly rent must be greater than 0'),
