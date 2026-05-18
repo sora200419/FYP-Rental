@@ -72,6 +72,16 @@ export interface TranslatedOutputs {
   redFlagsMs: string;
 }
 
+function cleanGeminiJson(text: string): string {
+  let s = text.trim();
+  // Strip markdown code fences that occasionally leak through even with responseMimeType
+  s = s.replace(/^```(?:json)?\r?\n?/, '').replace(/\r?\n?```\s*$/, '');
+  // Replace illegal JSON control characters (U+0000–U+001F except tab \x09,
+  // newline \x0A, carriage-return \x0D) with a space to prevent parse errors
+  s = s.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, ' ');
+  return s;
+}
+
 function normalizeStringContent(value: unknown): string {
   if (typeof value === 'string') {
     return value;
@@ -179,6 +189,7 @@ export async function generateTenancyAgreement(
     model: GEMINI_MODEL,
     generationConfig: {
       responseMimeType: 'application/json',
+      maxOutputTokens: 16384,
     },
   });
 
@@ -374,7 +385,7 @@ For "redFlags": Analyse the agreement and identify clauses that could disadvanta
   try {
     const result = await model.generateContent(prompt);
     const text = result.response.text();
-    const raw = JSON.parse(text);
+    const raw = JSON.parse(cleanGeminiJson(text));
     const normalizedRaw = {
       ...raw,
       rawContent: normalizeStringContent(raw.rawContent),
@@ -439,7 +450,7 @@ ${rawContent}
   try {
     const result = await model.generateContent(prompt);
     const text = result.response.text();
-    const raw = JSON.parse(text);
+    const raw = JSON.parse(cleanGeminiJson(text));
     const normalizedRaw = {
       ...raw,
       plainLanguageSummary: normalizeStringContent(raw.plainLanguageSummary),
@@ -497,7 +508,7 @@ Respond ONLY with a valid JSON object containing exactly these two keys:
   try {
     const result = await model.generateContent(prompt);
     const text = result.response.text();
-    const parsed = JSON.parse(text);
+    const parsed = JSON.parse(cleanGeminiJson(text));
 
     if (!parsed.plainLanguageSummaryMs || !Array.isArray(parsed.redFlagsMs)) {
       throw new Error('Translation response missing required fields');
@@ -511,4 +522,71 @@ Respond ONLY with a valid JSON object containing exactly these two keys:
     console.error('Gemini translation error:', error);
     throw new Error('Failed to translate agreement outputs.');
   }
+}
+
+export interface ExtractedTerms {
+  startDate: string | null;     // ISO YYYY-MM-DD or null if AI couldn't determine
+  endDate: string | null;
+  monthlyRent: number | null;   // plain number in RM, or null
+  depositAmount: number | null; // plain number in RM, or null
+}
+
+/**
+ * Reads a tenancy agreement's raw text and extracts the four key operational
+ * terms. Uses a small Gemini call (maxOutputTokens: 256) since the output is
+ * just a tiny JSON object.
+ *
+ * Returns null for any field the model cannot determine with confidence.
+ * The caller is responsible for falling back to current system values when null.
+ */
+export async function extractAgreementTerms(
+  rawContent: string,
+): Promise<ExtractedTerms> {
+  const model = genAI.getGenerativeModel({
+    model: GEMINI_MODEL,
+    generationConfig: {
+      responseMimeType: 'application/json',
+      maxOutputTokens: 256,
+    },
+  });
+
+  const prompt = `You are a legal document parser for Malaysian tenancy agreements.
+Extract the following key terms from the agreement text below.
+Return a single JSON object with exactly these four keys:
+  "startDate"     — tenancy commencement date as "YYYY-MM-DD", or null
+  "endDate"       — tenancy expiry date as "YYYY-MM-DD", or null
+  "monthlyRent"   — monthly rent amount as a plain number (no RM symbol), or null
+  "depositAmount" — security deposit amount as a plain number (no RM symbol), or null
+
+Rules:
+- Return ONLY the JSON object. No explanation, no markdown fences.
+- Dates MUST be in YYYY-MM-DD format (e.g. "2026-06-01").
+- Amounts MUST be plain numbers (e.g. 1500.00, not "RM 1,500").
+- If you cannot determine a value with confidence, return null for that key.
+
+Agreement text:
+${rawContent}`;
+
+  const result = await model.generateContent(prompt);
+  const text = result.response.text();
+  const parsed = JSON.parse(cleanGeminiJson(text));
+
+  return {
+    startDate:
+      typeof parsed.startDate === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(parsed.startDate)
+        ? parsed.startDate
+        : null,
+    endDate:
+      typeof parsed.endDate === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(parsed.endDate)
+        ? parsed.endDate
+        : null,
+    monthlyRent:
+      typeof parsed.monthlyRent === 'number' && parsed.monthlyRent > 0
+        ? parsed.monthlyRent
+        : null,
+    depositAmount:
+      typeof parsed.depositAmount === 'number' && parsed.depositAmount >= 0
+        ? parsed.depositAmount
+        : null,
+  };
 }
