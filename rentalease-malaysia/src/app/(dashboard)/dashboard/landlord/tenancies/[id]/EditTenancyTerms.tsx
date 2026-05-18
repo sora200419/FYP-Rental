@@ -104,14 +104,14 @@ export default function EditTenancyTerms({
   };
 
   const inputClass =
-    'w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500';
+    'w-full rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-sm text-white placeholder:text-white/20 focus:border-[rgba(196,154,60,0.5)] focus:outline-none focus:ring-0 transition-colors';
 
   // ── Collapsed state: just a small link ────────────────────────────────────
   if (!isOpen) {
     return (
       <button
         onClick={() => setIsOpen(true)}
-        className="text-xs text-blue-600 hover:text-blue-700 hover:underline font-medium mt-3 inline-block"
+        className="text-xs text-[#C49A3C] hover:text-[#E8B84B] hover:underline font-medium mt-3 inline-block"
       >
         Edit terms
       </button>
@@ -122,16 +122,16 @@ export default function EditTenancyTerms({
   return (
     <form
       onSubmit={handleSubmit}
-      className="mt-4 pt-4 border-t border-gray-100 space-y-4"
+      className="mt-4 pt-4 border-t border-[rgba(196,154,60,0.1)] space-y-4"
     >
-      <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+      <p className="text-xs font-semibold text-white/50 uppercase tracking-wider">
         Edit Tenancy Terms
       </p>
 
       {/* Dates row */}
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <label className="block text-xs font-medium text-gray-600 mb-1">
+          <label className="block text-xs font-medium text-white/60 mb-1">
             Start Date
           </label>
           <input
@@ -144,7 +144,7 @@ export default function EditTenancyTerms({
           />
         </div>
         <div>
-          <label className="block text-xs font-medium text-gray-600 mb-1">
+          <label className="block text-xs font-medium text-white/60 mb-1">
             End Date
           </label>
           <input
@@ -161,7 +161,7 @@ export default function EditTenancyTerms({
       {/* Rent and deposit row */}
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <label className="block text-xs font-medium text-gray-600 mb-1">
+          <label className="block text-xs font-medium text-white/60 mb-1">
             Monthly Rent (RM)
           </label>
           <input
@@ -175,7 +175,7 @@ export default function EditTenancyTerms({
           />
         </div>
         <div>
-          <label className="block text-xs font-medium text-gray-600 mb-1">
+          <label className="block text-xs font-medium text-white/60 mb-1">
             Security Deposit (RM)
           </label>
           <input
@@ -190,7 +190,7 @@ export default function EditTenancyTerms({
           {/* Dynamic suggestion based on the current rent value.
               Malaysian norm is 2 months deposit for residential tenancies. */}
           {Number(monthlyRent) > 0 && (
-            <p className="text-xs text-gray-400 mt-1">
+            <p className="text-xs text-white/40 mt-1">
               Suggested: RM{' '}
               {(Number(monthlyRent) * 2).toLocaleString('en-MY', {
                 minimumFractionDigits: 2,
@@ -203,7 +203,7 @@ export default function EditTenancyTerms({
 
       {tenancyStatus === 'INVITED' && (
         <div>
-          <label className="block text-xs font-medium text-gray-600 mb-1">
+          <label className="block text-xs font-medium text-white/60 mb-1">
             {leasePartyType === 'CORPORATE'
               ? 'Authorized Signatory Email'
               : 'Invited Tenant Email'}
@@ -215,7 +215,7 @@ export default function EditTenancyTerms({
             className={inputClass}
             required
           />
-          <p className="text-xs text-gray-400 mt-1">
+          <p className="text-xs text-white/40 mt-1">
             {leasePartyType === 'CORPORATE'
               ? 'Use this if the legal invitation was sent to the wrong signatory. Saving will resend the invitation to the new tenant account.'
               : 'Use this if the invitation was sent to the wrong tenant. Saving will resend the invitation to the new tenant account.'}
@@ -224,17 +224,17 @@ export default function EditTenancyTerms({
       )}
 
       {/* Inline explanation of when editing is allowed */}
-      <div className="bg-amber-50 border border-amber-200 rounded-lg px-3 py-2.5">
-        <p className="text-xs text-amber-700">
+      <div className="bg-[rgba(251,191,36,0.08)] border border-[rgba(251,191,36,0.25)] rounded-lg px-3 py-2.5">
+        <p className="text-xs text-[#E8B84B]">
           {tenancyStatus === 'INVITED'
             ? 'While the invitation is still pending, you can correct the invited tenant or signatory and update the tenancy terms. Once the invite is accepted, the recipient can no longer be changed from here.'
-            : 'Terms can only be edited before an agreement is generated. Once you click “Generate Agreement”, these values will be locked into the agreement text.'}
+            : 'Terms can be edited before an agreement is generated. Once you generate an agreement, dates and amounts are locked into the legal text.'}
         </p>
       </div>
 
       {/* Error display */}
       {error && (
-        <p className="text-red-600 text-xs bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+        <p className="text-[#f87171] text-xs bg-[rgba(248,113,113,0.08)] border border-[rgba(248,113,113,0.25)] rounded-lg px-3 py-2">
           {error}
         </p>
       )}
@@ -245,14 +245,14 @@ export default function EditTenancyTerms({
           type="button"
           onClick={handleCancel}
           disabled={isLoading}
-          className="flex-1 text-sm font-medium text-gray-500 border border-gray-300 py-2 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50"
+          className="flex-1 text-sm font-medium text-white/50 border border-white/10 py-2 rounded-lg hover:bg-white/5 transition-colors disabled:opacity-50"
         >
           Cancel
         </button>
         <button
           type="submit"
           disabled={isLoading}
-          className="flex-1 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 py-2 rounded-lg transition-colors"
+          className="flex-1 text-sm font-semibold text-[#1C2740] bg-gradient-to-br from-[#C49A3C] to-[#E8B84B] hover:opacity-90 disabled:opacity-50 py-2 rounded-lg transition-colors"
         >
           {isLoading ? 'Saving…' : 'Save Changes'}
         </button>
