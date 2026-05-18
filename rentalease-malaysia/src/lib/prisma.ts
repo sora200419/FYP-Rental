@@ -10,11 +10,11 @@ function createPrismaClient() {
   });
 }
 
-// In development, avoid keeping a schema-stale PrismaClient instance alive in
-// globalThis across hot reloads after `prisma generate` or migrations.
-export const prisma =
-  process.env.NODE_ENV === 'production'
-    ? globalForPrisma.prisma ?? createPrismaClient()
-    : createPrismaClient();
+// Singleton: reuse the same PrismaClient across hot reloads in development.
+// Without this, every module re-evaluation creates a new 49-connection pool,
+// quickly exhausting Postgres max_connections and causing P2024 timeouts.
+// If you run `prisma generate` or `prisma migrate dev`, restart the dev server
+// to pick up schema changes — do not rely on automatic re-instantiation.
+export const prisma = globalForPrisma.prisma ?? createPrismaClient();
 
-if (process.env.NODE_ENV === 'production') globalForPrisma.prisma = prisma;
+globalForPrisma.prisma = prisma;
