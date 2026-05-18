@@ -6,6 +6,7 @@ import AgreementSuggestionDiff from './AgreementSuggestionDiff';
 
 interface Props {
   agreementId: string;
+  tenancyId: string;
   initialContent: string;
   negotiationNotes?: string | null;
   changeRequests?: Array<{
@@ -26,6 +27,7 @@ type AiState =
 
 export default function AgreementEditor({
   agreementId,
+  tenancyId,
   initialContent,
   negotiationNotes,
   changeRequests = [],
@@ -78,7 +80,7 @@ export default function AgreementEditor({
       setSaveSuccess(true);
       setResolvedRequestIds([]);
       router.refresh();
-      setTimeout(() => setSaveSuccess(false), 3000);
+      setTimeout(() => setSaveSuccess(false), 4000);
     } catch {
       setSaveError('Network error. Please try again.');
     } finally {
@@ -175,21 +177,21 @@ export default function AgreementEditor({
 
   return (
     <div className="space-y-5">
+      {/* ── Structured change requests ── */}
       {changeRequests.length > 0 && (
-        <div className="bg-blue-50 border border-blue-200 rounded-xl px-5 py-4">
+        <div className="bg-amber-50 border border-amber-200 rounded-xl px-5 py-4">
           <div className="flex items-start justify-between gap-3 mb-3">
             <div>
-              <p className="text-blue-800 font-semibold text-sm">
+              <p className="text-amber-800 font-semibold text-sm">
                 Structured tenant change requests
               </p>
-              <p className="text-blue-600 text-xs mt-1">
+              <p className="text-amber-700 text-xs mt-1">
                 Review each request, update the agreement text below, then mark
                 the requests you addressed before saving.
               </p>
             </div>
-            <span className="text-xs font-semibold text-blue-700 bg-white border border-blue-200 px-2.5 py-1 rounded-full">
-              {pendingRequestCount}{' '}
-              pending
+            <span className="text-xs font-semibold text-amber-700 bg-amber-100 border border-amber-300 px-2.5 py-1 rounded-full">
+              {pendingRequestCount} pending
             </span>
           </div>
 
@@ -207,24 +209,24 @@ export default function AgreementEditor({
               return (
                 <div
                   key={request.id}
-                  className="bg-white border border-blue-200 rounded-lg px-4 py-4"
+                  className="bg-white border border-amber-200 rounded-lg px-4 py-4"
                 >
                   <div className="flex items-start justify-between gap-3 mb-3">
                     <div>
                       <p className="text-sm font-semibold text-gray-900">
                         {request.category}
                       </p>
-                      <p className="text-sm text-gray-700 mt-1">
+                      <p className="text-sm text-gray-600 mt-1">
                         {request.requestedChange}
                       </p>
                     </div>
                     <span
                       className={`text-xs font-semibold px-2.5 py-1 rounded-full ${
                         isResolvedNow
-                          ? 'bg-green-50 text-green-700 border border-green-200'
+                          ? 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200 ring-inset'
                           : isMarkedForResolution
-                            ? 'bg-blue-50 text-blue-700 border border-blue-200'
-                          : 'bg-amber-50 text-amber-700 border border-amber-200'
+                            ? 'bg-amber-100 text-amber-700 ring-1 ring-amber-300 ring-inset'
+                          : 'bg-amber-50 text-amber-700 ring-1 ring-amber-200 ring-inset'
                       }`}
                     >
                       {statusLabel}
@@ -236,15 +238,13 @@ export default function AgreementEditor({
                   </p>
                   {request.note && (
                     <p className="text-sm text-gray-600 mt-2">
-                      <span className="font-medium text-gray-700">
-                        Additional note:
-                      </span>{' '}
+                      <span className="font-medium text-gray-700">Additional note:</span>{' '}
                       {request.note}
                     </p>
                   )}
 
                   {isPending && (
-                    <label className="flex items-start gap-3 mt-3 p-3 bg-gray-50 rounded-lg border border-gray-200 cursor-pointer">
+                    <label className="flex items-start gap-3 mt-3 p-3 bg-amber-50 rounded-lg border border-amber-200 cursor-pointer">
                       <input
                         type="checkbox"
                         checked={resolvedRequestIds.includes(request.id)}
@@ -255,11 +255,10 @@ export default function AgreementEditor({
                               : current.filter((id) => id !== request.id),
                           );
                         }}
-                        className="mt-0.5 accent-blue-600 w-4 h-4 shrink-0"
+                        className="mt-0.5 accent-amber-600 w-4 h-4 shrink-0"
                       />
-                      <span className="text-sm text-gray-700">
-                        Mark this request as addressed when you save the revised
-                        agreement.
+                      <span className="text-sm text-gray-600">
+                        Mark this request as addressed when you save the revised agreement.
                       </span>
                     </label>
                   )}
@@ -268,38 +267,39 @@ export default function AgreementEditor({
             })}
           </div>
           {resolvedRequestIds.length > 0 && (
-            <p className="text-xs text-blue-700 mt-3">
-              {resolvedRequestIds.length} request(s) will only leave the
-              finalize checklist after you click Save Changes.
+            <p className="text-xs text-amber-700 font-medium mt-3">
+              {resolvedRequestIds.length} request(s) will be marked as addressed when you click Save Changes.
             </p>
           )}
         </div>
       )}
 
+      {/* ── Negotiation notes ── */}
       {negotiationNotes && (
-        <div className="bg-blue-50 border border-blue-200 rounded-xl px-5 py-4">
-          <p className="text-blue-800 font-semibold text-sm mb-2">
+        <div className="bg-amber-50 border border-amber-200 rounded-xl px-5 py-4">
+          <p className="text-amber-800 font-semibold text-sm mb-2">
             Tenant summary note
           </p>
-          <div className="bg-white border border-blue-200 rounded-lg px-4 py-3">
+          <div className="bg-white border border-amber-200 rounded-lg px-4 py-3">
             <p className="text-sm text-gray-700 whitespace-pre-wrap">
               {negotiationNotes}
             </p>
           </div>
-          <p className="text-blue-600 text-xs mt-2">
+          <p className="text-amber-700 text-xs mt-2">
             Address these points in your edits below, then save and re-finalize.
           </p>
         </div>
       )}
 
-      <div className="bg-purple-50 border border-purple-200 rounded-xl p-5">
+      {/* ── AI Assist ── */}
+      <div style={{ background: 'linear-gradient(135deg,#EFF6FF,#F0F9FF)', border: '1px solid #BFDBFE' }} className="rounded-xl p-5">
         <div className="flex items-center gap-2 mb-3">
-          <p className="text-sm font-semibold text-purple-900">AI Assist</p>
-          <span className="text-xs text-purple-500 font-medium">optional</span>
+          <p className="text-sm font-semibold text-blue-900">AI Assist</p>
+          <span className="text-xs text-blue-500 font-medium">optional</span>
         </div>
-        <p className="text-xs text-purple-700 mb-3">
+        <p className="text-xs text-blue-700 mb-3">
           Describe one specific change in English or Bahasa Malaysia. The AI
-          will show you a suggestion - review it, then click{' '}
+          will show you a suggestion — review it, then click{' '}
           <strong>Apply to Editor</strong> to accept, or{' '}
           <strong>Discard</strong> to ignore it.
         </p>
@@ -311,7 +311,7 @@ export default function AgreementEditor({
             onChange={(e) => setInstruction(e.target.value)}
             maxLength={1250}
             placeholder='e.g. "Change the deposit to 2 months rent" or "Tukar deposit kepada 2 bulan sewa"'
-            className="flex-1 border border-purple-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400"
+            className="flex-1 border border-blue-200 bg-white rounded-lg px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-300 transition-colors"
             disabled={aiState.status === 'loading'}
             onKeyDown={(e) => {
               if (e.key === 'Enter') handleAiAssist();
@@ -322,11 +322,11 @@ export default function AgreementEditor({
             disabled={
               aiState.status === 'loading' || instruction.trim().length < 10
             }
-            className="shrink-0 bg-purple-600 hover:bg-purple-700 disabled:opacity-50 text-white text-sm font-semibold px-4 py-2 rounded-lg transition-colors"
+            className="shrink-0 bg-gradient-to-br from-[#C49A3C] to-[#E8B84B] hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed text-[#1C2740] text-sm font-semibold px-4 py-2 rounded-lg transition-opacity"
           >
             {aiState.status === 'loading' ? (
               <span className="flex items-center gap-2">
-                <span className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                <span className="w-3 h-3 border-2 border-[#1C2740] border-t-transparent rounded-full animate-spin" />
                 Working...
               </span>
             ) : (
@@ -336,21 +336,21 @@ export default function AgreementEditor({
         </div>
 
         {aiState.status === 'suggestion' && (
-          <div className="border border-purple-300 rounded-lg overflow-hidden">
-            <div className="bg-purple-100 px-4 py-2 flex items-center justify-between">
-              <p className="text-xs font-semibold text-purple-800">
-                AI Suggestion - review before applying
+          <div className="border border-blue-300 rounded-lg overflow-hidden">
+            <div className="bg-blue-100 px-4 py-2 flex items-center justify-between">
+              <p className="text-xs font-semibold text-blue-800">
+                AI Suggestion — review before applying
               </p>
               <div className="flex gap-2">
                 <button
                   onClick={handleDiscardSuggestion}
-                  className="text-xs text-purple-600 hover:text-purple-800 font-medium"
+                  className="text-xs text-blue-600 hover:text-blue-800 font-medium transition-colors"
                 >
                   Discard
                 </button>
                 <button
                   onClick={handleApplySuggestion}
-                  className="text-xs bg-purple-600 hover:bg-purple-700 text-white font-semibold px-3 py-1 rounded-md transition-colors"
+                  className="text-xs bg-gradient-to-br from-[#C49A3C] to-[#E8B84B] hover:opacity-90 text-[#1C2740] font-semibold px-3 py-1 rounded-md transition-opacity"
                 >
                   Apply to Editor
                 </button>
@@ -373,6 +373,7 @@ export default function AgreementEditor({
         )}
       </div>
 
+      {/* ── Agreement Text editor ── */}
       <div>
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-2">
@@ -380,7 +381,7 @@ export default function AgreementEditor({
               Agreement Text
             </p>
             {isDirty && (
-              <span className="text-xs font-medium text-amber-600 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full">
+              <span className="text-xs font-medium text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full">
                 Unsaved changes
               </span>
             )}
@@ -399,7 +400,7 @@ export default function AgreementEditor({
           value={content}
           onChange={(e) => setContent(e.target.value)}
           rows={30}
-          className="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm font-mono leading-relaxed focus:outline-none focus:ring-2 focus:ring-blue-500 resize-y"
+          className="w-full rounded-lg border border-gray-200 bg-white px-4 py-3 text-sm text-gray-900 placeholder:text-gray-400 focus:border-amber-400 focus:outline-none focus:ring-2 focus:ring-amber-200 transition-colors font-mono leading-relaxed resize-y"
           placeholder="Agreement content..."
           spellCheck={false}
         />
@@ -414,57 +415,46 @@ export default function AgreementEditor({
         </p>
       </div>
 
-      <div className="flex items-center gap-3 sticky bottom-4 bg-white border border-gray-200 rounded-xl px-5 py-3 shadow-lg">
+      {/* ── Sticky action bar ── */}
+      <div className="flex items-center gap-3 sticky bottom-4 bg-white/90 backdrop-blur-sm border border-gray-200 rounded-xl px-5 py-3 shadow-md">
         <div className="flex-1">
           {saveError && <p className="text-red-600 text-xs">{saveError}</p>}
           {analysisError && (
             <p className="text-red-600 text-xs">{analysisError}</p>
           )}
           {saveSuccess && (
-            <p className="text-green-600 text-xs font-medium">
-              Saved - agreement reset to Draft. Now refresh AI analysis to
-              update the red flags before re-finalizing.
+            <p className="text-emerald-700 text-xs font-medium">
+              Saved — agreement reset to Draft. Refresh AI analysis before re-finalizing.
             </p>
           )}
           {analysisSuccess && (
-            <p className="text-green-600 text-xs font-medium">
-              AI analysis refreshed - summary and red flags have been updated.
+            <p className="text-emerald-700 text-xs font-medium">
+              AI analysis refreshed — summary and red flags updated.
             </p>
           )}
           {!saveError && !saveSuccess && resolvedRequestIds.length > 0 && (
-            <p className="text-blue-600 text-xs font-medium">
-              {resolvedRequestIds.length} structured request(s) will be marked
-              as addressed when you save.
+            <p className="text-amber-700 text-xs font-medium">
+              {resolvedRequestIds.length} request(s) will be marked as addressed when you save.
             </p>
           )}
-          {!saveError &&
-            !saveSuccess &&
-            !analysisError &&
-            !analysisSuccess &&
-            isDirty && (
-              <p className="text-amber-600 text-xs">
-                You have unsaved changes.
-              </p>
-            )}
-          {!saveError &&
-            !saveSuccess &&
-            !analysisError &&
-            !analysisSuccess &&
-            !isDirty && (
-              <p className="text-gray-400 text-xs">No unsaved changes.</p>
-            )}
+          {!saveError && !saveSuccess && !analysisError && !analysisSuccess && isDirty && (
+            <p className="text-amber-600 text-xs">You have unsaved changes.</p>
+          )}
+          {!saveError && !saveSuccess && !analysisError && !analysisSuccess && !isDirty && (
+            <p className="text-gray-400 text-xs">No unsaved changes.</p>
+          )}
         </div>
         <button
           onClick={handleRefreshAnalysis}
           disabled={isRefreshingAnalysis || isSaving || isDirty}
-          className="border border-purple-300 bg-white hover:bg-purple-50 disabled:opacity-40 disabled:cursor-not-allowed text-purple-700 text-sm font-semibold px-4 py-2.5 rounded-lg transition-colors"
+          className="border border-gray-200 bg-white hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed text-gray-600 text-sm font-semibold px-4 py-2.5 rounded-lg transition-colors"
         >
           {isRefreshingAnalysis ? 'Refreshing AI...' : 'Refresh AI Analysis'}
         </button>
         <button
           onClick={handleSave}
           disabled={isSaving || !isDirty}
-          className="bg-blue-600 hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm font-semibold px-6 py-2.5 rounded-lg transition-colors"
+          className="bg-gradient-to-br from-[#C49A3C] to-[#E8B84B] hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed text-[#1C2740] text-sm font-semibold px-6 py-2.5 rounded-lg transition-opacity"
         >
           {isSaving ? 'Saving...' : 'Save Changes'}
         </button>
