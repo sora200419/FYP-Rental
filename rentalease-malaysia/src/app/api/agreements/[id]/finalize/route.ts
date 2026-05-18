@@ -1,6 +1,7 @@
 // src/app/api/agreements/[id]/finalize/route.ts
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
+import { z } from 'zod';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import {
@@ -9,6 +10,26 @@ import {
 } from '@/lib/agreements/history';
 import { createNotification } from '@/lib/notifications';
 import { sendAgreementReadyEmail } from '@/lib/email';
+
+const confirmedTermsSchema = z
+  .object({
+    startDate: z
+      .string()
+      .regex(/^\d{4}-\d{2}-\d{2}$/, 'startDate must be YYYY-MM-DD'),
+    endDate: z
+      .string()
+      .regex(/^\d{4}-\d{2}-\d{2}$/, 'endDate must be YYYY-MM-DD'),
+    monthlyRent: z.coerce
+      .number()
+      .positive('Monthly rent must be greater than 0'),
+    depositAmount: z.coerce
+      .number()
+      .min(0, 'Deposit amount must be 0 or more'),
+  })
+  .refine((d) => d.endDate > d.startDate, {
+    message: 'End date must be after start date',
+    path: ['endDate'],
+  });
 
 export async function PATCH(
   request: Request,
@@ -23,6 +44,15 @@ export async function PATCH(
   const body = await request.json().catch(() => ({}));
   const reviewedRedFlags = body?.reviewedRedFlags === true;
 
+  const confirmedTermsResult = confirmedTermsSchema.safeParse(body?.confirmedTerms);
+  if (!confirmedTermsResult.success) {
+    return NextResponse.json(
+      { error: confirmedTermsResult.error.issues[0]?.message ?? 'Invalid confirmedTerms' },
+      { status: 400 },
+    );
+  }
+  const { startDate, endDate, monthlyRent, depositAmount } = confirmedTermsResult.data;
+
   // Verify the agreement exists and the landlord owns it
   const agreement = await prisma.agreement.findUnique({
     where: { id },
@@ -33,6 +63,7 @@ export async function PATCH(
       },
       tenancy: {
         select: {
+          id: true,
           status: true,
           tenant: { select: { id: true, name: true, icNumber: true } },
           agreementPreferences: { select: { isComplete: true } },
@@ -93,6 +124,15 @@ export async function PATCH(
     prisma.agreement.update({
       where: { id },
       data: { status: 'FINALIZED' },
+    }),
+    prisma.tenancy.update({
+      where: { id: agreement.tenancy.id },
+      data: {
+        startDate: new Date(startDate),
+        endDate: new Date(endDate),
+        monthlyRent,
+        depositAmount,
+      },
     }),
     prisma.agreementEvent.create({
       data: buildAgreementEvent({
