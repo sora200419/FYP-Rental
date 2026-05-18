@@ -542,11 +542,14 @@ export interface ExtractedTerms {
 export async function extractAgreementTerms(
   rawContent: string,
 ): Promise<ExtractedTerms> {
+  // No maxOutputTokens: gemini-2.5-flash is a thinking model whose thinking tokens are
+  // concatenated with the output by getText(). A tight cap causes the thinking content
+  // to bleed into the JSON response, producing malformed output. Omitting the cap
+  // (consistent with all other Gemini calls in this file) lets the model complete cleanly.
   const model = genAI.getGenerativeModel({
     model: GEMINI_MODEL,
     generationConfig: {
       responseMimeType: 'application/json',
-      maxOutputTokens: 256,
     },
   });
 
@@ -569,7 +572,17 @@ ${rawContent}`;
 
   const result = await model.generateContent(prompt);
   const text = result.response.text();
-  const parsed = JSON.parse(cleanGeminiJson(text));
+
+  let parsed: Record<string, unknown> = {};
+  try {
+    parsed = JSON.parse(cleanGeminiJson(text));
+  } catch (parseErr) {
+    // If Gemini returns malformed JSON (e.g. thinking-part bleed-through), log for
+    // diagnostics and fall through with an empty object — all fields return null and
+    // the UI shows "AI couldn't determine — verify" labels on each field.
+    console.warn('[extractAgreementTerms] JSON parse failed. Raw response:', text);
+    console.warn('[extractAgreementTerms] Parse error:', parseErr);
+  }
 
   return {
     startDate:
