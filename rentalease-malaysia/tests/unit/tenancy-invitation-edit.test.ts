@@ -52,6 +52,8 @@ beforeEach(() => {
     user: { id: "landlord-1", role: "LANDLORD", name: "Landlord One" },
   });
   agreementFindUnique.mockResolvedValue(null);
+  // sendInvitationEmail must return a Promise so the route's .catch() doesn't crash.
+  sendInvitationEmail.mockResolvedValue(undefined);
 });
 
 describe("tenancy invitation recipient edits", () => {
