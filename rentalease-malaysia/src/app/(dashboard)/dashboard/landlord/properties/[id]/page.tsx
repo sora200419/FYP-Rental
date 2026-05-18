@@ -48,8 +48,12 @@ export default async function PropertyDetailPage({
   const formatRM = (amount: unknown) =>
     `RM ${Number(amount).toLocaleString('en-MY', { minimumFractionDigits: 2 })}`;
 
+  const ACTIVE_STATUSES = ['INVITED', 'PENDING', 'ACTIVE'] as const;
   const totalRooms = property.rooms.length;
-  const occupiedRooms = property.rooms.filter((r) => !r.isAvailable).length;
+  const occupiedRooms = property.rooms.filter((r) => {
+    const t = r.tenancies[0] ?? null;
+    return t !== null && (ACTIVE_STATUSES as readonly string[]).includes(t.status);
+  }).length;
 
   const cover = getPropertyCover(property.photos);
   const occupancy = getOccupancySummary({ totalRooms, occupiedRooms });
@@ -63,7 +67,7 @@ export default async function PropertyDetailPage({
         action={<DeletePropertyButton propertyId={property.id} propertyAddress={property.address} />}
       />
 
-      <div className="mb-6 overflow-hidden rounded-2xl border border-gray-200 bg-white">
+      <div className="mb-6 overflow-hidden rounded-2xl border border-[rgba(196,154,60,0.15)] bg-[#1C2740]">
         <PropertyCover
           address={property.address}
           imageUrl={cover?.imageUrl}
@@ -85,27 +89,27 @@ export default async function PropertyDetailPage({
       <div className="space-y-5">
         <SectionCard title="Property photos">
           <PropertyPhotoGallery propertyId={property.id} photos={property.photos} />
-          <div className="mt-4 border-t border-gray-100 pt-4">
-            <p className="mb-3 text-xs font-medium text-gray-500">Add a photo</p>
+          <div className="mt-4 border-t border-[rgba(196,154,60,0.1)] pt-4">
+            <p className="mb-3 text-xs font-medium text-white/50">Add a photo</p>
             <PropertyPhotoUploader propertyId={property.id} />
           </div>
         </SectionCard>
 
-        <div className="bg-white rounded-xl border border-gray-200 p-6">
-          <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-4">
+        <div className="bg-[#1C2740] rounded-xl border border-[rgba(196,154,60,0.15)] p-6">
+          <h2 className="text-sm font-semibold text-white/50 uppercase tracking-wider mb-4">
             Property Details
           </h2>
           <div className="grid grid-cols-2 gap-4 text-sm">
             <div>
-              <p className="text-gray-400">Type</p>
-              <p className="font-medium text-gray-900 mt-0.5">
+              <p className="text-white/40">Type</p>
+              <p className="font-medium text-white mt-0.5">
                 {property.type}
               </p>
             </div>
             {property.description && (
               <div className="col-span-2">
-                <p className="text-gray-400">Description</p>
-                <p className="font-medium text-gray-900 mt-0.5">
+                <p className="text-white/40">Description</p>
+                <p className="font-medium text-white mt-0.5">
                   {property.description}
                 </p>
               </div>
@@ -113,13 +117,13 @@ export default async function PropertyDetailPage({
           </div>
         </div>
 
-        <div className="bg-white rounded-xl border border-gray-200 p-6">
+        <div className="bg-[#1C2740] rounded-xl border border-[rgba(196,154,60,0.15)] p-6">
           <div className="flex items-center justify-between mb-5">
-            <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wider">
+            <h2 className="text-sm font-semibold text-white/50 uppercase tracking-wider">
               Rooms ({totalRooms})
             </h2>
             {totalRooms === 0 && (
-              <p className="text-xs text-amber-600 font-medium">
+              <p className="text-xs text-[#E8B84B] font-medium">
                 Add at least one room to create tenancies
               </p>
             )}
@@ -127,13 +131,13 @@ export default async function PropertyDetailPage({
 
           {totalRooms === 0 && (
             <div className="text-center py-6 mb-5">
-              <svg className="w-8 h-8 text-gray-300 mb-2 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-8 h-8 text-white/30 mb-2 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 11V7a4 4 0 118 0m-4 8v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2z" />
               </svg>
-              <p className="text-gray-600 font-medium text-sm">
+              <p className="text-white/60 font-medium text-sm">
                 No rooms added yet
               </p>
-              <p className="text-gray-400 text-xs mt-1">
+              <p className="text-white/40 text-xs mt-1">
                 Add &ldquo;Entire Unit&rdquo; for a single-tenant let, or
                 individual rooms for room-by-room rentals.
               </p>
@@ -143,52 +147,52 @@ export default async function PropertyDetailPage({
           <div className="grid gap-4 lg:grid-cols-2 mb-5">
             {property.rooms.map((room) => {
               const currentTenancy = room.tenancies[0] ?? null;
-              const isOccupied = !room.isAvailable;
+              const isOccupied = currentTenancy !== null && (ACTIVE_STATUSES as readonly string[]).includes(currentTenancy.status);
 
               return (
                 <div
                   key={room.id}
-                  className={`border rounded-xl p-5 ${isOccupied ? 'border-green-200 bg-green-50' : 'border-gray-200 bg-white'}`}
+                  className={`border rounded-xl p-5 ${isOccupied ? 'border-[rgba(74,222,128,0.25)] bg-[rgba(74,222,128,0.08)]' : 'border-[rgba(196,154,60,0.15)] bg-[#1C2740]'}`}
                 >
                   <div className="flex items-start justify-between mb-3">
                     <div>
-                      <p className="font-semibold text-gray-900">
+                      <p className="font-semibold text-white">
                         {room.label}
                       </p>
-                      <p className="text-xs text-gray-400 mt-0.5">
+                      <p className="text-xs text-white/40 mt-0.5">
                         {room.bathrooms} bathroom
                         {room.bathrooms > 1 ? 's' : ''}
                       </p>
                     </div>
                     <div className="text-right">
-                      <p className="text-blue-600 font-bold">
+                      <p className="text-[#C49A3C] font-bold">
                         {formatRM(room.rentAmount)}
                       </p>
-                      <p className="text-xs text-gray-400">/month</p>
+                      <p className="text-xs text-white/40">/month</p>
                     </div>
                   </div>
 
                   {isOccupied && currentTenancy ? (
-                    <div className="bg-white rounded-lg border border-green-200 p-3 mb-3">
+                    <div className="bg-[#1C2740] rounded-lg border border-[rgba(74,222,128,0.25)] p-3 mb-3">
                       <div className="flex items-center gap-2 mb-2">
-                        <div className="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center text-xs font-bold text-blue-600">
+                        <div className="w-6 h-6 rounded-full bg-[rgba(196,154,60,0.1)] flex items-center justify-center text-xs font-bold text-[#C49A3C]">
                           {currentTenancy.tenant.name.charAt(0).toUpperCase()}
                         </div>
                         <div>
-                          <p className="text-sm font-medium text-gray-800">
+                          <p className="text-sm font-medium text-white">
                             {currentTenancy.tenant.name}
                           </p>
-                          <p className="text-xs text-gray-400">
+                          <p className="text-xs text-white/40">
                             {currentTenancy.tenant.email}
                           </p>
                         </div>
                         <span
                           className={`ml-auto text-xs font-semibold px-2 py-0.5 rounded-full ${
                             currentTenancy.status === 'ACTIVE'
-                              ? 'bg-green-100 text-green-700'
+                              ? 'bg-[rgba(74,222,128,0.1)] text-[#4ade80]'
                               : currentTenancy.status === 'INVITED'
-                                ? 'bg-blue-100 text-blue-700'
-                                : 'bg-amber-100 text-amber-700'
+                                ? 'bg-[rgba(196,154,60,0.1)] text-[#C49A3C]'
+                                : 'bg-[rgba(251,191,36,0.08)] text-[#E8B84B]'
                           }`}
                         >
                           {currentTenancy.status.charAt(0) +
@@ -197,7 +201,7 @@ export default async function PropertyDetailPage({
                       </div>
                       <Link
                         href={`/dashboard/landlord/tenancies/${currentTenancy.id}`}
-                        className="text-xs text-blue-600 hover:underline font-medium"
+                        className="text-xs text-[#C49A3C] hover:underline font-medium"
                       >
                         View Tenancy →
                       </Link>
@@ -205,13 +209,13 @@ export default async function PropertyDetailPage({
                   ) : (
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
-                        <span className="text-xs text-gray-400 font-medium">
+                        <span className="text-xs text-white/40 font-medium">
                           Vacant
                         </span>
                         {currentTenancy && (
                           <Link
                             href={`/dashboard/landlord/tenancies/${currentTenancy.id}`}
-                            className="text-xs text-gray-400 hover:text-blue-600 transition-colors"
+                            className="text-xs text-white/40 hover:text-[#C49A3C] transition-colors"
                           >
                             View last tenancy →
                           </Link>
@@ -221,7 +225,7 @@ export default async function PropertyDetailPage({
                         <DeleteRoomButton roomId={room.id} roomLabel={room.label} />
                         <Link
                           href={`/dashboard/landlord/tenancies/new?roomId=${room.id}`}
-                          className="bg-green-600 hover:bg-green-700 text-white text-xs font-semibold px-4 py-2 rounded-lg transition-colors"
+                          className="bg-[rgba(74,222,128,0.1)] border border-[rgba(74,222,128,0.25)] hover:opacity-90 text-[#4ade80] text-xs font-semibold px-4 py-2 rounded-lg transition-colors"
                         >
                           + Create Tenancy
                         </Link>

@@ -10,8 +10,8 @@ interface Props {
 
 export default function AdminTabBar({ activeTab, pendingCount, verifiedCount }: Props) {
   const base = 'px-4 py-2 text-sm font-medium rounded-lg transition-colors';
-  const active = 'bg-blue-600 text-white';
-  const inactive = 'text-gray-600 hover:bg-gray-100';
+  const active = 'bg-gradient-to-br from-[#C49A3C] to-[#E8B84B] text-[#1C2740]';
+  const inactive = 'text-white/60 hover:bg-white/5';
 
   return (
     <div className="flex gap-2 mb-6">
@@ -37,8 +37,8 @@ interface AdminNavProps {
 
 export function AdminNav({ active }: AdminNavProps) {
   const base = 'px-4 py-2 text-sm font-medium rounded-lg transition-colors';
-  const activeClass = 'bg-blue-600 text-white';
-  const inactiveClass = 'text-gray-600 hover:bg-gray-100';
+  const activeClass = 'bg-gradient-to-br from-[#C49A3C] to-[#E8B84B] text-[#1C2740]';
+  const inactiveClass = 'text-white/60 hover:bg-white/5';
 
   return (
     <div className="flex gap-2 mb-6">

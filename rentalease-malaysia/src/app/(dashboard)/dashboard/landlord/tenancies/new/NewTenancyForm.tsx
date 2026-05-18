@@ -20,12 +20,12 @@ function Field({
 }) {
   return (
     <div>
-      <label className="block text-sm font-medium text-gray-700 mb-1">
+      <label className="block text-sm font-medium text-white/70 mb-1">
         {label}
       </label>
       {children}
-      {hint && !error && <p className="text-gray-400 text-xs mt-1">{hint}</p>}
-      {error && <p className="text-red-500 text-xs mt-1">{error}</p>}
+      {hint && !error && <p className="text-white/40 text-xs mt-1">{hint}</p>}
+      {error && <p className="text-[#f87171] text-xs mt-1">{error}</p>}
     </div>
   );
 }
@@ -242,23 +242,23 @@ export default function NewTenancyForm({
   };
 
   const inputClass =
-    'w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500';
+    'w-full rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-sm text-white placeholder:text-white/20 focus:border-[rgba(196,154,60,0.5)] focus:outline-none focus:ring-0 transition-colors';
   const { onChange: emailRhfOnChange, ...emailRestProps } =
     register('tenantEmail');
 
   return (
-    <div className="bg-white rounded-xl border border-gray-200 p-8">
-      <h1 className="text-xl font-bold text-gray-900 mb-1">
+    <div className="bg-[#1C2740] rounded-xl border border-[rgba(196,154,60,0.15)] p-8">
+      <h1 className="text-xl font-bold text-white mb-1">
         Create New Tenancy
       </h1>
-      <p className="text-gray-400 text-sm mb-7">
+      <p className="text-white/40 text-sm mb-7">
         Create an individual or corporate tenancy for {propertyAddress}. The
         invited lease party must accept before you can generate the agreement.
       </p>
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
         <div>
-          <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4">
+          <p className="text-xs font-semibold text-white/40 uppercase tracking-wider mb-4">
             Lease Party
           </p>
           <div className="space-y-5">
@@ -277,8 +277,8 @@ export default function NewTenancyForm({
                     key={value}
                     className={`rounded-xl border px-4 py-3 cursor-pointer transition-colors ${
                       checked
-                        ? 'border-blue-500 bg-blue-50'
-                        : 'border-gray-200 hover:border-gray-300'
+                        ? 'border-[rgba(196,154,60,0.5)] bg-[rgba(196,154,60,0.06)]'
+                        : 'border-[rgba(196,154,60,0.15)] hover:border-white/10'
                     }`}
                   >
                     <input
@@ -287,8 +287,8 @@ export default function NewTenancyForm({
                       value={value}
                       className="sr-only"
                     />
-                    <p className="text-sm font-semibold text-gray-900">{label}</p>
-                    <p className="text-xs text-gray-500 mt-1">{description}</p>
+                    <p className="text-sm font-semibold text-white">{label}</p>
+                    <p className="text-xs text-white/50 mt-1">{description}</p>
                   </label>
                 );
               })}
@@ -316,7 +316,7 @@ export default function NewTenancyForm({
                       type="button"
                       onClick={handleTenantLookup}
                       disabled={tenantLookup.status === 'loading'}
-                      className="shrink-0 px-4 py-2.5 bg-gray-100 hover:bg-gray-200 disabled:opacity-50 text-gray-700 text-sm font-medium rounded-lg transition-colors"
+                      className="shrink-0 px-4 py-2.5 bg-white/5 hover:bg-white/10 disabled:opacity-50 text-white/70 text-sm font-medium rounded-lg transition-colors"
                     >
                       {tenantLookup.status === 'loading' ? '...' : 'Look up'}
                     </button>
@@ -324,9 +324,9 @@ export default function NewTenancyForm({
                 </Field>
 
                 {tenantLookup.status === 'found' && (
-                  <div className="bg-green-50 border border-green-200 rounded-lg px-4 py-3 flex items-center gap-3">
+                  <div className="bg-[rgba(74,222,128,0.08)] border border-[rgba(74,222,128,0.25)] rounded-lg px-4 py-3 flex items-center gap-3">
                     <svg
-                      className="w-5 h-5 text-green-600 shrink-0"
+                      className="w-5 h-5 text-[#4ade80] shrink-0"
                       fill="none"
                       stroke="currentColor"
                       viewBox="0 0 24 24"
@@ -339,10 +339,10 @@ export default function NewTenancyForm({
                       />
                     </svg>
                     <div>
-                      <p className="text-sm font-semibold text-green-800">
+                      <p className="text-sm font-semibold text-[#4ade80]">
                         {tenantLookup.name}
                       </p>
-                      <p className="text-xs text-green-600">
+                      <p className="text-xs text-[#4ade80]">
                         {tenantLookup.email}
                       </p>
                     </div>
@@ -350,11 +350,11 @@ export default function NewTenancyForm({
                 )}
 
                 {tenantLookup.status === 'not_found' && (
-                  <div className="bg-red-50 border border-red-200 rounded-lg px-4 py-3">
-                    <p className="text-sm text-red-700 font-medium">
+                  <div className="bg-[rgba(248,113,113,0.08)] border border-[rgba(248,113,113,0.25)] rounded-lg px-4 py-3">
+                    <p className="text-sm text-[#f87171] font-medium">
                       No tenant account found with this email.
                     </p>
-                    <p className="text-xs text-red-500 mt-0.5">
+                    <p className="text-xs text-[#f87171] mt-0.5">
                       Ask your tenant to register on RentalEase first, then try
                       again.
                     </p>
@@ -444,13 +444,13 @@ export default function NewTenancyForm({
                   </Field>
                 </div>
 
-                <div className="border border-gray-200 rounded-xl p-4 space-y-4">
+                <div className="border border-[rgba(196,154,60,0.15)] rounded-xl p-4 space-y-4">
                   <div className="flex items-center justify-between gap-3">
                     <div>
-                      <p className="text-sm font-semibold text-gray-900">
+                      <p className="text-sm font-semibold text-white">
                         Occupant Roster
                       </p>
-                      <p className="text-xs text-gray-500">
+                      <p className="text-xs text-white/50">
                         Add the employees or occupants who will stay in this
                         room.
                       </p>
@@ -465,7 +465,7 @@ export default function NewTenancyForm({
                           roleLabel: '',
                         })
                       }
-                      className="shrink-0 px-3 py-2 text-sm font-medium rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50"
+                      className="shrink-0 px-3 py-2 text-sm font-medium rounded-lg border border-white/10 text-white/70 hover:bg-white/5"
                     >
                       Add Occupant
                     </button>
@@ -475,17 +475,17 @@ export default function NewTenancyForm({
                     {fields.map((field, index) => (
                       <div
                         key={field.id}
-                        className="rounded-xl border border-gray-200 p-4 space-y-4"
+                        className="rounded-xl border border-[rgba(196,154,60,0.15)] p-4 space-y-4"
                       >
                         <div className="flex items-center justify-between gap-3">
-                          <p className="text-sm font-semibold text-gray-900">
+                          <p className="text-sm font-semibold text-white">
                             Occupant {index + 1}
                           </p>
                           {fields.length > 1 && (
                             <button
                               type="button"
                               onClick={() => remove(index)}
-                              className="text-sm font-medium text-red-600 hover:text-red-700"
+                              className="text-sm font-medium text-[#f87171] hover:text-[#f87171]"
                             >
                               Remove
                             </button>
@@ -555,7 +555,7 @@ export default function NewTenancyForm({
         </div>
 
         <div>
-          <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4">
+          <p className="text-xs font-semibold text-white/40 uppercase tracking-wider mb-4">
             Tenancy Terms
           </p>
           <div className="space-y-4">
@@ -608,11 +608,11 @@ export default function NewTenancyForm({
           </div>
         </div>
 
-        <div className="bg-blue-50 border border-blue-200 rounded-lg px-4 py-3">
-          <p className="text-sm font-medium text-blue-800">
+        <div className="bg-[rgba(196,154,60,0.06)] border border-[rgba(196,154,60,0.2)] rounded-lg px-4 py-3">
+          <p className="text-sm font-medium text-[#C49A3C]">
             What happens after you save?
           </p>
-          <p className="text-xs text-blue-600 mt-1">
+          <p className="text-xs text-[#C49A3C] mt-1">
             {leasePartyType === 'INDIVIDUAL'
               ? 'An invitation will be sent to the tenant account. They must accept before you can generate the agreement.'
               : 'The corporate tenancy will be created under the company, and the authorized signatory tenant account will receive the legal invitation immediately.'}{' '}
@@ -621,7 +621,7 @@ export default function NewTenancyForm({
         </div>
 
         {serverError && (
-          <div className="bg-red-50 border border-red-200 text-red-600 text-sm rounded-lg px-4 py-3">
+          <div className="bg-[rgba(248,113,113,0.08)] border border-[rgba(248,113,113,0.25)] text-[#f87171] text-sm rounded-lg px-4 py-3">
             {serverError}
           </div>
         )}
@@ -629,14 +629,14 @@ export default function NewTenancyForm({
         <div className="flex gap-3 pt-2">
           <Link
             href="/dashboard/landlord/tenancies"
-            className="flex-1 text-center border border-gray-300 text-gray-600 hover:bg-gray-50 font-semibold py-3 rounded-lg transition-colors text-sm"
+            className="flex-1 text-center border border-white/10 text-white/60 hover:bg-white/5 font-semibold py-3 rounded-lg transition-colors text-sm"
           >
             Cancel
           </Link>
           <button
             type="submit"
             disabled={isLoading}
-            className="flex-1 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 text-white font-semibold py-3 rounded-lg transition-colors text-sm"
+            className="flex-1 bg-gradient-to-br from-[#C49A3C] to-[#E8B84B] hover:opacity-90 disabled:opacity-50 text-[#1C2740] font-semibold py-3 rounded-lg transition-colors text-sm"
           >
             {isLoading ? 'Sending Invitation...' : 'Send Tenancy Invitation'}
           </button>

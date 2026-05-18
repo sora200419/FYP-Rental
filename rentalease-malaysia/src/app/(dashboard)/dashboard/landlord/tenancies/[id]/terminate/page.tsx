@@ -33,33 +33,33 @@ export default async function TerminatePage({
 
   return (
     <div className="max-w-xl">
-      <div className="flex items-center gap-2 text-sm text-gray-400 mb-6">
-        <Link href="/dashboard/landlord/tenancies" className="hover:text-blue-600 transition-colors">
+      <div className="flex items-center gap-2 text-sm text-white/40 mb-6">
+        <Link href="/dashboard/landlord/tenancies" className="hover:text-[#C49A3C] transition-colors">
           Tenancies
         </Link>
         <span>/</span>
-        <Link href={`/dashboard/landlord/tenancies/${id}`} className="hover:text-blue-600 transition-colors">
+        <Link href={`/dashboard/landlord/tenancies/${id}`} className="hover:text-[#C49A3C] transition-colors">
           {tenancy.room.property.address} — {tenancy.room.label}
         </Link>
         <span>/</span>
-        <span className="text-gray-700 font-medium">Serve Notice</span>
+        <span className="text-white/70 font-medium">Serve Notice</span>
       </div>
 
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Serve Notice to Quit</h1>
-        <p className="text-gray-500 text-sm mt-1">
+        <h1 className="text-2xl font-bold text-white">Serve Notice to Quit</h1>
+        <p className="text-white/50 text-sm mt-1">
           Formally terminate this tenancy with {tenancy.tenant.name}. This action is recorded with a timestamp and cannot be undone.
         </p>
       </div>
 
-      <div className="bg-red-50 border border-red-200 rounded-xl px-5 py-4 mb-6">
-        <p className="text-red-800 font-semibold text-sm">This is a legal notice of termination</p>
-        <p className="text-red-600 text-xs mt-1 leading-relaxed">
+      <div className="bg-[rgba(248,113,113,0.08)] border border-[rgba(248,113,113,0.25)] rounded-xl px-5 py-4 mb-6">
+        <p className="text-[#f87171] font-semibold text-sm">This is a legal notice of termination</p>
+        <p className="text-[#f87171] text-xs mt-1 leading-relaxed">
           Ensure you have provided the required notice period as stated in the tenancy agreement before proceeding. The tenancy status will be changed to Terminated immediately.
         </p>
       </div>
 
-      <div className="bg-white rounded-xl border border-gray-200 p-6">
+      <div className="bg-[#1C2740] rounded-xl border border-[rgba(196,154,60,0.15)] p-6">
         <TerminateForm tenancyId={id} />
       </div>
     </div>

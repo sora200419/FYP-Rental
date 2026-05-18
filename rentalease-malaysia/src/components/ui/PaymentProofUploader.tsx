@@ -76,7 +76,7 @@ export default function PaymentProofUploader({
   if (currentStatus === 'PAID') {
     return (
       <div className="space-y-3">
-        <div className="flex items-center gap-2 text-green-600 text-sm font-medium">
+        <div className="flex items-center gap-2 text-[#4ade80] text-sm font-medium">
           <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
           </svg>
@@ -90,7 +90,7 @@ export default function PaymentProofUploader({
                 href={proof.imageUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="relative block w-16 h-16 rounded-lg overflow-hidden border border-gray-200 hover:opacity-80 transition-opacity"
+                className="relative block w-16 h-16 rounded-lg overflow-hidden border border-[rgba(196,154,60,0.15)] hover:opacity-80 transition-opacity"
               >
                 <Image
                   src={proof.imageUrl}
@@ -111,17 +111,17 @@ export default function PaymentProofUploader({
     <div className="space-y-3">
       {/* Show rejection reason prominently if the landlord rejected */}
       {currentStatus === 'PENDING' && rejectionReason && (
-        <div className="bg-red-50 border border-red-200 rounded-lg px-4 py-3">
-          <p className="text-red-800 text-sm font-semibold mb-1">
+        <div className="bg-[rgba(248,113,113,0.08)] border border-[rgba(248,113,113,0.25)] rounded-lg px-4 py-3">
+          <p className="text-[#f87171] text-sm font-semibold mb-1">
             Proof rejected — please re-upload
           </p>
-          <p className="text-red-600 text-xs">{rejectionReason}</p>
+          <p className="text-[#f87171] text-xs">{rejectionReason}</p>
         </div>
       )}
 
       {/* Already submitted indicator */}
       {currentStatus === 'UNDER_REVIEW' && (
-        <div className="flex items-center gap-2 text-amber-600 text-sm">
+        <div className="flex items-center gap-2 text-[#E8B84B] text-sm">
           <span>Proof submitted — awaiting landlord verification</span>
         </div>
       )}
@@ -135,7 +135,7 @@ export default function PaymentProofUploader({
               href={proof.imageUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="relative block w-16 h-16 rounded-lg overflow-hidden border border-gray-200 hover:opacity-80 transition-opacity"
+              className="relative block w-16 h-16 rounded-lg overflow-hidden border border-[rgba(196,154,60,0.15)] hover:opacity-80 transition-opacity"
             >
               <Image
                 src={proof.imageUrl}
@@ -155,7 +155,7 @@ export default function PaymentProofUploader({
           {previews.map((src, i) => (
             <div
               key={i}
-              className="relative w-16 h-16 rounded-lg overflow-hidden border border-blue-200 opacity-60"
+              className="relative w-16 h-16 rounded-lg overflow-hidden border border-[rgba(196,154,60,0.2)] opacity-60"
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
@@ -186,13 +186,13 @@ export default function PaymentProofUploader({
           htmlFor={`proof-upload-${paymentId}`}
           className={`inline-flex items-center gap-2 text-sm font-medium px-4 py-2 rounded-lg border transition-colors cursor-pointer ${
             isUploading
-              ? 'border-gray-200 text-gray-400 cursor-not-allowed bg-gray-50'
-              : 'border-blue-300 text-blue-600 hover:bg-blue-50 bg-white'
+              ? 'border-white/5 text-white/40 cursor-not-allowed bg-white/[0.03]'
+              : 'border-[rgba(196,154,60,0.2)] text-[#C49A3C] hover:bg-[rgba(196,154,60,0.06)] bg-[#1C2740]'
           }`}
         >
           {isUploading ? (
             <>
-              <span className="w-4 h-4 border-2 border-blue-300 border-t-transparent rounded-full animate-spin" />
+              <span className="w-4 h-4 border-2 border-[#C49A3C] border-t-transparent rounded-full animate-spin" />
               Uploading…
             </>
           ) : (
@@ -205,7 +205,7 @@ export default function PaymentProofUploader({
         </label>
       </div>
 
-      {error && <p className="text-red-500 text-xs">{error}</p>}
+      {error && <p className="text-[#f87171] text-xs">{error}</p>}
     </div>
   );
 }

@@ -44,14 +44,14 @@ const TYPE_LABELS: Record<string, string> = {
 };
 
 const STATUS_BADGE: Record<string, { label: string; className: string }> = {
-  DRAFT: { label: 'Draft', className: 'bg-gray-100 text-gray-600' },
-  SUBMITTED: { label: 'Submitted', className: 'bg-blue-100 text-blue-700' },
-  PENDING_REVIEW: { label: 'Pending Review', className: 'bg-amber-100 text-amber-700' },
+  DRAFT: { label: 'Draft', className: 'bg-white/5 text-white/60' },
+  SUBMITTED: { label: 'Submitted', className: 'bg-[rgba(196,154,60,0.1)] text-[#C49A3C]' },
+  PENDING_REVIEW: { label: 'Pending Review', className: 'bg-[rgba(251,191,36,0.08)] text-[#E8B84B]' },
   CORRECTION_REQUESTED: { label: 'Correction Requested', className: 'bg-orange-100 text-orange-700' },
   COUNTER_EVIDENCE_ADDED: { label: 'Counter Evidence', className: 'bg-purple-100 text-purple-700' },
-  ACCEPTED: { label: 'Accepted', className: 'bg-green-100 text-green-700' },
-  DISPUTED: { label: 'Disputed', className: 'bg-red-100 text-red-700' },
-  LOCKED: { label: 'Locked', className: 'bg-gray-200 text-gray-700' },
+  ACCEPTED: { label: 'Accepted', className: 'bg-[rgba(74,222,128,0.1)] text-[#4ade80]' },
+  DISPUTED: { label: 'Disputed', className: 'bg-[rgba(248,113,113,0.1)] text-[#f87171]' },
+  LOCKED: { label: 'Locked', className: 'bg-white/10 text-white/70' },
 };
 
 function DeletePhotoButton({ reportId, photoId }: { reportId: string; photoId: string }) {
@@ -111,11 +111,11 @@ function SubmitForReviewButton({ reportId }: { reportId: string }) {
       <button
         onClick={handleSubmit}
         disabled={loading}
-        className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-sm font-semibold px-5 py-2.5 rounded-lg transition-colors"
+        className="bg-gradient-to-br from-[#C49A3C] to-[#E8B84B] hover:opacity-90 disabled:opacity-50 text-[#1C2740] text-sm font-semibold px-5 py-2.5 rounded-lg transition-colors"
       >
         {loading ? 'Submitting…' : 'Submit for Review'}
       </button>
-      {error && <p className="text-red-500 text-xs mt-1">{error}</p>}
+      {error && <p className="text-[#f87171] text-xs mt-1">{error}</p>}
     </div>
   );
 }
@@ -131,7 +131,7 @@ export default function ConditionReportCard({
   const canReview = !isCreator && ['SUBMITTED', 'PENDING_REVIEW', 'COUNTER_EVIDENCE_ADDED'].includes(status);
   const canSubmit = isCreator && ['DRAFT', 'CORRECTION_REQUESTED'].includes(status);
 
-  const badge = STATUS_BADGE[status] ?? { label: status, className: 'bg-gray-100 text-gray-600' };
+  const badge = STATUS_BADGE[status] ?? { label: status, className: 'bg-white/5 text-white/60' };
   const typeLabel = TYPE_LABELS[type] ?? type;
 
   const photosByRoom = photos.reduce<Record<string, Photo[]>>((acc, p) => {
@@ -157,12 +157,12 @@ export default function ConditionReportCard({
 
     return Object.keys(byRoom).sort().map((room) => (
       <div key={room}>
-        <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">{room}</p>
+        <p className="text-xs font-semibold text-white/50 uppercase tracking-wider mb-2">{room}</p>
         <div className="flex flex-wrap gap-3">
           {byRoom[room].map((photo) => (
             <div key={photo.id} className="group relative">
               <a href={photo.imageUrl} target="_blank" rel="noopener noreferrer"
-                className="relative block w-28 h-28 rounded-lg overflow-hidden border border-gray-200 hover:opacity-90 transition-opacity"
+                className="relative block w-28 h-28 rounded-lg overflow-hidden border border-[rgba(196,154,60,0.15)] hover:opacity-90 transition-opacity"
                 title={photo.caption ?? `${room} photo`}>
                 <Image src={photo.imageUrl} alt={photo.caption ?? `${room} condition`}
                   fill className="object-cover" sizes="112px" />
@@ -171,7 +171,7 @@ export default function ConditionReportCard({
                 <DeletePhotoButton reportId={reportId} photoId={photo.id} />
               )}
               {photo.caption && (
-                <p className="text-xs text-gray-500 mt-1 max-w-[112px] truncate">{photo.caption}</p>
+                <p className="text-xs text-white/50 mt-1 max-w-[112px] truncate">{photo.caption}</p>
               )}
             </div>
           ))}
@@ -181,28 +181,28 @@ export default function ConditionReportCard({
   };
 
   return (
-    <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+    <div className="bg-[#1C2740] rounded-xl border border-[rgba(196,154,60,0.15)] overflow-hidden">
       {/* Header */}
-      <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+      <div className="px-6 py-4 border-b border-[rgba(196,154,60,0.1)] flex items-center justify-between">
         <div>
           <div className="flex items-center gap-2">
-            <p className="font-semibold text-gray-900 text-sm">{typeLabel} Report</p>
+            <p className="font-semibold text-white text-sm">{typeLabel} Report</p>
             <span className={`text-xs font-semibold px-2.5 py-0.5 rounded-full ${badge.className}`}>
               {badge.label}
             </span>
           </div>
-          <p className="text-xs text-gray-400 mt-0.5">
+          <p className="text-xs text-white/40 mt-0.5">
             Created by {createdByName} ({createdByRole.toLowerCase()}) · {formatDate(createdAt)}
           </p>
         </div>
-        <p className="text-xs text-gray-400">{photos.length} {photos.length === 1 ? 'photo' : 'photos'}</p>
+        <p className="text-xs text-white/40">{photos.length} {photos.length === 1 ? 'photo' : 'photos'}</p>
       </div>
 
       {/* Notes */}
       {notes && (
-        <div className="px-6 py-3 bg-gray-50 border-b border-gray-100">
-          <p className="text-xs text-gray-400 mb-1">Notes</p>
-          <p className="text-sm text-gray-700">{notes}</p>
+        <div className="px-6 py-3 bg-white/[0.03] border-b border-[rgba(196,154,60,0.1)]">
+          <p className="text-xs text-white/40 mb-1">Notes</p>
+          <p className="text-sm text-white/70">{notes}</p>
         </div>
       )}
 
@@ -216,7 +216,7 @@ export default function ConditionReportCard({
 
       {/* Evidence progress — shown when creator can still edit */}
       {canSubmit && (
-        <div className="px-6 border-b border-gray-100">
+        <div className="px-6 border-b border-[rgba(196,154,60,0.1)]">
           <ConditionEvidenceProgress
             reportType={type}
             photoCount={photos.length}
@@ -230,21 +230,21 @@ export default function ConditionReportCard({
         {status === 'DISPUTED' && counterPhotos.length > 0 ? (
           <>
             <div>
-              <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">
+              <p className="text-xs font-bold text-white/50 uppercase tracking-wider mb-3">
                 Original Evidence ({creatorPhotos.length} photos)
               </p>
               <div className="space-y-4">
                 {renderPhotoGrid(creatorPhotos, false)}
               </div>
             </div>
-            <div className="border-t border-red-100 pt-4">
-              <p className="text-xs font-bold text-red-500 uppercase tracking-wider mb-3">
+            <div className="border-t border-[rgba(248,113,113,0.25)] pt-4">
+              <p className="text-xs font-bold text-[#f87171] uppercase tracking-wider mb-3">
                 Counter Evidence ({counterPhotos.length} photos)
               </p>
               {counterNote && (
-                <div className="bg-red-50 rounded-lg px-4 py-3 mb-3">
-                  <p className="text-xs text-red-600 font-medium mb-1">Counter note</p>
-                  <p className="text-sm text-red-800">{counterNote}</p>
+                <div className="bg-[rgba(248,113,113,0.08)] rounded-lg px-4 py-3 mb-3">
+                  <p className="text-xs text-[#f87171] font-medium mb-1">Counter note</p>
+                  <p className="text-sm text-[#f87171]">{counterNote}</p>
                 </div>
               )}
               <div className="space-y-4">
@@ -254,32 +254,32 @@ export default function ConditionReportCard({
           </>
         ) : photos.length === 0 ? (
           <div className="text-center py-8">
-            <p className="text-gray-500 text-sm">No photos uploaded yet</p>
+            <p className="text-white/50 text-sm">No photos uploaded yet</p>
           </div>
         ) : (
           <div className="space-y-4">
             {Object.keys(photosByRoom).sort().map((room) => (
               <div key={room}>
-                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">{room}</p>
+                <p className="text-xs font-semibold text-white/50 uppercase tracking-wider mb-2">{room}</p>
                 <div className="flex flex-wrap gap-3">
                   {photosByRoom[room].map((photo) => {
                     const canDelete = photo.uploadedById === currentUserId && !isLocked;
                     return (
                       <div key={photo.id} className="group relative">
                         <a href={photo.imageUrl} target="_blank" rel="noopener noreferrer"
-                          className="relative block w-28 h-28 rounded-lg overflow-hidden border border-gray-200 hover:opacity-90 transition-opacity"
+                          className="relative block w-28 h-28 rounded-lg overflow-hidden border border-[rgba(196,154,60,0.15)] hover:opacity-90 transition-opacity"
                           title={photo.caption ?? `${room} photo`}>
                           <Image src={photo.imageUrl} alt={photo.caption ?? `${room} condition`}
                             fill className="object-cover" sizes="112px" />
                           {photo.uploadedById !== createdById && (
-                            <div className="absolute top-1 right-1 bg-blue-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">
+                            <div className="absolute top-1 right-1 bg-gradient-to-br from-[#C49A3C] to-[#E8B84B] text-[#1C2740] text-[10px] font-bold px-1.5 py-0.5 rounded-full">
                               Other party
                             </div>
                           )}
                         </a>
                         {canDelete && <DeletePhotoButton reportId={reportId} photoId={photo.id} />}
                         {photo.caption && (
-                          <p className="text-xs text-gray-500 mt-1 max-w-[112px] truncate">{photo.caption}</p>
+                          <p className="text-xs text-white/50 mt-1 max-w-[112px] truncate">{photo.caption}</p>
                         )}
                       </div>
                     );
@@ -292,9 +292,9 @@ export default function ConditionReportCard({
       </div>
 
       {/* Footer actions */}
-      <div className="px-6 py-4 border-t border-gray-100 bg-gray-50">
+      <div className="px-6 py-4 border-t border-[rgba(196,154,60,0.1)] bg-white/[0.03]">
         {status === 'ACCEPTED' && reviewedAt && (
-          <div className="flex items-center gap-2 text-green-600 text-sm">
+          <div className="flex items-center gap-2 text-[#4ade80] text-sm">
             <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
             </svg>
@@ -303,7 +303,7 @@ export default function ConditionReportCard({
         )}
 
         {status === 'DISPUTED' && reviewedAt && (
-          <div className="flex items-center gap-2 text-red-600 text-sm">
+          <div className="flex items-center gap-2 text-[#f87171] text-sm">
             <span>Disputed — counter evidence submitted by {reviewedByName} on {formatDate(reviewedAt)}</span>
           </div>
         )}
@@ -311,7 +311,7 @@ export default function ConditionReportCard({
         {canSubmit && <SubmitForReviewButton reportId={reportId} />}
 
         {isCreator && !canSubmit && !isLocked && (
-          <p className="text-xs text-gray-400">Waiting for the other party to review.</p>
+          <p className="text-xs text-white/40">Waiting for the other party to review.</p>
         )}
 
         {canReview && <ConditionReviewActions reportId={reportId} />}

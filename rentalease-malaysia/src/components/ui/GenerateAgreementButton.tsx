@@ -50,8 +50,8 @@ export default function GenerateAgreementButton({
 
   const variantClass =
     variant === 'primary'
-      ? 'bg-blue-600 hover:bg-blue-700 text-white'
-      : 'border border-gray-300 text-gray-600 hover:bg-gray-50';
+      ? 'bg-gradient-to-br from-[#C49A3C] to-[#E8B84B] hover:opacity-90 text-[#1C2740]'
+      : 'border border-white/10 text-white/60 hover:bg-white/5';
 
   return (
     <div>
@@ -88,7 +88,7 @@ export default function GenerateAgreementButton({
           label
         )}
       </button>
-      {error && <p className="text-red-500 text-xs mt-2">{error}</p>}
+      {error && <p className="text-[#f87171] text-xs mt-2">{error}</p>}
     </div>
   );
 }

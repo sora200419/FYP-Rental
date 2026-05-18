@@ -85,16 +85,16 @@ export default function ConditionReviewActions({ reportId }: Props) {
 
   return (
     <div className="space-y-3">
-      <p className="text-sm font-medium text-gray-700">
+      <p className="text-sm font-medium text-white/70">
         Review this report and choose an action:
       </p>
 
       {/* Accept */}
-      <div className="border border-green-200 rounded-lg p-4 bg-green-50">
+      <div className="border border-[rgba(74,222,128,0.25)] rounded-lg p-4 bg-[rgba(74,222,128,0.08)]">
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-sm font-semibold text-green-800">Accept Report</p>
-            <p className="text-xs text-green-600 mt-0.5">
+            <p className="text-sm font-semibold text-[#4ade80]">Accept Report</p>
+            <p className="text-xs text-[#4ade80] mt-0.5">
               Confirms you reviewed the evidence and agree with the documented condition.
             </p>
           </div>
@@ -109,17 +109,17 @@ export default function ConditionReviewActions({ reportId }: Props) {
       </div>
 
       {/* Request Correction */}
-      <div className="border border-amber-200 rounded-lg p-4 bg-amber-50">
+      <div className="border border-[rgba(251,191,36,0.25)] rounded-lg p-4 bg-[rgba(251,191,36,0.08)]">
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-sm font-semibold text-amber-800">Request Correction</p>
-            <p className="text-xs text-amber-600 mt-0.5">
+            <p className="text-sm font-semibold text-[#E8B84B]">Request Correction</p>
+            <p className="text-xs text-[#E8B84B] mt-0.5">
               Ask the creator to add missing or clearer evidence.
             </p>
           </div>
           <button
             onClick={() => setActiveAction(activeAction === 'correction' ? null : 'correction')}
-            className="ml-4 border border-amber-400 text-amber-700 hover:bg-amber-100 text-sm font-medium px-4 py-2 rounded-lg transition-colors"
+            className="ml-4 border border-amber-400 text-[#E8B84B] hover:bg-[rgba(251,191,36,0.08)] text-sm font-medium px-4 py-2 rounded-lg transition-colors"
           >
             Request
           </button>
@@ -131,7 +131,7 @@ export default function ConditionReviewActions({ reportId }: Props) {
               onChange={(e) => setCorrectionNote(e.target.value)}
               placeholder="e.g. Missing bathroom photos. The wall photo is too blurry."
               rows={3}
-              className="w-full border border-amber-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400"
+              className="w-full rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-sm text-white placeholder:text-white/20 focus:border-[rgba(196,154,60,0.5)] focus:outline-none focus:ring-0 transition-colors"
             />
             <button
               onClick={handleRequestCorrection}
@@ -145,17 +145,17 @@ export default function ConditionReviewActions({ reportId }: Props) {
       </div>
 
       {/* Counter Evidence */}
-      <div className="border border-red-200 rounded-lg p-4 bg-red-50">
+      <div className="border border-[rgba(248,113,113,0.25)] rounded-lg p-4 bg-[rgba(248,113,113,0.08)]">
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-sm font-semibold text-red-800">Add Counter Evidence</p>
-            <p className="text-xs text-red-600 mt-0.5">
+            <p className="text-sm font-semibold text-[#f87171]">Add Counter Evidence</p>
+            <p className="text-xs text-[#f87171] mt-0.5">
               Upload your own photos (using Add Photos above) then submit a note explaining your disagreement.
             </p>
           </div>
           <button
             onClick={() => setActiveAction(activeAction === 'counter' ? null : 'counter')}
-            className="ml-4 border border-red-300 text-red-700 hover:bg-red-100 text-sm font-medium px-4 py-2 rounded-lg transition-colors"
+            className="ml-4 border border-[rgba(248,113,113,0.25)] text-[#f87171] hover:bg-[rgba(248,113,113,0.08)] text-sm font-medium px-4 py-2 rounded-lg transition-colors"
           >
             Dispute
           </button>
@@ -167,7 +167,7 @@ export default function ConditionReviewActions({ reportId }: Props) {
               onChange={(e) => setCounterNote(e.target.value)}
               placeholder="e.g. The wall damage shown was pre-existing when I moved in."
               rows={3}
-              className="w-full border border-red-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-400"
+              className="w-full rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-sm text-white placeholder:text-white/20 focus:border-[rgba(196,154,60,0.5)] focus:outline-none focus:ring-0 transition-colors"
             />
             <button
               onClick={handleCounterEvidence}
@@ -180,7 +180,7 @@ export default function ConditionReviewActions({ reportId }: Props) {
         )}
       </div>
 
-      {error && <p className="text-red-500 text-xs mt-2">{error}</p>}
+      {error && <p className="text-[#f87171] text-xs mt-2">{error}</p>}
     </div>
   );
 }

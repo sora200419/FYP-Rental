@@ -31,14 +31,14 @@ export default function ConditionEvidenceProgress({
       {/* Photos progress */}
       <div>
         <div className="flex justify-between items-center mb-1">
-          <span className="text-xs font-medium text-gray-600">Photos</span>
+          <span className="text-xs font-medium text-white/60">Photos</span>
           <span
-            className={`text-xs font-semibold ${photoMet ? 'text-green-600' : 'text-amber-600'}`}
+            className={`text-xs font-semibold ${photoMet ? 'text-[#4ade80]' : 'text-[#E8B84B]'}`}
           >
             {photoCount} / {minPhotos} minimum
           </span>
         </div>
-        <div className="h-1.5 bg-gray-200 rounded-full overflow-hidden">
+        <div className="h-1.5 bg-white/10 rounded-full overflow-hidden">
           <div
             className={`h-full rounded-full transition-all ${photoMet ? 'bg-green-500' : 'bg-amber-400'}`}
             style={{ width: `${photoProgress * 100}%` }}
@@ -50,16 +50,16 @@ export default function ConditionEvidenceProgress({
       {isStrict && (
         <div>
           <div className="flex justify-between items-center mb-1">
-            <span className="text-xs font-medium text-gray-600">
+            <span className="text-xs font-medium text-white/60">
               Evidence areas
             </span>
             <span
-              className={`text-xs font-semibold ${checklistMet ? 'text-green-600' : 'text-amber-600'}`}
+              className={`text-xs font-semibold ${checklistMet ? 'text-[#4ade80]' : 'text-[#E8B84B]'}`}
             >
               {checklistCount} / {minChecklist} required
             </span>
           </div>
-          <div className="h-1.5 bg-gray-200 rounded-full overflow-hidden">
+          <div className="h-1.5 bg-white/10 rounded-full overflow-hidden">
             <div
               className={`h-full rounded-full transition-all ${checklistMet ? 'bg-green-500' : 'bg-amber-400'}`}
               style={{ width: `${checklistProgress * 100}%` }}

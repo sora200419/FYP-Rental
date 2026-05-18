@@ -84,11 +84,11 @@ export default function CreateConditionReport({ tenancyId, tenancyStatus }: Prop
           <button
             disabled
             title="The tenancy agreement must be signed before creating condition reports"
-            className="bg-gray-100 text-gray-400 text-sm font-semibold px-5 py-2.5 rounded-lg cursor-not-allowed"
+            className="bg-white/5 text-white/40 text-sm font-semibold px-5 py-2.5 rounded-lg cursor-not-allowed"
           >
             + New Condition Report
           </button>
-          <p className="text-xs text-gray-400 mt-1">
+          <p className="text-xs text-white/40 mt-1">
             Available after agreement is signed
           </p>
         </div>
@@ -97,7 +97,7 @@ export default function CreateConditionReport({ tenancyId, tenancyStatus }: Prop
     return (
       <button
         onClick={() => setIsOpen(true)}
-        className="bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold px-5 py-2.5 rounded-lg transition-colors"
+        className="bg-gradient-to-br from-[#C49A3C] to-[#E8B84B] hover:opacity-90 text-[#1C2740] text-sm font-semibold px-5 py-2.5 rounded-lg transition-colors"
       >
         + New Condition Report
       </button>
@@ -105,8 +105,8 @@ export default function CreateConditionReport({ tenancyId, tenancyStatus }: Prop
   }
 
   return (
-    <div className="bg-white rounded-xl border border-gray-200 p-6">
-      <h3 className="text-sm font-semibold text-gray-900 mb-4">
+    <div className="bg-[#1C2740] rounded-xl border border-[rgba(196,154,60,0.15)] p-6">
+      <h3 className="text-sm font-semibold text-white mb-4">
         Create New Condition Report
       </h3>
 
@@ -117,8 +117,8 @@ export default function CreateConditionReport({ tenancyId, tenancyStatus }: Prop
             key={type.value}
             className={`flex items-start gap-3 p-3 rounded-lg border-2 cursor-pointer transition-all ${
               selectedType === type.value
-                ? 'border-blue-500 bg-blue-50'
-                : 'border-gray-200 hover:border-gray-300'
+                ? 'border-[rgba(196,154,60,0.5)] bg-[rgba(196,154,60,0.06)]'
+                : 'border-[rgba(196,154,60,0.15)] hover:border-white/10'
             }`}
           >
             <input
@@ -130,8 +130,8 @@ export default function CreateConditionReport({ tenancyId, tenancyStatus }: Prop
               className="sr-only"
             />
             <div>
-              <p className="text-sm font-medium text-gray-900">{type.label}</p>
-              <p className="text-xs text-gray-500 mt-0.5">{type.description}</p>
+              <p className="text-sm font-medium text-white">{type.label}</p>
+              <p className="text-xs text-white/50 mt-0.5">{type.description}</p>
             </div>
           </label>
         ))}
@@ -139,8 +139,8 @@ export default function CreateConditionReport({ tenancyId, tenancyStatus }: Prop
 
       {/* Notes */}
       <div className="mb-4">
-        <label className="block text-xs font-medium text-gray-500 mb-1">
-          General Notes <span className="text-gray-400">(optional)</span>
+        <label className="block text-xs font-medium text-white/50 mb-1">
+          General Notes <span className="text-white/40">(optional)</span>
         </label>
         <textarea
           value={notes}
@@ -148,12 +148,12 @@ export default function CreateConditionReport({ tenancyId, tenancyStatus }: Prop
           rows={3}
           placeholder="e.g. Pre-existing damage noted on east wall of living room. All appliances tested and working."
           maxLength={2000}
-          className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+          className="w-full rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-sm text-white placeholder:text-white/20 focus:border-[rgba(196,154,60,0.5)] focus:outline-none focus:ring-0 transition-colors resize-none"
         />
       </div>
 
       {error && (
-        <div className="bg-red-50 border border-red-200 text-red-600 text-sm rounded-lg px-4 py-3 mb-4">
+        <div className="bg-[rgba(248,113,113,0.08)] border border-[rgba(248,113,113,0.25)] text-[#f87171] text-sm rounded-lg px-4 py-3 mb-4">
           {error}
         </div>
       )}
@@ -166,14 +166,14 @@ export default function CreateConditionReport({ tenancyId, tenancyStatus }: Prop
             setNotes('');
           }}
           disabled={isLoading}
-          className="flex-1 border border-gray-300 text-gray-600 hover:bg-gray-50 font-semibold py-2.5 rounded-lg transition-colors text-sm"
+          className="flex-1 border border-white/10 text-white/60 hover:bg-white/5 font-semibold py-2.5 rounded-lg transition-colors text-sm"
         >
           Cancel
         </button>
         <button
           onClick={handleCreate}
           disabled={isLoading}
-          className="flex-1 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-semibold py-2.5 rounded-lg transition-colors text-sm"
+          className="flex-1 bg-gradient-to-br from-[#C49A3C] to-[#E8B84B] hover:opacity-90 disabled:opacity-50 text-[#1C2740] font-semibold py-2.5 rounded-lg transition-colors text-sm"
         >
           {isLoading ? 'Creating…' : 'Create Report'}
         </button>

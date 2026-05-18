@@ -63,12 +63,12 @@ function Field({
 }) {
   return (
     <div>
-      <label className="block text-sm font-medium text-gray-700 mb-1">
+      <label className="block text-sm font-medium text-white/70 mb-1">
         {label}
       </label>
       {children}
-      {hint && !error && <p className="text-gray-400 text-xs mt-1">{hint}</p>}
-      {error && <p className="text-red-500 text-xs mt-1">{error}</p>}
+      {hint && !error && <p className="text-white/40 text-xs mt-1">{hint}</p>}
+      {error && <p className="text-[#f87171] text-xs mt-1">{error}</p>}
     </div>
   );
 }
@@ -111,33 +111,33 @@ export default function NewPropertyPage() {
   };
 
   const inputClass =
-    'w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500';
+    'w-full rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-sm text-white placeholder:text-white/20 focus:border-[rgba(196,154,60,0.5)] focus:outline-none focus:ring-0 transition-colors';
 
   return (
     <div className="max-w-2xl">
-      <div className="flex items-center gap-2 text-sm text-gray-400 mb-6">
+      <div className="flex items-center gap-2 text-sm text-white/40 mb-6">
         <Link
           href="/dashboard/landlord/properties"
-          className="hover:text-blue-600 transition-colors"
+          className="hover:text-[#C49A3C] transition-colors"
         >
           Properties
         </Link>
         <span>/</span>
-        <span className="text-gray-700 font-medium">Add New Property</span>
+        <span className="text-white/70 font-medium">Add New Property</span>
       </div>
 
-      <div className="bg-white rounded-xl border border-gray-200 p-8">
-        <h1 className="text-xl font-bold text-gray-900 mb-1">
+      <div className="bg-[#1C2740] rounded-xl border border-[rgba(196,154,60,0.15)] p-8">
+        <h1 className="text-xl font-bold text-white mb-1">
           Add New Property
         </h1>
-        <p className="text-gray-400 text-sm mb-7">
+        <p className="text-white/40 text-sm mb-7">
           Enter the property address and type. After saving, you&apos;ll add
           individual rooms with their rent amounts.
         </p>
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
           <div>
-            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4">
+            <p className="text-xs font-semibold text-white/40 uppercase tracking-wider mb-4">
               Location
             </p>
             <div className="space-y-4">
@@ -170,7 +170,7 @@ export default function NewPropertyPage() {
                 </Field>
               </div>
               <Field label="State" error={errors.state?.message}>
-                <select {...register('state')} className={inputClass}>
+                <select {...register('state')} className={`${inputClass} bg-[#1C2740]`}>
                   <option value="">Select a state</option>
                   {MALAYSIAN_STATES.map((s) => (
                     <option key={s} value={s}>
@@ -183,12 +183,12 @@ export default function NewPropertyPage() {
           </div>
 
           <div>
-            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4">
+            <p className="text-xs font-semibold text-white/40 uppercase tracking-wider mb-4">
               Property Details
             </p>
             <div className="space-y-4">
               <Field label="Property Type" error={errors.type?.message}>
-                <select {...register('type')} className={inputClass}>
+                <select {...register('type')} className={`${inputClass} bg-[#1C2740]`}>
                   <option value="">Select property type</option>
                   {PROPERTY_TYPES.map((t) => (
                     <option key={t} value={t}>
@@ -211,11 +211,11 @@ export default function NewPropertyPage() {
             </div>
           </div>
 
-          <div className="bg-blue-50 border border-blue-200 rounded-lg px-4 py-3">
-            <p className="text-sm font-medium text-blue-800">
+          <div className="bg-[rgba(196,154,60,0.06)] border border-[rgba(196,154,60,0.2)] rounded-lg px-4 py-3">
+            <p className="text-sm font-medium text-[#C49A3C]">
               What happens after you save?
             </p>
-            <p className="text-xs text-blue-600 mt-1">
+            <p className="text-xs text-[#C49A3C] mt-1">
               You&apos;ll be taken to the property detail page where you can add
               rooms (e.g. &ldquo;Entire Unit&rdquo;, &ldquo;Master Room&rdquo;)
               with individual rent amounts.
@@ -223,7 +223,7 @@ export default function NewPropertyPage() {
           </div>
 
           {serverError && (
-            <div className="bg-red-50 border border-red-200 text-red-600 text-sm rounded-lg px-4 py-3">
+            <div className="bg-[rgba(248,113,113,0.08)] border border-[rgba(248,113,113,0.25)] text-[#f87171] text-sm rounded-lg px-4 py-3">
               {serverError}
             </div>
           )}
@@ -231,14 +231,14 @@ export default function NewPropertyPage() {
           <div className="flex gap-3 pt-2">
             <Link
               href="/dashboard/landlord/properties"
-              className="flex-1 text-center border border-gray-300 text-gray-600 hover:bg-gray-50 font-semibold py-3 rounded-lg transition-colors text-sm"
+              className="flex-1 text-center border border-white/10 text-white/60 hover:bg-white/5 font-semibold py-3 rounded-lg transition-colors text-sm"
             >
               Cancel
             </Link>
             <button
               type="submit"
               disabled={isLoading}
-              className="flex-1 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 text-white font-semibold py-3 rounded-lg transition-colors text-sm"
+              className="flex-1 bg-gradient-to-br from-[#C49A3C] to-[#E8B84B] hover:opacity-90 disabled:opacity-50 text-[#1C2740] font-semibold py-3 rounded-lg transition-colors text-sm"
             >
               {isLoading ? 'Saving...' : 'Save Property'}
             </button>

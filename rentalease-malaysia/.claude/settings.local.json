@@ -98,7 +98,15 @@
       "Bash(Sort-Object)",
       "Bash(not exist *)",
       "PowerShell(New-Item *)",
-      "Bash(npm uninstall *)"
+      "Bash(npm uninstall *)",
+      "Bash(cat)",
+      "Read(//tmp/**)",
+      "Bash(Select-Object -First 20)",
+      "Bash(xargs grep -l \"DELETE\\\\|route\\\\.tsx\\\\|DELETE.*delete\\\\|DELETE.*remove\")",
+      "Bash(npx ts-node --compiler-options '{\"module\":\"CommonJS\"}' -e ' *)",
+      "Bash(node --require dotenv/config -e ' *)",
+      "Bash(xargs grep -l \"z\\\\.object.*date\\\\|z\\\\.date\\\\|z\\\\.string.*date\")",
+      "Bash(xargs grep -l \"min.*date\\\\|max.*date\")"
     ]
   }
 }

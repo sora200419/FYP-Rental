@@ -18,15 +18,15 @@ export default async function NewTenancyPage({
   if (!roomId) {
     return (
       <div className="max-w-2xl">
-        <div className="bg-amber-50 border border-amber-200 rounded-xl p-6">
-          <p className="font-semibold text-amber-900">No room selected</p>
-          <p className="text-sm text-amber-700 mt-1">
+        <div className="bg-[rgba(251,191,36,0.08)] border border-[rgba(251,191,36,0.25)] rounded-xl p-6">
+          <p className="font-semibold text-[#E8B84B]">No room selected</p>
+          <p className="text-sm text-[#E8B84B] mt-1">
             Please go to a property, select an available room, and click
             &ldquo;Create Tenancy&rdquo; from there.
           </p>
           <Link
             href="/dashboard/landlord/properties"
-            className="inline-block mt-4 bg-amber-500 hover:bg-amber-600 text-white text-sm font-semibold px-5 py-2.5 rounded-lg transition-colors"
+            className="inline-block mt-4 bg-gradient-to-br from-[#C49A3C] to-[#E8B84B] hover:opacity-90 text-[#1C2740] text-sm font-semibold px-5 py-2.5 rounded-lg transition-colors"
           >
             Go to Properties
           </Link>
@@ -56,14 +56,14 @@ export default async function NewTenancyPage({
   if (!room) {
     return (
       <div className="max-w-2xl">
-        <div className="bg-red-50 border border-red-200 rounded-xl p-6">
-          <p className="font-semibold text-red-900">Room not found</p>
-          <p className="text-sm text-red-700 mt-1">
+        <div className="bg-[rgba(248,113,113,0.08)] border border-[rgba(248,113,113,0.25)] rounded-xl p-6">
+          <p className="font-semibold text-[#f87171]">Room not found</p>
+          <p className="text-sm text-[#f87171] mt-1">
             This room does not exist or does not belong to your account.
           </p>
           <Link
             href="/dashboard/landlord/properties"
-            className="inline-block mt-4 text-sm text-red-600 hover:underline"
+            className="inline-block mt-4 text-sm text-[#f87171] hover:underline"
           >
             ← Back to Properties
           </Link>
@@ -74,26 +74,26 @@ export default async function NewTenancyPage({
 
   return (
     <div className="max-w-2xl">
-      <div className="flex items-center gap-2 text-sm text-gray-400 mb-6">
+      <div className="flex items-center gap-2 text-sm text-white/40 mb-6">
         <Link
           href="/dashboard/landlord/tenancies"
-          className="hover:text-blue-600 transition-colors"
+          className="hover:text-[#C49A3C] transition-colors"
         >
           Tenancies
         </Link>
         <span>/</span>
-        <span className="text-gray-700 font-medium">Create New Tenancy</span>
+        <span className="text-white/70 font-medium">Create New Tenancy</span>
       </div>
 
-      <div className="bg-blue-50 border border-blue-200 rounded-xl px-5 py-4 mb-5">
-        <p className="text-xs text-blue-500 uppercase tracking-wider font-semibold mb-1">
+      <div className="bg-[rgba(196,154,60,0.06)] border border-[rgba(196,154,60,0.2)] rounded-xl px-5 py-4 mb-5">
+        <p className="text-xs text-[#C49A3C] uppercase tracking-wider font-semibold mb-1">
           Creating tenancy for
         </p>
-        <p className="font-semibold text-blue-900">{room.label}</p>
-        <p className="text-sm text-blue-700 mt-0.5">
+        <p className="font-semibold text-[#C49A3C]">{room.label}</p>
+        <p className="text-sm text-[#C49A3C] mt-0.5">
           {room.property.address}, {room.property.city} — {room.property.type}
         </p>
-        <p className="text-xs text-blue-500 mt-1">
+        <p className="text-xs text-[#C49A3C] mt-1">
           Default rent: RM{' '}
           {Number(room.rentAmount).toLocaleString('en-MY', {
             minimumFractionDigits: 2,
@@ -102,7 +102,7 @@ export default async function NewTenancyPage({
         </p>
         <Link
           href={`/dashboard/landlord/properties/${room.property.id}`}
-          className="text-xs text-blue-600 hover:underline mt-2 inline-block"
+          className="text-xs text-[#C49A3C] hover:underline mt-2 inline-block"
         >
           ← Change room
         </Link>

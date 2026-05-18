@@ -42,31 +42,31 @@ export default async function WizardPage({
   return (
     <div>
       {/* Breadcrumb */}
-      <div className="flex items-center gap-2 text-sm text-gray-400 mb-6">
-        <Link href="/dashboard/landlord/tenancies" className="hover:text-blue-600 transition-colors">
+      <div className="flex items-center gap-2 text-sm text-white/40 mb-6">
+        <Link href="/dashboard/landlord/tenancies" className="hover:text-[#C49A3C] transition-colors">
           Tenancies
         </Link>
         <span>/</span>
         <Link
           href={`/dashboard/landlord/tenancies/${id}`}
-          className="hover:text-blue-600 transition-colors"
+          className="hover:text-[#C49A3C] transition-colors"
         >
           {tenancy.room.property.address} — {tenancy.room.label}
         </Link>
         <span>/</span>
-        <span className="text-gray-700 font-medium">Agreement Wizard</span>
+        <span className="text-white/70 font-medium">Agreement Wizard</span>
       </div>
 
       {/* Header */}
       <div className="mb-8">
-        <h1 className="text-2xl font-bold text-gray-900">Agreement Wizard</h1>
-        <p className="text-gray-500 text-sm mt-1">
+        <h1 className="text-2xl font-bold text-white">Agreement Wizard</h1>
+        <p className="text-white/50 text-sm mt-1">
           Tenant: <span className="font-medium">{tenancy.tenant.name}</span>
           {' · '}
           {tenancy.room.property.address}, {tenancy.room.property.city}
         </p>
         {tenancy.agreementPreferences && !tenancy.agreementPreferences.isComplete && (
-          <div className="mt-3 bg-amber-50 border border-amber-200 rounded-lg px-4 py-3 text-sm text-amber-800">
+          <div className="mt-3 bg-[rgba(251,191,36,0.08)] border border-[rgba(251,191,36,0.25)] rounded-lg px-4 py-3 text-sm text-[#E8B84B]">
             You have a draft in progress. Continue where you left off or start over by adjusting your answers.
           </div>
         )}

@@ -116,11 +116,11 @@ export default function MessageThread({
     });
 
   return (
-    <div className="flex flex-col bg-white rounded-xl border border-gray-200 overflow-hidden h-full min-h-[480px]">
+    <div className="flex flex-col bg-[#1C2740] rounded-xl border border-[rgba(196,154,60,0.15)] overflow-hidden h-full min-h-[480px]">
       {/* Thread header */}
-      <div className="border-b border-gray-100 bg-gray-50 px-5 py-4">
-        <p className="text-sm font-semibold text-gray-900">{otherPartyName}</p>
-        <p className="mt-0.5 truncate text-xs text-gray-400">{contextLabel ?? 'Messages are scoped to this tenancy'}</p>
+      <div className="border-b border-[rgba(196,154,60,0.1)] bg-white/[0.03] px-5 py-4">
+        <p className="text-sm font-semibold text-white">{otherPartyName}</p>
+        <p className="mt-0.5 truncate text-xs text-white/40">{contextLabel ?? 'Messages are scoped to this tenancy'}</p>
       </div>
 
       {/* Message list — scrollable middle section */}
@@ -133,14 +133,14 @@ export default function MessageThread({
 
         {!isLoading && messages.length === 0 && (
           <div className="text-center py-12">
-            <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center mx-auto mb-3">
-              <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center mx-auto mb-3">
+              <svg className="w-5 h-5 text-white/40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
                   d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
               </svg>
             </div>
-            <p className="text-sm text-gray-500">No messages yet</p>
-            <p className="text-xs text-gray-400 mt-0.5">Start the conversation below</p>
+            <p className="text-sm text-white/50">No messages yet</p>
+            <p className="text-xs text-white/40 mt-0.5">Start the conversation below</p>
           </div>
         )}
 
@@ -157,7 +157,7 @@ export default function MessageThread({
               >
                 {/* Sender name — shown for received messages */}
                 {!isOwn && (
-                  <p className="text-xs text-gray-400 px-1">
+                  <p className="text-xs text-white/40 px-1">
                     {msg.sender.name}
                   </p>
                 )}
@@ -166,15 +166,15 @@ export default function MessageThread({
                 <div
                   className={`px-4 py-2.5 rounded-2xl text-sm leading-relaxed whitespace-pre-wrap ${
                     isOwn
-                      ? 'bg-blue-600 text-white rounded-br-sm'
-                      : 'bg-white border border-gray-200 text-gray-900 rounded-bl-sm shadow-sm'
+                      ? 'bg-gradient-to-br from-[#C49A3C] to-[#E8B84B] text-[#1C2740] rounded-br-sm'
+                      : 'bg-[#1C2740] border border-[rgba(196,154,60,0.15)] text-white rounded-bl-sm shadow-sm'
                   }`}
                 >
                   {msg.content}
                 </div>
 
                 {/* Timestamp */}
-                <p className="text-xs text-gray-400 px-1">
+                <p className="text-xs text-white/40 px-1">
                   {formatTime(msg.createdAt)}
                 </p>
               </div>
@@ -187,9 +187,9 @@ export default function MessageThread({
       </div>
 
       {/* Message input area */}
-      <div className="border-t border-gray-100 bg-white px-4 py-3">
-        {error && <p className="mb-2 text-xs text-red-500">{error}</p>}
-        <div className="flex items-end gap-2 rounded-xl border border-gray-200 bg-gray-50 p-2 focus-within:ring-2 focus-within:ring-blue-500">
+      <div className="border-t border-[rgba(196,154,60,0.1)] bg-[#1C2740] px-4 py-3">
+        {error && <p className="mb-2 text-xs text-[#f87171]">{error}</p>}
+        <div className="flex items-end gap-2 rounded-xl border border-[rgba(196,154,60,0.15)] bg-white/[0.03] p-2 focus-within:ring-2 focus-within:ring-[rgba(196,154,60,0.5)]">
           <textarea
             value={newMessage}
             onChange={(e) => setNewMessage(e.target.value)}
@@ -197,12 +197,12 @@ export default function MessageThread({
             rows={2}
             placeholder="Type a message… (Enter to send, Shift+Enter for new line)"
             disabled={isSending}
-            className="flex-1 resize-none bg-transparent px-2 py-2 text-sm text-gray-900 outline-none"
+            className="flex-1 resize-none bg-transparent px-2 py-2 text-sm text-white outline-none placeholder:text-white/20"
           />
           <button
             onClick={handleSend}
             disabled={isSending || !newMessage.trim()}
-            className="shrink-0 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-blue-700 disabled:opacity-40"
+            className="shrink-0 rounded-lg bg-gradient-to-br from-[#C49A3C] to-[#E8B84B] px-4 py-2.5 text-sm font-semibold text-[#1C2740] transition-colors hover:opacity-90 disabled:opacity-40"
           >
             {isSending ? 'Sending…' : 'Send'}
           </button>

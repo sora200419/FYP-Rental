@@ -65,11 +65,11 @@ function Field({
 }) {
   return (
     <div>
-      <label className="block text-xs font-semibold text-gray-700 mb-1">
+      <label className="block text-xs font-semibold text-white/70 mb-1">
         {label}
       </label>
       {children}
-      {hint && <p className="text-xs text-gray-400 mt-1">{hint}</p>}
+      {hint && <p className="text-xs text-white/40 mt-1">{hint}</p>}
     </div>
   );
 }
@@ -172,14 +172,15 @@ export default function AddRoomForm({ propertyId }: { propertyId: string }) {
   };
 
   const inputClass =
-    'w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white';
-  const selectClass = inputClass;
+    'w-full rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-sm text-white placeholder:text-white/20 focus:border-[rgba(196,154,60,0.5)] focus:outline-none focus:ring-0 transition-colors';
+  const selectClass =
+    'w-full rounded-lg border border-white/10 bg-[#1C2740] px-4 py-2.5 text-sm text-white focus:border-[rgba(196,154,60,0.5)] focus:outline-none focus:ring-0 transition-colors';
 
   if (!open) {
     return (
       <button
         onClick={() => setOpen(true)}
-        className="w-full border-2 border-dashed border-gray-300 hover:border-blue-400 hover:bg-blue-50 text-gray-400 hover:text-blue-600 text-sm font-medium py-4 rounded-xl transition-colors"
+        className="w-full border-2 border-dashed border-white/10 hover:border-[rgba(196,154,60,0.5)] hover:bg-[rgba(196,154,60,0.06)] text-white/40 hover:text-[#C49A3C] text-sm font-medium py-4 rounded-xl transition-colors"
       >
         + Add Room
       </button>
@@ -187,13 +188,13 @@ export default function AddRoomForm({ propertyId }: { propertyId: string }) {
   }
 
   return (
-    <div className="border border-blue-200 bg-blue-50 rounded-xl p-6">
-      <h3 className="text-sm font-bold text-blue-900 mb-5">Add New Room</h3>
+    <div className="border border-[rgba(196,154,60,0.2)] bg-[rgba(196,154,60,0.06)] rounded-xl p-6">
+      <h3 className="text-sm font-bold text-[#C49A3C] mb-5">Add New Room</h3>
 
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* ── Section 1: Room identity ─────────────────────────────────── */}
         <div>
-          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
+          <p className="text-xs font-semibold text-white/50 uppercase tracking-wider mb-3">
             Room Identity
           </p>
           <div className="space-y-4">
@@ -204,8 +205,8 @@ export default function AddRoomForm({ propertyId }: { propertyId: string }) {
                     key={opt.value}
                     className={`flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${
                       roomType === opt.value
-                        ? 'border-blue-500 bg-white'
-                        : 'border-gray-200 bg-white hover:border-gray-300'
+                        ? 'border-[rgba(196,154,60,0.5)] bg-white/5'
+                        : 'border-[rgba(196,154,60,0.15)] bg-white/5 hover:border-white/10'
                     }`}
                   >
                     <input
@@ -217,10 +218,10 @@ export default function AddRoomForm({ propertyId }: { propertyId: string }) {
                       className="mt-0.5 accent-blue-600"
                     />
                     <div>
-                      <p className="text-sm font-semibold text-gray-800">
+                      <p className="text-sm font-semibold text-white">
                         {opt.label}
                       </p>
-                      <p className="text-xs text-gray-400">{opt.desc}</p>
+                      <p className="text-xs text-white/40">{opt.desc}</p>
                     </div>
                   </label>
                 ))}
@@ -244,7 +245,7 @@ export default function AddRoomForm({ propertyId }: { propertyId: string }) {
 
         {/* ── Section 2: Bathroom ──────────────────────────────────────── */}
         <div>
-          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
+          <p className="text-xs font-semibold text-white/50 uppercase tracking-wider mb-3">
             Bathroom
           </p>
           <div className="grid grid-cols-2 gap-3 mb-4">
@@ -252,8 +253,8 @@ export default function AddRoomForm({ propertyId }: { propertyId: string }) {
             <label
               className={`flex items-center gap-2 p-3 rounded-lg border cursor-pointer transition-colors ${
                 bathroomType === 'ATTACHED'
-                  ? 'border-blue-500 bg-white'
-                  : 'border-gray-200 bg-white hover:border-gray-300'
+                  ? 'border-[rgba(196,154,60,0.5)] bg-white/5'
+                  : 'border-[rgba(196,154,60,0.15)] bg-white/5 hover:border-white/10'
               }`}
             >
               <input
@@ -265,10 +266,10 @@ export default function AddRoomForm({ propertyId }: { propertyId: string }) {
                 className="accent-blue-600"
               />
               <div>
-                <p className="text-sm font-semibold text-gray-800">
+                <p className="text-sm font-semibold text-white">
                   Attached
                 </p>
-                <p className="text-xs text-gray-400">
+                <p className="text-xs text-white/40">
                   Private bathroom inside the room
                 </p>
               </div>
@@ -278,8 +279,8 @@ export default function AddRoomForm({ propertyId }: { propertyId: string }) {
             <label
               className={`flex items-center gap-2 p-3 rounded-lg border cursor-pointer transition-colors ${
                 bathroomType === 'SHARED'
-                  ? 'border-blue-500 bg-white'
-                  : 'border-gray-200 bg-white hover:border-gray-300'
+                  ? 'border-[rgba(196,154,60,0.5)] bg-white/5'
+                  : 'border-[rgba(196,154,60,0.15)] bg-white/5 hover:border-white/10'
               }`}
             >
               <input
@@ -291,8 +292,8 @@ export default function AddRoomForm({ propertyId }: { propertyId: string }) {
                 className="accent-blue-600"
               />
               <div>
-                <p className="text-sm font-semibold text-gray-800">Shared</p>
-                <p className="text-xs text-gray-400">
+                <p className="text-sm font-semibold text-white">Shared</p>
+                <p className="text-xs text-white/40">
                   Common bathroom shared with others
                 </p>
               </div>
@@ -316,7 +317,7 @@ export default function AddRoomForm({ propertyId }: { propertyId: string }) {
 
         {/* ── Section 3: Pricing ───────────────────────────────────────── */}
         <div>
-          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
+          <p className="text-xs font-semibold text-white/50 uppercase tracking-wider mb-3">
             Pricing
           </p>
           <Field label="Monthly Rent (RM) *">
@@ -335,7 +336,7 @@ export default function AddRoomForm({ propertyId }: { propertyId: string }) {
 
         {/* ── Section 4: Furnishing ────────────────────────────────────── */}
         <div>
-          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
+          <p className="text-xs font-semibold text-white/50 uppercase tracking-wider mb-3">
             Furnishing Level
           </p>
           <div className="space-y-2">
@@ -344,8 +345,8 @@ export default function AddRoomForm({ propertyId }: { propertyId: string }) {
                 key={opt.value}
                 className={`flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${
                   furnishing === opt.value
-                    ? 'border-blue-500 bg-white'
-                    : 'border-gray-200 bg-white hover:border-gray-300'
+                    ? 'border-[rgba(196,154,60,0.5)] bg-white/5'
+                    : 'border-[rgba(196,154,60,0.15)] bg-white/5 hover:border-white/10'
                 }`}
               >
                 <input
@@ -357,10 +358,10 @@ export default function AddRoomForm({ propertyId }: { propertyId: string }) {
                   className="mt-0.5 accent-blue-600"
                 />
                 <div>
-                  <p className="text-sm font-semibold text-gray-800">
+                  <p className="text-sm font-semibold text-white">
                     {opt.label}
                   </p>
-                  <p className="text-xs text-gray-400">{opt.desc}</p>
+                  <p className="text-xs text-white/40">{opt.desc}</p>
                 </div>
               </label>
             ))}
@@ -369,10 +370,10 @@ export default function AddRoomForm({ propertyId }: { propertyId: string }) {
 
         {/* ── Section 5: Included utilities ────────────────────────────── */}
         <div>
-          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
+          <p className="text-xs font-semibold text-white/50 uppercase tracking-wider mb-3">
             Utilities Included in Rent
           </p>
-          <p className="text-xs text-gray-400 mb-3">
+          <p className="text-xs text-white/40 mb-3">
             Tick what is covered by the monthly rent — these will appear in the
             tenancy agreement.
           </p>
@@ -399,7 +400,7 @@ export default function AddRoomForm({ propertyId }: { propertyId: string }) {
             ].map((util) => (
               <label
                 key={util.key}
-                className="flex items-center gap-3 p-3 bg-white rounded-lg border border-gray-200 cursor-pointer hover:border-gray-300"
+                className="flex items-center gap-3 p-3 bg-white/5 rounded-lg border border-[rgba(196,154,60,0.15)] cursor-pointer hover:border-white/10"
               >
                 <input
                   type="checkbox"
@@ -407,10 +408,10 @@ export default function AddRoomForm({ propertyId }: { propertyId: string }) {
                   onChange={(e) => util.setter(e.target.checked)}
                   className="accent-blue-600 w-4 h-4"
                 />
-                <span className="text-sm font-medium text-gray-700">
+                <span className="text-sm font-medium text-white/70">
                   {util.label}
                 </span>
-                <span className="text-xs text-gray-400 ml-auto">
+                <span className="text-xs text-white/40 ml-auto">
                   {util.value ? 'Included' : 'Tenant pays separately'}
                 </span>
               </label>
@@ -420,7 +421,7 @@ export default function AddRoomForm({ propertyId }: { propertyId: string }) {
 
         {/* ── Section 6: Room preferences ─────────────────────────────── */}
         <div>
-          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
+          <p className="text-xs font-semibold text-white/50 uppercase tracking-wider mb-3">
             Room Preferences
           </p>
           <div className="grid grid-cols-2 gap-4">
@@ -455,7 +456,7 @@ export default function AddRoomForm({ propertyId }: { propertyId: string }) {
 
         {/* ── Section 7: Optional details ──────────────────────────────── */}
         <div>
-          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
+          <p className="text-xs font-semibold text-white/50 uppercase tracking-wider mb-3">
             Optional Details
           </p>
           <div className="grid grid-cols-2 gap-4 mb-4">
@@ -496,7 +497,7 @@ export default function AddRoomForm({ propertyId }: { propertyId: string }) {
         </div>
 
         {error && (
-          <p className="text-red-600 text-xs bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+          <p className="text-[#f87171] text-xs bg-[rgba(248,113,113,0.08)] border border-[rgba(248,113,113,0.25)] rounded-lg px-3 py-2">
             {error}
           </p>
         )}
@@ -508,14 +509,14 @@ export default function AddRoomForm({ propertyId }: { propertyId: string }) {
               setOpen(false);
               setError(null);
             }}
-            className="flex-1 text-sm font-medium text-gray-500 hover:text-gray-700 border border-gray-300 bg-white py-2 rounded-lg transition-colors"
+            className="flex-1 text-sm font-medium text-white/50 hover:text-white/70 border border-white/10 bg-white/5 py-2 rounded-lg transition-colors"
           >
             Cancel
           </button>
           <button
             type="submit"
             disabled={isLoading}
-            className="flex-1 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 py-2 rounded-lg transition-colors"
+            className="flex-1 text-sm font-semibold text-[#1C2740] bg-gradient-to-br from-[#C49A3C] to-[#E8B84B] hover:opacity-90 disabled:opacity-50 py-2 rounded-lg transition-colors"
           >
             {isLoading ? 'Saving...' : 'Save Room'}
           </button>

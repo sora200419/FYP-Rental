@@ -31,11 +31,11 @@ export default async function KycPage() {
     return (
       <div className="max-w-lg">
         <div className="mb-6">
-          <h1 className="text-2xl font-bold text-gray-900">Identity Verification</h1>
+          <h1 className="text-2xl font-bold text-white">Identity Verification</h1>
         </div>
-        <div className="rounded-xl border border-blue-200 bg-blue-50 px-5 py-4">
-          <p className="font-semibold text-blue-800 text-sm">Under review</p>
-          <p className="mt-0.5 text-xs text-blue-700">
+        <div className="rounded-xl border border-[rgba(196,154,60,0.2)] bg-[rgba(196,154,60,0.06)] px-5 py-4">
+          <p className="font-semibold text-[#C49A3C] text-sm">Under review</p>
+          <p className="mt-0.5 text-xs text-[#C49A3C]">
             Your documents have been submitted and are being reviewed by an admin. You&apos;ll receive a notification once approved.
           </p>
         </div>
@@ -46,21 +46,21 @@ export default async function KycPage() {
   return (
     <div className="max-w-lg">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Identity Verification</h1>
-        <p className="mt-1 text-sm text-gray-500">
+        <h1 className="text-2xl font-bold text-white">Identity Verification</h1>
+        <p className="mt-1 text-sm text-white/50">
           Verify your identity to unlock full platform access. All documents are stored securely in accordance with PDPA 2010.
         </p>
       </div>
 
       {submission?.status === 'REJECTED' && (
-        <div className="mb-6 rounded-xl border border-red-200 bg-red-50 px-5 py-4">
-          <p className="font-semibold text-red-800 text-sm">Previous submission rejected</p>
-          <p className="mt-0.5 text-xs text-red-700">{submission.rejectedReason}</p>
-          <p className="mt-1 text-xs text-red-600">Please resubmit with clearer photos.</p>
+        <div className="mb-6 rounded-xl border border-[rgba(248,113,113,0.25)] bg-[rgba(248,113,113,0.08)] px-5 py-4">
+          <p className="font-semibold text-[#f87171] text-sm">Previous submission rejected</p>
+          <p className="mt-0.5 text-xs text-[#f87171]">{submission.rejectedReason}</p>
+          <p className="mt-1 text-xs text-[#f87171]">Please resubmit with clearer photos.</p>
         </div>
       )}
 
-      <div className="rounded-xl border border-gray-200 bg-white p-6">
+      <div className="rounded-xl border border-[rgba(196,154,60,0.15)] bg-[#1C2740] p-6">
         <KycWizard />
       </div>
     </div>

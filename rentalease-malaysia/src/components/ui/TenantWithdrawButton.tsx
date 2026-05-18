@@ -35,7 +35,7 @@ export default function TenantWithdrawButton({ tenancyId }: Props) {
     return (
       <button
         onClick={() => setConfirming(true)}
-        className="border border-red-300 text-red-600 hover:bg-red-50 font-semibold py-2.5 px-4 rounded-lg transition-colors text-sm"
+        className="border border-[rgba(248,113,113,0.25)] text-[#f87171] hover:bg-[rgba(248,113,113,0.08)] font-semibold py-2.5 px-4 rounded-lg transition-colors text-sm"
       >
         Withdraw from Tenancy
       </button>
@@ -43,20 +43,20 @@ export default function TenantWithdrawButton({ tenancyId }: Props) {
   }
 
   return (
-    <div className="bg-red-50 border border-red-200 rounded-xl p-5">
-      <p className="text-red-800 font-semibold text-sm mb-1">
+    <div className="bg-[rgba(248,113,113,0.08)] border border-[rgba(248,113,113,0.25)] rounded-xl p-5">
+      <p className="text-[#f87171] font-semibold text-sm mb-1">
         Confirm withdrawal
       </p>
-      <p className="text-red-700 text-xs mb-4">
+      <p className="text-[#f87171] text-xs mb-4">
         This will cancel your pending tenancy and free the room. Any draft agreement
         will be deleted. This cannot be undone.
       </p>
-      {error && <p className="text-red-500 text-sm mb-3">{error}</p>}
+      {error && <p className="text-[#f87171] text-sm mb-3">{error}</p>}
       <div className="flex gap-3">
         <button
           onClick={() => { setConfirming(false); setError(null); }}
           disabled={isLoading}
-          className="flex-1 border border-gray-300 text-gray-600 hover:bg-gray-50 font-semibold py-2.5 rounded-lg transition-colors text-sm"
+          className="flex-1 border border-white/10 text-white/60 hover:bg-white/5 font-semibold py-2.5 rounded-lg transition-colors text-sm"
         >
           Back
         </button>

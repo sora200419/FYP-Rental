@@ -77,19 +77,19 @@ export default function TenantAgreementSignatureProofUploader({
   };
 
   return (
-    <div className="bg-white rounded-xl border border-gray-200 p-6">
+    <div className="bg-[#1C2740] rounded-xl border border-[rgba(196,154,60,0.15)] p-6">
       <div className="flex items-start justify-between gap-4 mb-4">
         <div>
-          <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wider">
+          <h2 className="text-sm font-semibold text-white/40 uppercase tracking-wider">
             Signed Hard-Copy Proof
           </h2>
-          <p className="text-sm text-gray-600 mt-2">
+          <p className="text-sm text-white/60 mt-2">
             Your tenancy will only start after the landlord approves your
             digitally signed agreement together with the uploaded hard-copy
             signature proof.
           </p>
           {isCorporate && (
-            <p className="text-xs text-blue-700 mt-2">
+            <p className="text-xs text-[#C49A3C] mt-2">
               The uploaded file should show the signature of the {signerLabel}{' '}
               acting for the corporate lease party.
             </p>
@@ -98,12 +98,12 @@ export default function TenantAgreementSignatureProofUploader({
         <span
           className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold ${
             status === 'SIGNED'
-              ? 'bg-green-50 text-green-700 ring-1 ring-green-200 ring-inset'
+              ? 'bg-[rgba(74,222,128,0.1)] text-[#4ade80] ring-1 ring-[rgba(74,222,128,0.25)] ring-inset'
               : latestProof?.status === 'UNDER_REVIEW'
-                ? 'bg-blue-50 text-blue-700 ring-1 ring-blue-200 ring-inset'
+                ? 'bg-[rgba(196,154,60,0.1)] text-[#C49A3C] ring-1 ring-[rgba(196,154,60,0.2)] ring-inset'
                 : latestProof?.status === 'REJECTED'
-                  ? 'bg-red-50 text-red-600 ring-1 ring-red-200 ring-inset'
-                  : 'bg-amber-50 text-amber-700 ring-1 ring-amber-200 ring-inset'
+                  ? 'bg-[rgba(248,113,113,0.1)] text-[#f87171] ring-1 ring-[rgba(248,113,113,0.25)] ring-inset'
+                  : 'bg-[rgba(251,191,36,0.08)] text-[#E8B84B] ring-1 ring-[rgba(251,191,36,0.25)] ring-inset'
           }`}
         >
           {status === 'SIGNED'
@@ -117,16 +117,16 @@ export default function TenantAgreementSignatureProofUploader({
       </div>
 
       {!latestProof && status === 'PENDING_SIGNATURE_PROOF' && (
-        <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-4 mb-4">
-          <p className="text-sm font-semibold text-amber-900">
+        <div className="bg-[rgba(251,191,36,0.08)] border border-[rgba(251,191,36,0.25)] rounded-xl px-4 py-4 mb-4">
+          <p className="text-sm font-semibold text-[#E8B84B]">
             Digital signature complete
           </p>
-          <p className="text-xs text-amber-700 mt-1 leading-relaxed">
+          <p className="text-xs text-[#E8B84B] mt-1 leading-relaxed">
             Upload the signed hard-copy file next. Accepted formats: PDF, JPG,
             PNG, or HEIC, up to 10 MB.
           </p>
           {isCorporate && (
-            <p className="text-xs text-amber-800 mt-2 leading-relaxed">
+            <p className="text-xs text-[#E8B84B] mt-2 leading-relaxed">
               Make sure the uploaded document is signed by the {signerLabel},
               not just by a room occupant.
             </p>
@@ -135,11 +135,11 @@ export default function TenantAgreementSignatureProofUploader({
       )}
 
       {latestProof?.status === 'UNDER_REVIEW' && (
-        <div className="bg-blue-50 border border-blue-200 rounded-xl px-4 py-4 mb-4">
-          <p className="text-sm font-semibold text-blue-900">
+        <div className="bg-[rgba(196,154,60,0.06)] border border-[rgba(196,154,60,0.2)] rounded-xl px-4 py-4 mb-4">
+          <p className="text-sm font-semibold text-[#C49A3C]">
             Signed hard-copy submitted
           </p>
-          <p className="text-xs text-blue-700 mt-1 leading-relaxed">
+          <p className="text-xs text-[#C49A3C] mt-1 leading-relaxed">
             The landlord is reviewing your uploaded signed copy. Move-in only
             starts after approval.
           </p>
@@ -147,16 +147,16 @@ export default function TenantAgreementSignatureProofUploader({
       )}
 
       {latestProof?.status === 'REJECTED' && (
-        <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-4 mb-4">
-          <p className="text-sm font-semibold text-red-900">
+        <div className="bg-[rgba(248,113,113,0.08)] border border-[rgba(248,113,113,0.25)] rounded-xl px-4 py-4 mb-4">
+          <p className="text-sm font-semibold text-[#f87171]">
             Re-upload requested
           </p>
-          <p className="text-xs text-red-700 mt-1 leading-relaxed">
+          <p className="text-xs text-[#f87171] mt-1 leading-relaxed">
             The landlord rejected the last uploaded file. Upload a clearer or
             correctly signed copy to continue.
           </p>
           {latestProof.rejectionReason && (
-            <p className="text-xs text-red-700 mt-2">
+            <p className="text-xs text-[#f87171] mt-2">
               <span className="font-semibold">Reason:</span>{' '}
               {latestProof.rejectionReason}
             </p>
@@ -165,21 +165,21 @@ export default function TenantAgreementSignatureProofUploader({
       )}
 
       {latestProof && (
-        <div className="rounded-xl border border-gray-200 bg-gray-50 px-4 py-4 mb-4">
+        <div className="rounded-xl border border-[rgba(196,154,60,0.15)] bg-white/[0.03] px-4 py-4 mb-4">
           <div className="flex items-start justify-between gap-4">
             <div>
-              <p className="text-sm font-semibold text-gray-900">
+              <p className="text-sm font-semibold text-white">
                 Latest uploaded file
               </p>
-              <p className="text-xs text-gray-500 mt-1">
+              <p className="text-xs text-white/50 mt-1">
                 {latestProof.originalName} ·{' '}
                 {(latestProof.fileSize / (1024 * 1024)).toFixed(2)} MB
               </p>
-              <p className="text-xs text-gray-500 mt-1">
+              <p className="text-xs text-white/50 mt-1">
                 Uploaded on {new Date(latestProof.createdAt).toLocaleString('en-MY')}
               </p>
               {latestProof.reviewedAt && (
-                <p className="text-xs text-gray-500 mt-1">
+                <p className="text-xs text-white/50 mt-1">
                   Reviewed on {new Date(latestProof.reviewedAt).toLocaleString('en-MY')}
                 </p>
               )}
@@ -188,7 +188,7 @@ export default function TenantAgreementSignatureProofUploader({
               href={latestProof.fileUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="shrink-0 rounded-lg border border-gray-300 bg-white px-3 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-100 transition-colors"
+              className="shrink-0 rounded-lg border border-white/10 bg-[#1C2740] px-3 py-2 text-xs font-semibold text-white/70 hover:bg-white/5 transition-colors"
             >
               Open File
             </a>
@@ -202,14 +202,14 @@ export default function TenantAgreementSignatureProofUploader({
             <button
               type="button"
               onClick={() => inputRef.current?.click()}
-              className="w-full rounded-xl border border-dashed border-gray-300 px-4 py-4 text-sm font-medium text-gray-600 hover:border-blue-400 hover:text-blue-600 transition-colors"
+              className="w-full rounded-xl border border-dashed border-white/10 px-4 py-4 text-sm font-medium text-white/60 hover:border-[rgba(196,154,60,0.5)] hover:text-[#C49A3C] transition-colors"
             >
               Upload signed hard-copy file
             </button>
           ) : (
-            <div className="rounded-xl border border-gray-200 px-4 py-4">
-              <p className="text-sm font-semibold text-gray-900">{file.name}</p>
-              <p className="text-xs text-gray-500 mt-1">
+            <div className="rounded-xl border border-[rgba(196,154,60,0.15)] px-4 py-4">
+              <p className="text-sm font-semibold text-white">{file.name}</p>
+              <p className="text-xs text-white/50 mt-1">
                 {(file.size / (1024 * 1024)).toFixed(2)} MB
               </p>
               <div className="flex gap-3 mt-4">
@@ -221,7 +221,7 @@ export default function TenantAgreementSignatureProofUploader({
                     setError(null);
                   }}
                   disabled={isUploading}
-                  className="flex-1 rounded-lg border border-gray-300 px-4 py-2.5 text-sm font-semibold text-gray-700 hover:bg-gray-50 transition-colors"
+                  className="flex-1 rounded-lg border border-white/10 px-4 py-2.5 text-sm font-semibold text-white/70 hover:bg-white/5 transition-colors"
                 >
                   Cancel
                 </button>
@@ -229,7 +229,7 @@ export default function TenantAgreementSignatureProofUploader({
                   type="button"
                   onClick={handleUpload}
                   disabled={isUploading}
-                  className="flex-1 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-50 transition-colors"
+                  className="flex-1 rounded-lg bg-gradient-to-br from-[#C49A3C] to-[#E8B84B] px-4 py-2.5 text-sm font-semibold text-[#1C2740] hover:opacity-90 disabled:opacity-50 transition-colors"
                 >
                   {isUploading ? 'Uploading…' : 'Submit for Review'}
                 </button>
@@ -249,13 +249,13 @@ export default function TenantAgreementSignatureProofUploader({
             }}
           />
 
-          <p className="text-xs text-gray-500">
+          <p className="text-xs text-white/50">
             Accepted formats: PDF, JPG, PNG, HEIC. Maximum size: 10 MB.
           </p>
         </div>
       )}
 
-      {error && <p className="text-sm text-red-500 mt-3">{error}</p>}
+      {error && <p className="text-sm text-[#f87171] mt-3">{error}</p>}
     </div>
   );
 }

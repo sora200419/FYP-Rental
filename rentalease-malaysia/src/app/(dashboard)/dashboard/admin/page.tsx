@@ -41,7 +41,7 @@ export default async function AdminDashboard() {
         href={attentionHref}
         secondary={
           <div className="space-y-2">
-            <p className="text-xs font-semibold uppercase tracking-wide text-blue-700">Blocking queues</p>
+            <p className="text-xs font-semibold uppercase tracking-wide text-[#C49A3C]">Blocking queues</p>
             <QueueLine label="Pending KYC" value={pendingKycCount} />
             <QueueLine label="Pending properties" value={unverifiedPropertiesCount} />
           </div>
@@ -79,9 +79,9 @@ export default async function AdminDashboard() {
 
 function QueueLine({ label, value }: { label: string; value: number }) {
   return (
-    <div className="flex items-center justify-between rounded-lg bg-white px-3 py-2 text-sm">
-      <span className="font-medium text-gray-700">{label}</span>
-      <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${value > 0 ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-500'}`}>
+    <div className="flex items-center justify-between rounded-lg bg-[#1C2740] px-3 py-2 text-sm">
+      <span className="font-medium text-white/70">{label}</span>
+      <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${value > 0 ? 'bg-gradient-to-br from-[#C49A3C] to-[#E8B84B] text-[#1C2740]' : 'bg-white/5 text-white/50'}`}>
         {value}
       </span>
     </div>
@@ -102,17 +102,17 @@ function ReviewCard({
   return (
     <Link
       href={href}
-      className="flex items-center justify-between gap-4 rounded-xl border border-gray-200 bg-white px-5 py-4 transition-colors hover:border-gray-300"
+      className="flex items-center justify-between gap-4 rounded-xl border border-[rgba(196,154,60,0.15)] bg-[#1C2740] px-5 py-4 transition-colors hover:border-white/10"
     >
       <div>
-        <p className="text-sm font-semibold text-gray-900">{title}</p>
-        <p className="mt-0.5 text-xs leading-relaxed text-gray-500">{description}</p>
+        <p className="text-sm font-semibold text-white">{title}</p>
+        <p className="mt-0.5 text-xs leading-relaxed text-white/50">{description}</p>
       </div>
       <div className="flex shrink-0 items-center gap-3">
-        <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${count > 0 ? 'bg-amber-50 text-amber-700 ring-1 ring-amber-200 ring-inset' : 'bg-gray-100 text-gray-500'}`}>
+        <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${count > 0 ? 'bg-[rgba(251,191,36,0.08)] text-[#E8B84B] ring-1 ring-[rgba(251,191,36,0.25)] ring-inset' : 'bg-white/5 text-white/50'}`}>
           {count}
         </span>
-        <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg className="h-5 w-5 text-white/40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
         </svg>
       </div>

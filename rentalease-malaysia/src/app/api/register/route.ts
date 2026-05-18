@@ -7,16 +7,28 @@ import { z } from 'zod';
 // Malaysian IC: YYMMDD-SS-#### or YYMMDSS#### (12 digits, optional dashes)
 const IC_REGEX = /^\d{6}-?\d{2}-?\d{4}$/;
 
+function isValidIcDate(ic: string): boolean {
+  const digits = ic.replace(/-/g, '');
+  const mm = parseInt(digits.slice(2, 4), 10);
+  const dd = parseInt(digits.slice(4, 6), 10);
+  const yy = parseInt(digits.slice(0, 2), 10);
+  const currentYY = new Date().getFullYear() % 100;
+  const year = yy > currentYY ? 1900 + yy : 2000 + yy;
+  const date = new Date(year, mm - 1, dd);
+  return date.getFullYear() === year && date.getMonth() === mm - 1 && date.getDate() === dd;
+}
+
 const fieldsSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters'),
   email: z.string().email('Invalid email address'),
   password: z.string().min(8, 'Password must be at least 8 characters'),
   role: z.enum(['LANDLORD', 'TENANT']),
-  phone: z.string().optional(),
+  phone: z.string().optional().default(''),
   icNumber: z
     .string()
     .min(1, 'IC number is required')
-    .regex(IC_REGEX, 'Invalid IC format - e.g. 900101-14-5678 or 900101145678'),
+    .regex(IC_REGEX, 'Invalid IC format - e.g. 900101-14-5678 or 900101145678')
+    .refine(isValidIcDate, 'Invalid date in IC number'),
 });
 
 export async function POST(request: NextRequest) {
@@ -28,7 +40,7 @@ export async function POST(request: NextRequest) {
       email: formData.get('email') as string,
       password: formData.get('password') as string,
       role: formData.get('role') as string,
-      phone: (formData.get('phone') as string) || undefined,
+      phone: formData.get('phone') as string,
       icNumber: formData.get('icNumber') as string,
     };
 

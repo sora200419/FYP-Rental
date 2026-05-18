@@ -20,7 +20,7 @@ export async function DELETE(
       rooms: {
         include: {
           tenancies: {
-            where: { status: { in: ['INVITED', 'PENDING', 'ACTIVE'] } },
+            where: { status: { in: ['INVITED', 'PENDING', 'ACTIVE', 'EXPIRED', 'TERMINATED'] } },
             select: { id: true },
           },
         },
@@ -33,7 +33,7 @@ export async function DELETE(
   const hasActiveTenancy = property.rooms.some((r) => r.tenancies.length > 0);
   if (hasActiveTenancy) {
     return NextResponse.json(
-      { error: 'Cannot delete a property with active tenancies. End all tenancies first.' },
+      { error: 'Cannot delete a property that has tenancy records. All tenancies must be fully settled first.' },
       { status: 409 },
     );
   }

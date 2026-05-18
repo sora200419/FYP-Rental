@@ -72,11 +72,11 @@ export default function ConditionChecklistEditor({
   };
 
   return (
-    <div className="bg-white rounded-xl border border-gray-200 p-5">
-      <p className="text-sm font-semibold text-gray-700 mb-1">
+    <div className="bg-[#1C2740] rounded-xl border border-[rgba(196,154,60,0.15)] p-5">
+      <p className="text-sm font-semibold text-white/70 mb-1">
         Evidence Checklist
       </p>
-      <p className="text-xs text-gray-500 mb-4">
+      <p className="text-xs text-white/50 mb-4">
         Mark how you have documented each required area.
       </p>
 
@@ -88,9 +88,9 @@ export default function ConditionChecklistEditor({
           return (
             <div key={area} className="flex items-center gap-3">
               <div
-                className={`w-2 h-2 rounded-full shrink-0 ${current ? 'bg-green-500' : 'bg-gray-300'}`}
+                className={`w-2 h-2 rounded-full shrink-0 ${current ? 'bg-green-500' : 'bg-white/30'}`}
               />
-              <span className="text-sm text-gray-700 flex-1 min-w-0 truncate">
+              <span className="text-sm text-white/70 flex-1 min-w-0 truncate">
                 {area}
               </span>
               <select
@@ -99,7 +99,7 @@ export default function ConditionChecklistEditor({
                   handleSelect(area, e.target.value as CompletionReason)
                 }
                 disabled={isSaving}
-                className="text-xs border border-gray-300 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
+                className="text-xs rounded-lg px-2 py-1.5 focus:outline-none focus:border-[rgba(196,154,60,0.5)] focus:ring-0 disabled:opacity-50 bg-[#1C2740] text-white border border-white/10 transition-colors"
               >
                 <option value="" disabled>
                   Select…
@@ -115,7 +115,7 @@ export default function ConditionChecklistEditor({
         })}
       </div>
 
-      {error && <p className="text-red-500 text-xs mt-3">{error}</p>}
+      {error && <p className="text-[#f87171] text-xs mt-3">{error}</p>}
     </div>
   );
 }

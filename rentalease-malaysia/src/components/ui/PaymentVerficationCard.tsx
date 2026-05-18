@@ -64,22 +64,22 @@ export default function PaymentVerificationCard({
   };
 
   return (
-    <div className="bg-white rounded-xl border border-gray-200 p-5">
+    <div className="bg-[#1C2740] rounded-xl border border-[rgba(196,154,60,0.15)] p-5">
       {/* Payment header row */}
       <div className="flex items-center justify-between mb-4">
         <div>
-          <p className="font-semibold text-gray-900 text-sm">{dueDate}</p>
-          <p className="text-gray-400 text-xs mt-0.5">{amount}</p>
+          <p className="font-semibold text-white text-sm">{dueDate}</p>
+          <p className="text-white/40 text-xs mt-0.5">{amount}</p>
         </div>
         <span
           className={`text-xs font-semibold px-2.5 py-1 rounded-full ${
             status === 'PAID'
-              ? 'bg-green-100 text-green-700'
+              ? 'bg-[rgba(74,222,128,0.1)] text-[#4ade80]'
               : status === 'UNDER_REVIEW'
-                ? 'bg-amber-100 text-amber-700'
+                ? 'bg-[rgba(251,191,36,0.08)] text-[#E8B84B]'
                 : status === 'LATE'
-                  ? 'bg-red-100 text-red-600'
-                  : 'bg-gray-100 text-gray-500'
+                  ? 'bg-[rgba(248,113,113,0.1)] text-[#f87171]'
+                  : 'bg-white/5 text-white/50'
           }`}
         >
           {status === 'UNDER_REVIEW'
@@ -125,7 +125,7 @@ export default function PaymentVerificationCard({
           <button
             onClick={() => setMode('rejecting')}
             disabled={isLoading}
-            className="flex-1 border border-red-300 text-red-600 hover:bg-red-50 disabled:opacity-50 text-sm font-semibold py-2 rounded-lg transition-colors"
+            className="flex-1 border border-[rgba(248,113,113,0.25)] text-[#f87171] hover:bg-[rgba(248,113,113,0.08)] disabled:opacity-50 text-sm font-semibold py-2 rounded-lg transition-colors"
           >
             Reject
           </button>
@@ -140,7 +140,7 @@ export default function PaymentVerificationCard({
             onChange={(e) => setRejectReason(e.target.value)}
             rows={3}
             placeholder="Explain why the proof is insufficient, e.g. 'The photo is blurry and the amount is not visible. Please re-upload a clearer screenshot.'"
-            className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-red-400 resize-none mb-3"
+            className="w-full rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-sm text-white placeholder:text-white/20 focus:border-[rgba(196,154,60,0.5)] focus:outline-none focus:ring-0 transition-colors resize-none mb-3"
           />
           <div className="flex gap-2">
             <button
@@ -149,7 +149,7 @@ export default function PaymentVerificationCard({
                 setRejectReason('');
               }}
               disabled={isLoading}
-              className="flex-1 border border-gray-300 text-gray-600 hover:bg-gray-50 text-sm font-semibold py-2 rounded-lg transition-colors"
+              className="flex-1 border border-white/10 text-white/60 hover:bg-white/5 text-sm font-semibold py-2 rounded-lg transition-colors"
             >
               Cancel
             </button>
@@ -164,7 +164,7 @@ export default function PaymentVerificationCard({
         </div>
       )}
 
-      {error && <p className="text-red-500 text-xs mt-2">{error}</p>}
+      {error && <p className="text-[#f87171] text-xs mt-2">{error}</p>}
     </div>
   );
 }

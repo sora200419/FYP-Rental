@@ -48,7 +48,7 @@ export default function AdminKycActions({ submissionId }: Props) {
 
   return (
     <div>
-      {error && <p className="mb-2 text-xs text-red-500">{error}</p>}
+      {error && <p className="mb-2 text-xs text-[#f87171]">{error}</p>}
       {rejecting ? (
         <div className="space-y-2">
           <textarea
@@ -56,15 +56,15 @@ export default function AdminKycActions({ submissionId }: Props) {
             onChange={(e) => setReason(e.target.value)}
             placeholder="Reason for rejection (required)"
             rows={2}
-            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+            className="w-full rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-sm text-white placeholder:text-white/20 focus:border-[rgba(196,154,60,0.5)] focus:outline-none focus:ring-0 transition-colors"
           />
           <div className="flex gap-2">
             <button onClick={() => { setRejecting(false); setReason(''); setError(null); }}
-              className="rounded-lg border border-gray-300 px-4 py-2 text-sm text-gray-600 hover:bg-gray-50">
+              className="rounded-lg border border-white/10 px-4 py-2 text-sm text-white/60 hover:bg-white/5">
               Cancel
             </button>
             <button onClick={handleReject} disabled={loading}
-              className="rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700 disabled:opacity-50">
+              className="rounded-lg bg-[rgba(248,113,113,0.1)] border border-[rgba(248,113,113,0.25)] px-4 py-2 text-sm font-semibold text-[#f87171] hover:opacity-90 disabled:opacity-50">
               {loading ? 'Rejecting…' : 'Confirm Reject'}
             </button>
           </div>
@@ -72,11 +72,11 @@ export default function AdminKycActions({ submissionId }: Props) {
       ) : (
         <div className="flex gap-2">
           <button onClick={handleApprove} disabled={loading}
-            className="rounded-lg bg-green-600 px-4 py-2 text-sm font-semibold text-white hover:bg-green-700 disabled:opacity-50">
+            className="rounded-lg bg-[rgba(74,222,128,0.1)] border border-[rgba(74,222,128,0.25)] px-4 py-2 text-sm font-semibold text-[#4ade80] hover:opacity-90 disabled:opacity-50">
             {loading ? 'Approving…' : 'Approve'}
           </button>
           <button onClick={() => { setRejecting(true); setError(null); }} disabled={loading}
-            className="rounded-lg border border-red-300 px-4 py-2 text-sm font-semibold text-red-600 hover:bg-red-50">
+            className="rounded-lg border border-[rgba(248,113,113,0.25)] px-4 py-2 text-sm font-semibold text-[#f87171] hover:bg-[rgba(248,113,113,0.08)]">
             Reject
           </button>
         </div>

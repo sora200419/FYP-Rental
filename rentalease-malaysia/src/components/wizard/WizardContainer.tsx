@@ -192,15 +192,15 @@ export function WizardContainer({ tenancyId, roomMeta, existingPreferences }: Wi
   // Full-screen generating overlay
   if (generating) {
     return (
-      <div className="fixed inset-0 bg-white z-50 flex flex-col items-center justify-center p-8">
+      <div className="fixed inset-0 bg-[#1C2740] z-50 flex flex-col items-center justify-center p-8">
         <div className="max-w-sm text-center">
           <div className="w-16 h-16 mx-auto mb-6 relative">
-            <div className="absolute inset-0 border-4 border-blue-200 rounded-full" />
-            <div className="absolute inset-0 border-4 border-blue-600 rounded-full border-t-transparent animate-spin" />
+            <div className="absolute inset-0 border-4 border-[rgba(196,154,60,0.2)] rounded-full" />
+            <div className="absolute inset-0 border-4 border-[#C49A3C] rounded-full border-t-transparent animate-spin" />
           </div>
-          <h2 className="text-xl font-bold text-gray-900 mb-2">Generating your agreement</h2>
-          <p className="text-sm text-gray-500 mb-4">This takes about 1 minute.</p>
-          <p className="text-sm text-blue-600 font-medium animate-pulse">{loadingMessage}</p>
+          <h2 className="text-xl font-bold text-white mb-2">Generating your agreement</h2>
+          <p className="text-sm text-white/50 mb-4">This takes about 1 minute.</p>
+          <p className="text-sm text-[#C49A3C] font-medium animate-pulse">{loadingMessage}</p>
         </div>
       </div>
     );
@@ -220,10 +220,10 @@ export function WizardContainer({ tenancyId, roomMeta, existingPreferences }: Wi
                 <div
                   className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-colors ${
                     done && stepNum < currentStep
-                      ? 'bg-blue-600 text-white'
+                      ? 'bg-gradient-to-br from-[#C49A3C] to-[#E8B84B] text-[#1C2740]'
                       : current
-                        ? 'border-2 border-blue-600 text-blue-600 bg-white'
-                        : 'border border-gray-300 text-gray-400 bg-white'
+                        ? 'border-2 border-[#C49A3C] text-[#C49A3C] bg-[#1C2740]'
+                        : 'border border-white/10 text-white/40 bg-[#1C2740]'
                   }`}
                 >
                   {done && stepNum < currentStep ? (
@@ -232,16 +232,16 @@ export function WizardContainer({ tenancyId, roomMeta, existingPreferences }: Wi
                     </svg>
                   ) : stepNum}
                 </div>
-                <p className={`text-[10px] mt-1 hidden sm:block font-medium ${current ? 'text-blue-700' : 'text-gray-400'}`}>
+                <p className={`text-[10px] mt-1 hidden sm:block font-medium ${current ? 'text-[#C49A3C]' : 'text-white/40'}`}>
                   {title.split(' ')[0]}
                 </p>
               </div>
             );
           })}
         </div>
-        <div className="relative h-1.5 bg-gray-200 rounded-full">
+        <div className="relative h-1.5 bg-white/10 rounded-full">
           <div
-            className="absolute h-1.5 bg-blue-600 rounded-full transition-all"
+            className="absolute h-1.5 bg-gradient-to-r from-[#C49A3C] to-[#E8B84B] rounded-full transition-all"
             style={{ width: `${((currentStep - 1) / 5) * 100}%` }}
           />
         </div>
@@ -249,7 +249,7 @@ export function WizardContainer({ tenancyId, roomMeta, existingPreferences }: Wi
 
       {/* Error */}
       {error && (
-        <div className="mb-4 bg-red-50 border border-red-200 rounded-lg px-4 py-3 text-sm text-red-700">
+        <div className="mb-4 bg-[rgba(248,113,113,0.08)] border border-[rgba(248,113,113,0.25)] rounded-lg px-4 py-3 text-sm text-[#f87171]">
           {error}
         </div>
       )}
@@ -270,7 +270,7 @@ export function WizardContainer({ tenancyId, roomMeta, existingPreferences }: Wi
           type="button"
           onClick={handleBack}
           disabled={step === 0 || saving}
-          className="px-5 py-2.5 border border-gray-300 text-gray-700 rounded-lg text-sm font-semibold hover:bg-gray-50 transition-colors disabled:opacity-40"
+          className="px-5 py-2.5 border border-white/10 text-white/70 rounded-lg text-sm font-semibold hover:bg-white/5 transition-colors disabled:opacity-40"
         >
           ← Back
         </button>
@@ -280,11 +280,11 @@ export function WizardContainer({ tenancyId, roomMeta, existingPreferences }: Wi
             type="button"
             onClick={handleNext}
             disabled={saving}
-            className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-semibold transition-colors disabled:opacity-60 flex items-center gap-2"
+            className="px-6 py-2.5 bg-gradient-to-br from-[#C49A3C] to-[#E8B84B] hover:opacity-90 text-[#1C2740] rounded-lg text-sm font-semibold transition-colors disabled:opacity-60 flex items-center gap-2"
           >
             {saving ? (
               <>
-                <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                <span className="w-4 h-4 border-2 border-[#1C2740]/30 border-t-[#1C2740] rounded-full animate-spin" />
                 Saving…
               </>
             ) : (

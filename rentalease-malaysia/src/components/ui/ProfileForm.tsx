@@ -98,18 +98,18 @@ export default function ProfileForm({
   };
 
   const inputClass =
-    'w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500';
+    'w-full rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-sm text-white placeholder:text-white/20 focus:border-[rgba(196,154,60,0.5)] focus:outline-none focus:ring-0 transition-colors';
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       {/* ── Basic Info ──────────────────────────────────────────────────── */}
       <div>
-        <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4">
+        <p className="text-xs font-semibold text-white/30 uppercase tracking-wider mb-4">
           Basic Information
         </p>
         <div className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-white/70 mb-1">
               Full Name
             </label>
             <input
@@ -123,7 +123,7 @@ export default function ProfileForm({
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-white/70 mb-1">
               Email Address
             </label>
             {/* Email is read-only — displayed for reference but not editable
@@ -132,15 +132,15 @@ export default function ProfileForm({
               type="email"
               value={email}
               disabled
-              className="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm bg-gray-50 text-gray-400 cursor-not-allowed"
+              className="w-full rounded-lg border border-white/5 bg-white/[0.03] px-4 py-2.5 text-sm text-white/30 cursor-not-allowed"
             />
-            <p className="text-xs text-gray-400 mt-1">
+            <p className="text-xs text-white/30 mt-1">
               Email cannot be changed after registration.
             </p>
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-white/70 mb-1">
               Phone Number
             </label>
             <input
@@ -156,18 +156,18 @@ export default function ProfileForm({
 
       {/* ── Identity Verification ───────────────────────────────────────── */}
       <div>
-        <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4">
+        <p className="text-xs font-semibold text-white/30 uppercase tracking-wider mb-4">
           Identity Verification
         </p>
 
         {/* PDPA notice — explaining why we collect this and how it's used.
             This is important for FYP Problem Statement 3 and Objective 3
             around secure document management and PDPA 2010 compliance. */}
-        <div className="bg-blue-50 border border-blue-200 rounded-xl px-5 py-4 mb-4">
-          <p className="text-blue-800 text-sm font-medium mb-1">
+        <div className="bg-[rgba(196,154,60,0.06)] border border-[rgba(196,154,60,0.2)] rounded-xl px-5 py-4 mb-4">
+          <p className="text-[#C49A3C] text-sm font-medium mb-1">
             Why we collect your IC number
           </p>
-          <p className="text-blue-700 text-xs leading-relaxed">
+          <p className="text-white/50 text-xs leading-relaxed">
             Your Malaysian IC (MyKad) number is used solely to populate the
             party identification clause in your tenancy agreement, as required
             under Malaysian tenancy law. This information is stored securely and
@@ -178,7 +178,7 @@ export default function ProfileForm({
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className="block text-sm font-medium text-white/70 mb-1">
             Malaysian IC Number (MyKad)
           </label>
           {icLocked ? (
@@ -187,9 +187,9 @@ export default function ProfileForm({
                 type="text"
                 value={icNumber}
                 disabled
-                className="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm bg-gray-50 text-gray-500 cursor-not-allowed"
+                className="w-full rounded-lg border border-white/5 bg-white/[0.03] px-4 py-2.5 text-sm text-white/30 cursor-not-allowed"
               />
-              <p className="text-xs text-gray-400 mt-1">
+              <p className="text-xs text-white/30 mt-1">
                 IC number cannot be changed after saving.
               </p>
             </>
@@ -210,7 +210,7 @@ export default function ProfileForm({
                 className={inputClass}
               />
               {kycStatus === 'REJECTED' && (
-                <p className="text-xs text-amber-600 mt-1">
+                <p className="text-xs text-[#E8B84B] mt-1">
                   Your KYC was rejected. You may correct your IC number before resubmitting.
                 </p>
               )}
@@ -223,13 +223,13 @@ export default function ProfileForm({
           <span
             className={`text-xs font-semibold px-2.5 py-1 rounded-full ${
               role === 'LANDLORD'
-                ? 'bg-blue-100 text-blue-700'
-                : 'bg-green-100 text-green-700'
+                ? 'bg-[rgba(196,154,60,0.12)] text-[#C49A3C]'
+                : 'bg-[rgba(74,222,128,0.1)] text-[#4ade80]'
             }`}
           >
             {role === 'LANDLORD' ? 'Landlord' : 'Tenant'}
           </span>
-          <p className="text-xs text-gray-400">
+          <p className="text-xs text-white/40">
             {role === 'TENANT'
               ? 'Your IC number will appear in tenancy agreements as the Tenant party.'
               : 'Your IC number will appear in tenancy agreements as the Landlord party.'}
@@ -239,13 +239,13 @@ export default function ProfileForm({
 
       {/* ── Save Controls ───────────────────────────────────────────────── */}
       {error && (
-        <div className="bg-red-50 border border-red-200 text-red-600 text-sm rounded-lg px-4 py-3">
+        <div className="bg-[rgba(248,113,113,0.08)] border border-[rgba(248,113,113,0.25)] text-[#f87171] text-sm rounded-lg px-4 py-3">
           {error}
         </div>
       )}
 
       {success && (
-        <div className="bg-green-50 border border-green-200 text-green-700 text-sm rounded-lg px-4 py-3">
+        <div className="bg-[rgba(74,222,128,0.08)] border border-[rgba(74,222,128,0.25)] text-[#4ade80] text-sm rounded-lg px-4 py-3">
           Profile updated successfully.
           {icNumber &&
             ' Your IC number will appear in newly generated agreements.'}
@@ -255,7 +255,7 @@ export default function ProfileForm({
       <button
         type="submit"
         disabled={isSaving || !hasChanges}
-        className="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed text-white font-semibold py-3 rounded-lg transition-colors text-sm"
+        className="w-full bg-gradient-to-br from-[#C49A3C] to-[#E8B84B] disabled:opacity-40 disabled:cursor-not-allowed text-[#1C2740] font-semibold py-3 rounded-lg transition-opacity hover:opacity-90 text-sm"
       >
         {isSaving ? 'Saving…' : 'Save Profile'}
       </button>

@@ -67,13 +67,17 @@ export async function PATCH(request: NextRequest) {
 
   try {
     const body = await request.json();
+    // Check the raw body before parsing — Zod's optional+transform always produces
+    // icNumber in the parsed output (as null), so 'icNumber' in data is always true.
+    // We need to know if the client actually sent the field.
+    const icExplicitlySent = 'icNumber' in body;
     const data = profileSchema.parse(body);
 
     // Build the update object dynamically — only include fields that were sent.
     const updateData: Record<string, unknown> = {};
     if (data.name !== undefined) updateData.name = data.name;
     if ('phone' in data) updateData.phone = data.phone;
-    if ('icNumber' in data) {
+    if (icExplicitlySent) {
       updateData.icNumber = data.icNumber;
       // Only reset verification when the IC number is actually being changed —
       // echoing back the same value (e.g. a name/phone-only save) must not

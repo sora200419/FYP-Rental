@@ -200,14 +200,17 @@ export default function CorporateOccupantRosterManager({
     }
   };
 
+  // Shared input class for roster form fields
+  const inputCls = 'w-full rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-sm text-white placeholder:text-white/20 focus:border-[rgba(196,154,60,0.5)] focus:outline-none focus:ring-0 transition-colors';
+
   return (
-    <div className="bg-white rounded-xl border border-gray-200 p-5">
+    <div className="bg-[#1C2740] rounded-xl border border-[rgba(196,154,60,0.15)] p-5">
       <div className="flex items-start justify-between gap-4 mb-4">
         <div>
-          <h2 className="text-sm font-semibold text-gray-900">
+          <h2 className="text-sm font-semibold text-white">
             Corporate Occupant Roster
           </h2>
-          <p className="text-xs text-gray-400 mt-0.5">
+          <p className="text-xs text-white/40 mt-0.5">
             Staff occupants can be listed first and linked to tenant accounts
             later. Only the landlord and authorized signatory should manage this
             roster.
@@ -217,7 +220,7 @@ export default function CorporateOccupantRosterManager({
           <button
             type="button"
             onClick={() => setShowAddForm(true)}
-            className="text-xs font-semibold text-blue-600 hover:text-blue-700 border border-blue-200 hover:border-blue-400 px-3 py-1.5 rounded-lg transition-colors"
+            className="text-xs font-semibold text-[#C49A3C] hover:opacity-80 border border-[rgba(196,154,60,0.2)] hover:border-[rgba(196,154,60,0.4)] px-3 py-1.5 rounded-lg transition-colors"
           >
             + Add Occupant
           </button>
@@ -225,7 +228,7 @@ export default function CorporateOccupantRosterManager({
       </div>
 
       {visibleOccupants.length === 0 && !showAddForm && (
-        <p className="text-xs text-gray-400 italic">
+        <p className="text-xs text-white/40 italic">
           No corporate occupants listed yet.
         </p>
       )}
@@ -239,7 +242,7 @@ export default function CorporateOccupantRosterManager({
           return (
             <div
               key={occupant.id}
-              className="rounded-xl border border-gray-200 bg-gray-50 px-4 py-4"
+              className="rounded-xl border border-[rgba(196,154,60,0.15)] bg-white/[0.03] px-4 py-4"
             >
               {isEditing ? (
                 <div className="space-y-3">
@@ -254,7 +257,7 @@ export default function CorporateOccupantRosterManager({
                         }))
                       }
                       placeholder="Occupant full name"
-                      className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+                      className={inputCls}
                     />
                     <input
                       type="text"
@@ -266,7 +269,7 @@ export default function CorporateOccupantRosterManager({
                         }))
                       }
                       placeholder="Role label"
-                      className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+                      className={inputCls}
                     />
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -280,7 +283,7 @@ export default function CorporateOccupantRosterManager({
                         }))
                       }
                       placeholder="IC / passport number"
-                      className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+                      className={inputCls}
                     />
                     <input
                       type="text"
@@ -292,7 +295,7 @@ export default function CorporateOccupantRosterManager({
                         }))
                       }
                       placeholder="Phone number"
-                      className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+                      className={inputCls}
                     />
                   </div>
                   <div className="flex gap-2">
@@ -302,7 +305,7 @@ export default function CorporateOccupantRosterManager({
                         setEditingId(null);
                         setError(null);
                       }}
-                      className="flex-1 border border-gray-300 text-gray-600 text-sm font-medium py-2 rounded-lg hover:bg-gray-50 transition-colors"
+                      className="flex-1 border border-white/10 text-white/60 text-sm font-medium py-2 rounded-lg hover:bg-white/5 transition-colors"
                     >
                       Cancel
                     </button>
@@ -310,7 +313,7 @@ export default function CorporateOccupantRosterManager({
                       type="button"
                       onClick={() => handleReplace(occupant.id)}
                       disabled={isBusy || !editingDraft.name.trim()}
-                      className="flex-1 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-sm font-semibold py-2 rounded-lg transition-colors"
+                      className="flex-1 bg-gradient-to-br from-[#C49A3C] to-[#E8B84B] hover:opacity-90 disabled:opacity-50 text-[#1C2740] text-sm font-semibold py-2 rounded-lg transition-colors"
                     >
                       {isBusy ? 'Saving...' : 'Save Replacement'}
                     </button>
@@ -320,10 +323,10 @@ export default function CorporateOccupantRosterManager({
                 <>
                   <div className="flex items-start justify-between gap-4">
                     <div>
-                      <p className="text-sm font-semibold text-gray-900">
+                      <p className="text-sm font-semibold text-white">
                         {occupant.name}
                       </p>
-                      <p className="text-xs text-gray-500 mt-1">
+                      <p className="text-xs text-white/50 mt-1">
                         {occupant.roleLabel || 'No role label'}
                         {occupant.icNumber
                           ? ` · IC: ${occupant.icNumber}`
@@ -334,8 +337,8 @@ export default function CorporateOccupantRosterManager({
                     <span
                       className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold ${
                         occupant.status === 'LINKED'
-                          ? 'bg-green-50 text-green-700 ring-1 ring-green-200 ring-inset'
-                          : 'bg-amber-50 text-amber-700 ring-1 ring-amber-200 ring-inset'
+                          ? 'bg-[rgba(74,222,128,0.1)] text-[#4ade80] ring-1 ring-[rgba(74,222,128,0.25)] ring-inset'
+                          : 'bg-[rgba(251,191,36,0.08)] text-[#E8B84B] ring-1 ring-[rgba(251,191,36,0.25)] ring-inset'
                       }`}
                     >
                       {occupant.status === 'LINKED' ? 'Linked' : 'Unlinked'}
@@ -343,12 +346,12 @@ export default function CorporateOccupantRosterManager({
                   </div>
 
                   {occupant.linkedUser ? (
-                    <p className="text-xs text-green-700 mt-3">
+                    <p className="text-xs text-[#4ade80] mt-3">
                       Linked to {occupant.linkedUser.name} (
                       {occupant.linkedUser.email})
                     </p>
                   ) : (
-                    <p className="text-xs text-gray-500 mt-3">
+                    <p className="text-xs text-white/50 mt-3">
                       No tenant account linked yet.
                     </p>
                   )}
@@ -358,7 +361,7 @@ export default function CorporateOccupantRosterManager({
                       <button
                         type="button"
                         onClick={() => startEditing(occupant)}
-                        className="text-xs font-medium text-blue-600 hover:text-blue-700"
+                        className="text-xs font-medium text-[#C49A3C] hover:opacity-80"
                       >
                         Replace / Edit
                       </button>
@@ -369,7 +372,7 @@ export default function CorporateOccupantRosterManager({
                             current === occupant.id ? null : occupant.id,
                           )
                         }
-                        className="text-xs font-medium text-blue-600 hover:text-blue-700"
+                        className="text-xs font-medium text-[#C49A3C] hover:opacity-80"
                       >
                         {occupant.linkedUser ? 'Relink Account' : 'Link Account'}
                       </button>
@@ -377,7 +380,7 @@ export default function CorporateOccupantRosterManager({
                         type="button"
                         onClick={() => handleRemove(occupant.id)}
                         disabled={isBusy}
-                        className="text-xs font-medium text-red-600 hover:text-red-700 disabled:opacity-50"
+                        className="text-xs font-medium text-[#f87171] hover:opacity-80 disabled:opacity-50"
                       >
                         {isBusy ? 'Removing...' : 'Remove'}
                       </button>
@@ -385,8 +388,8 @@ export default function CorporateOccupantRosterManager({
                   )}
 
                   {isLinking && canManage && (
-                    <div className="mt-4 rounded-lg border border-blue-200 bg-blue-50 p-3">
-                      <label className="block text-xs font-medium text-gray-700 mb-1">
+                    <div className="mt-4 rounded-lg border border-[rgba(196,154,60,0.2)] bg-[rgba(196,154,60,0.06)] p-3">
+                      <label className="block text-xs font-medium text-white/70 mb-1">
                         Link to registered tenant email
                       </label>
                       <div className="flex gap-2">
@@ -395,13 +398,13 @@ export default function CorporateOccupantRosterManager({
                           value={linkEmail}
                           onChange={(event) => setLinkEmail(event.target.value)}
                           placeholder="tenant@example.com"
-                          className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm"
+                          className="flex-1 rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-sm text-white placeholder:text-white/20 focus:border-[rgba(196,154,60,0.5)] focus:outline-none focus:ring-0 transition-colors"
                         />
                         <button
                           type="button"
                           onClick={() => handleLink(occupant.id)}
                           disabled={isBusy || !linkEmail.trim()}
-                          className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-50"
+                          className="rounded-lg bg-gradient-to-br from-[#C49A3C] to-[#E8B84B] px-4 py-2 text-sm font-semibold text-[#1C2740] hover:opacity-90 disabled:opacity-50"
                         >
                           {isBusy ? 'Linking...' : 'Link'}
                         </button>
@@ -416,7 +419,7 @@ export default function CorporateOccupantRosterManager({
       </div>
 
       {showAddForm && canManage && (
-        <div className="border border-blue-200 rounded-lg p-4 bg-blue-50 space-y-3 mt-4">
+        <div className="border border-[rgba(196,154,60,0.2)] rounded-lg p-4 bg-[rgba(196,154,60,0.06)] space-y-3 mt-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <input
               type="text"
@@ -425,7 +428,7 @@ export default function CorporateOccupantRosterManager({
                 setDraft((current) => ({ ...current, name: event.target.value }))
               }
               placeholder="Occupant full name"
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+              className={inputCls}
             />
             <input
               type="text"
@@ -437,7 +440,7 @@ export default function CorporateOccupantRosterManager({
                 }))
               }
               placeholder="Role label"
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+              className={inputCls}
             />
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -451,7 +454,7 @@ export default function CorporateOccupantRosterManager({
                 }))
               }
               placeholder="IC / passport number"
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+              className={inputCls}
             />
             <input
               type="text"
@@ -460,7 +463,7 @@ export default function CorporateOccupantRosterManager({
                 setDraft((current) => ({ ...current, phone: event.target.value }))
               }
               placeholder="Phone number"
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+              className={inputCls}
             />
           </div>
           <div className="flex gap-2">
@@ -471,7 +474,7 @@ export default function CorporateOccupantRosterManager({
                 resetDraft();
                 setError(null);
               }}
-              className="flex-1 border border-gray-300 text-gray-600 text-sm font-medium py-2 rounded-lg hover:bg-gray-50 transition-colors"
+              className="flex-1 border border-white/10 text-white/60 text-sm font-medium py-2 rounded-lg hover:bg-white/5 transition-colors"
             >
               Cancel
             </button>
@@ -479,7 +482,7 @@ export default function CorporateOccupantRosterManager({
               type="button"
               onClick={handleCreate}
               disabled={isAdding || !draft.name.trim()}
-              className="flex-1 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-sm font-semibold py-2 rounded-lg transition-colors"
+              className="flex-1 bg-gradient-to-br from-[#C49A3C] to-[#E8B84B] hover:opacity-90 disabled:opacity-50 text-[#1C2740] text-sm font-semibold py-2 rounded-lg transition-colors"
             >
               {isAdding ? 'Adding...' : 'Add Occupant'}
             </button>
@@ -487,7 +490,7 @@ export default function CorporateOccupantRosterManager({
         </div>
       )}
 
-      {error && <p className="text-red-500 text-xs mt-3">{error}</p>}
+      {error && <p className="text-[#f87171] text-xs mt-3">{error}</p>}
     </div>
   );
 }

@@ -27,8 +27,8 @@ function ResponsibleGroup({
   onChange: (updates: Partial<WizardFormData>) => void;
 }) {
   return (
-    <div className="border border-gray-200 rounded-lg p-4">
-      <p className="text-sm font-semibold text-gray-700 mb-3">{label}</p>
+    <div className="border border-[rgba(196,154,60,0.15)] rounded-lg p-4">
+      <p className="text-sm font-semibold text-white/70 mb-3">{label}</p>
       <div className="grid grid-cols-2 gap-2">
         {RESPONSIBLE_OPTIONS.map((opt) => (
           <button
@@ -37,8 +37,8 @@ function ResponsibleGroup({
             onClick={() => onChange({ [field]: opt.value })}
             className={`px-3 py-2 rounded-lg border-2 text-sm font-medium transition-colors ${
               data[field] === opt.value
-                ? 'border-blue-600 bg-blue-50 text-blue-700'
-                : 'border-gray-200 text-gray-700 hover:border-gray-300'
+                ? 'border-[#C49A3C] bg-[rgba(196,154,60,0.06)] text-[#C49A3C]'
+                : 'border-white/10 text-white/70 hover:border-white/10'
             }`}
           >
             {opt.label}

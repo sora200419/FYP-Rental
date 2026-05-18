@@ -33,7 +33,7 @@ interface NotificationDropdownProps {
 
 function NotificationIcon() {
   return (
-    <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <svg className="w-4 h-4 text-white/40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
         d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
     </svg>
@@ -237,20 +237,20 @@ export function NotificationDropdown({
           inset-x-0 bottom-0 sm:inset-auto sm:right-0 sm:top-full sm:mt-2
           sm:w-96
           max-h-[70vh] sm:max-h-[80vh]
-          bg-white rounded-t-xl sm:rounded-xl
-          shadow-xl border border-gray-200
+          bg-[#1C2740] rounded-t-xl sm:rounded-xl
+          shadow-xl border border-[rgba(196,154,60,0.15)]
           flex flex-col
           z-50
         "
       >
         {/* Header with title and actions */}
-        <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 flex-shrink-0">
-          <h3 className="font-semibold text-gray-900">Notifications</h3>
+        <div className="flex items-center justify-between px-4 py-3 border-b border-[rgba(196,154,60,0.1)] flex-shrink-0">
+          <h3 className="font-semibold text-white">Notifications</h3>
           <div className="flex items-center gap-3">
             {hasUnread && (
               <button
                 onClick={handleMarkAllRead}
-                className="text-xs text-blue-600 hover:text-blue-700 font-medium"
+                className="text-xs text-[#C49A3C] hover:opacity-90 font-medium"
               >
                 Mark all read
               </button>
@@ -258,7 +258,7 @@ export function NotificationDropdown({
             {/* Close button only on mobile — desktop has outside-click */}
             <button
               onClick={onClose}
-              className="sm:hidden text-gray-400 hover:text-gray-600 text-lg leading-none"
+              className="sm:hidden text-white/40 hover:text-white/60 text-lg leading-none"
               aria-label="Close"
             >
               ✕
@@ -269,13 +269,13 @@ export function NotificationDropdown({
         {/* Scrollable list body */}
         <div className="flex-1 overflow-y-auto">
           {loading && items.length === 0 && (
-            <div className="p-8 text-center text-sm text-gray-400">
+            <div className="p-8 text-center text-sm text-white/40">
               Loading…
             </div>
           )}
 
           {!loading && items.length === 0 && (
-            <div className="p-8 text-center text-sm text-gray-400">
+            <div className="p-8 text-center text-sm text-white/40">
               No notifications yet.
               <br />
               <span className="text-xs">
@@ -290,9 +290,9 @@ export function NotificationDropdown({
               key={n.id}
               onClick={() => handleItemClick(n)}
               className={`
-                w-full text-left px-4 py-3 border-b border-gray-50 last:border-b-0
-                hover:bg-gray-50 transition-colors
-                ${!n.readAt ? 'bg-blue-50/30' : ''}
+                w-full text-left px-4 py-3 border-b border-[rgba(255,255,255,0.06)] last:border-b-0
+                hover:bg-white/5 transition-colors
+                ${!n.readAt ? 'bg-[rgba(196,154,60,0.06)]' : ''}
               `}
             >
               <div className="flex gap-3">
@@ -304,23 +304,21 @@ export function NotificationDropdown({
                     <p
                       className={`text-sm ${
                         !n.readAt
-                          ? 'font-semibold text-gray-900'
-                          : 'text-gray-700'
+                          ? 'font-semibold text-white'
+                          : 'text-white/70'
                       }`}
                     >
                       {n.title}
                     </p>
-                    {/* Blue dot indicator for unread items — redundant with
-                        the background tint but helps accessibility when
-                        color differences are hard to perceive */}
+                    {/* Gold dot indicator for unread items */}
                     {!n.readAt && (
-                      <span className="flex-shrink-0 w-2 h-2 bg-blue-500 rounded-full mt-1.5" />
+                      <span className="flex-shrink-0 w-2 h-2 bg-[#C49A3C] rounded-full mt-1.5" />
                     )}
                   </div>
-                  <p className="text-xs text-gray-500 mt-0.5 line-clamp-2">
+                  <p className="text-xs text-white/50 mt-0.5 line-clamp-2">
                     {n.body}
                   </p>
-                  <p className="text-[11px] text-gray-400 mt-1">
+                  <p className="text-[11px] text-white/40 mt-1">
                     {formatRelativeTime(n.createdAt)}
                   </p>
                 </div>

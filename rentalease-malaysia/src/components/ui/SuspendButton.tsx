@@ -42,13 +42,13 @@ export default function SuspendButton({ userId, userName, isSuspended }: Props) 
         aria-label={isSuspended ? `Unsuspend ${userName}` : `Suspend ${userName}`}
         className={`rounded-lg border px-3 py-1.5 text-xs font-semibold transition-colors disabled:opacity-40 ${
           isSuspended
-            ? 'border-green-300 text-green-700 hover:bg-green-50'
-            : 'border-amber-300 text-amber-700 hover:bg-amber-50'
+            ? 'border-[rgba(74,222,128,0.25)] text-[#4ade80] hover:bg-[rgba(74,222,128,0.08)]'
+            : 'border-[rgba(251,191,36,0.25)] text-[#E8B84B] hover:bg-[rgba(251,191,36,0.08)]'
         }`}
       >
         {loading ? '…' : isSuspended ? 'Unsuspend' : 'Suspend'}
       </button>
-      {error && <p className="mt-1 text-xs text-red-500">{error}</p>}
+      {error && <p className="mt-1 text-xs text-[#f87171]">{error}</p>}
     </div>
   );
 }

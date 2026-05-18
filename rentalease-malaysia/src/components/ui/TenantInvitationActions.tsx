@@ -36,14 +36,14 @@ export default function TenantInvitationActions({ tenancyId }: Props) {
   };
 
   return (
-    <div className="bg-white rounded-xl border border-gray-200 p-6">
-      <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-4">
+    <div className="bg-[#1C2740] rounded-xl border border-[rgba(196,154,60,0.15)] p-6">
+      <h2 className="text-sm font-semibold text-white/50 uppercase tracking-wider mb-4">
         Respond to Invitation
       </h2>
 
       {confirming === null && (
         <>
-          <p className="text-sm text-gray-600 mb-5">
+          <p className="text-sm text-white/60 mb-5">
             Review the tenancy terms above. Accepting moves the tenancy to{' '}
             <strong>Pending</strong> — your landlord will then generate the
             agreement for you to sign.
@@ -57,7 +57,7 @@ export default function TenantInvitationActions({ tenancyId }: Props) {
             </button>
             <button
               onClick={() => setConfirming('DECLINE')}
-              className="flex-1 border border-red-300 text-red-600 hover:bg-red-50 font-semibold py-3 rounded-lg transition-colors text-sm"
+              className="flex-1 border border-[rgba(248,113,113,0.25)] text-[#f87171] hover:bg-[rgba(248,113,113,0.08)] font-semibold py-3 rounded-lg transition-colors text-sm"
             >
               Decline Invitation
             </button>
@@ -67,21 +67,21 @@ export default function TenantInvitationActions({ tenancyId }: Props) {
 
       {confirming === 'ACCEPT' && (
         <div>
-          <div className="bg-green-50 border border-green-200 rounded-xl px-5 py-4 mb-5">
-            <p className="text-green-800 font-semibold text-sm">
+          <div className="bg-[rgba(74,222,128,0.08)] border border-[rgba(74,222,128,0.25)] rounded-xl px-5 py-4 mb-5">
+            <p className="text-[#4ade80] font-semibold text-sm">
               Confirm acceptance
             </p>
-            <p className="text-green-700 text-xs mt-1">
+            <p className="text-[#4ade80] text-xs mt-1">
               You are agreeing to the tenancy terms shown above. The landlord
               will be notified and will prepare the formal agreement.
             </p>
           </div>
-          {error && <p className="text-red-500 text-sm mb-3">{error}</p>}
+          {error && <p className="text-[#f87171] text-sm mb-3">{error}</p>}
           <div className="flex gap-3">
             <button
               onClick={() => { setConfirming(null); setError(null); }}
               disabled={isLoading}
-              className="flex-1 border border-gray-300 text-gray-600 hover:bg-gray-50 font-semibold py-3 rounded-lg transition-colors text-sm"
+              className="flex-1 border border-white/10 text-white/60 hover:bg-white/5 font-semibold py-3 rounded-lg transition-colors text-sm"
             >
               Back
             </button>
@@ -98,21 +98,21 @@ export default function TenantInvitationActions({ tenancyId }: Props) {
 
       {confirming === 'DECLINE' && (
         <div>
-          <div className="bg-red-50 border border-red-200 rounded-xl px-5 py-4 mb-5">
-            <p className="text-red-800 font-semibold text-sm">
+          <div className="bg-[rgba(248,113,113,0.08)] border border-[rgba(248,113,113,0.25)] rounded-xl px-5 py-4 mb-5">
+            <p className="text-[#f87171] font-semibold text-sm">
               Confirm decline
             </p>
-            <p className="text-red-700 text-xs mt-1">
+            <p className="text-[#f87171] text-xs mt-1">
               Declining will cancel this invitation and free the room. This
               cannot be undone.
             </p>
           </div>
-          {error && <p className="text-red-500 text-sm mb-3">{error}</p>}
+          {error && <p className="text-[#f87171] text-sm mb-3">{error}</p>}
           <div className="flex gap-3">
             <button
               onClick={() => { setConfirming(null); setError(null); }}
               disabled={isLoading}
-              className="flex-1 border border-gray-300 text-gray-600 hover:bg-gray-50 font-semibold py-3 rounded-lg transition-colors text-sm"
+              className="flex-1 border border-white/10 text-white/60 hover:bg-white/5 font-semibold py-3 rounded-lg transition-colors text-sm"
             >
               Back
             </button>

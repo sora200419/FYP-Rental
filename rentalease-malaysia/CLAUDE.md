@@ -6,13 +6,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ```bash
 npm run dev        # Start dev server (localhost:3000)
-npm run build      # prisma generate + next build
+npm run build      # prisma generate + prisma migrate deploy + next build
 npm run lint       # ESLint check
+npm test           # Run vitest test suite (vitest run)
+npm run test:watch # Run vitest in watch mode
 npx prisma migrate dev   # Apply schema changes and generate client
 npx prisma studio        # GUI to inspect/edit DB data
 ```
-
-No test suite is currently configured.
 
 ## Environment Variables
 

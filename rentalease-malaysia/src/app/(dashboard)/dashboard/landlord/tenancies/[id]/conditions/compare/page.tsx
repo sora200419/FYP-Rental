@@ -67,20 +67,20 @@ export default async function LandlordCompareConditionsPage({
 
   return (
     <div>
-      <div className="flex items-center gap-2 text-sm text-gray-400 mb-6">
-        <Link href="/dashboard/landlord/tenancies" className="hover:text-blue-600 transition-colors">
+      <div className="flex items-center gap-2 text-sm text-white/40 mb-6">
+        <Link href="/dashboard/landlord/tenancies" className="hover:text-[#C49A3C] transition-colors">
           Tenancies
         </Link>
         <span>/</span>
-        <Link href={`/dashboard/landlord/tenancies/${tenancyId}`} className="hover:text-blue-600 transition-colors">
+        <Link href={`/dashboard/landlord/tenancies/${tenancyId}`} className="hover:text-[#C49A3C] transition-colors">
           {tenancy.room.property.address}
         </Link>
         <span>/</span>
-        <Link href={backHref} className="hover:text-blue-600 transition-colors">
+        <Link href={backHref} className="hover:text-[#C49A3C] transition-colors">
           Condition Reports
         </Link>
         <span>/</span>
-        <span className="text-gray-700 font-medium">Compare</span>
+        <span className="text-white/70 font-medium">Compare</span>
       </div>
 
       <ConditionComparisonView

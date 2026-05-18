@@ -187,6 +187,7 @@ export async function POST(request: Request) {
   let invitationEmail: string | null = null;
   let invitationName = 'Tenant';
 
+  try {
   if (leasePartyType === 'INDIVIDUAL') {
     const tenant = await prisma.user.findUnique({
       where: { email: tenantEmail.trim() },
@@ -200,23 +201,28 @@ export async function POST(request: Request) {
       );
     }
 
-    tenancy = await prisma.tenancy.create({
-      data: {
-        roomId,
-        tenantId: tenant.id,
-        leasePartyType: 'INDIVIDUAL',
-        startDate: new Date(startDate),
-        endDate: new Date(endDate),
-        monthlyRent,
-        depositAmount,
-        status: 'INVITED',
-      },
-      include: {
-        room: {
-          include: { property: { select: { address: true, city: true } } },
+    tenancy = await prisma.$transaction(async (tx) => {
+      const claimed = await tx.room.updateMany({ where: { id: roomId, isAvailable: true }, data: { isAvailable: false } });
+      if (claimed.count === 0) throw new Error('ROOM_UNAVAILABLE');
+      const created = await tx.tenancy.create({
+        data: {
+          roomId,
+          tenantId: tenant.id,
+          leasePartyType: 'INDIVIDUAL',
+          startDate: new Date(startDate),
+          endDate: new Date(endDate),
+          monthlyRent,
+          depositAmount,
+          status: 'INVITED',
         },
-        tenant: { select: { id: true, name: true, email: true } },
-      },
+        include: {
+          room: {
+            include: { property: { select: { address: true, city: true } } },
+          },
+          tenant: { select: { id: true, name: true, email: true } },
+        },
+      });
+      return created;
     });
 
     invitationRecipient = tenant;
@@ -255,37 +261,42 @@ export async function POST(request: Request) {
       );
     }
 
-    tenancy = await prisma.tenancy.create({
-      data: {
-        roomId,
-        tenantId: authorizedSignatoryUser.id,
-        leasePartyType: 'CORPORATE',
-        companyName: corporateInput.companyName,
-        companyRegistrationNo: corporateInput.companyRegistrationNo,
-        authorizedSignatoryName: corporateInput.authorizedSignatoryName,
-        authorizedSignatoryIC: corporateInput.authorizedSignatoryIC,
-        authorizedSignatoryRole: corporateInput.authorizedSignatoryRole,
-        authorizedSignatoryUserId: authorizedSignatoryUser.id,
-        startDate: new Date(corporateInput.startDate),
-        endDate: new Date(corporateInput.endDate),
-        monthlyRent: corporateInput.monthlyRent,
-        depositAmount: corporateInput.depositAmount,
-        status: 'INVITED',
-        corporateOccupants: {
-          create: corporateInput.occupants.map((occupant) => ({
-            name: occupant.name,
-            icNumber: occupant.icNumber,
-            phone: occupant.phone,
-            roleLabel: occupant.roleLabel,
-          })),
+    tenancy = await prisma.$transaction(async (tx) => {
+      const claimed = await tx.room.updateMany({ where: { id: roomId, isAvailable: true }, data: { isAvailable: false } });
+      if (claimed.count === 0) throw new Error('ROOM_UNAVAILABLE');
+      const created = await tx.tenancy.create({
+        data: {
+          roomId,
+          tenantId: authorizedSignatoryUser.id,
+          leasePartyType: 'CORPORATE',
+          companyName: corporateInput.companyName,
+          companyRegistrationNo: corporateInput.companyRegistrationNo,
+          authorizedSignatoryName: corporateInput.authorizedSignatoryName,
+          authorizedSignatoryIC: corporateInput.authorizedSignatoryIC,
+          authorizedSignatoryRole: corporateInput.authorizedSignatoryRole,
+          authorizedSignatoryUserId: authorizedSignatoryUser.id,
+          startDate: new Date(corporateInput.startDate),
+          endDate: new Date(corporateInput.endDate),
+          monthlyRent: corporateInput.monthlyRent,
+          depositAmount: corporateInput.depositAmount,
+          status: 'INVITED',
+          corporateOccupants: {
+            create: corporateInput.occupants.map((occupant) => ({
+              name: occupant.name,
+              icNumber: occupant.icNumber,
+              phone: occupant.phone,
+              roleLabel: occupant.roleLabel,
+            })),
+          },
         },
-      },
-      include: {
-        room: {
-          include: { property: { select: { address: true, city: true } } },
+        include: {
+          room: {
+            include: { property: { select: { address: true, city: true } } },
+          },
+          tenant: { select: { id: true, name: true, email: true } },
         },
-        tenant: { select: { id: true, name: true, email: true } },
-      },
+      });
+      return created;
     });
 
     invitationRecipient = authorizedSignatoryUser;
@@ -293,11 +304,12 @@ export async function POST(request: Request) {
     invitationName =
       authorizedSignatoryUser.name ?? corporateInput.authorizedSignatoryName;
   }
-
-  await prisma.room.update({
-    where: { id: roomId },
-    data: { isAvailable: false },
-  });
+  } catch (err) {
+    if (err instanceof Error && err.message === 'ROOM_UNAVAILABLE') {
+      return NextResponse.json({ error: 'Room is no longer available' }, { status: 409 });
+    }
+    throw err;
+  }
 
   if (invitationRecipient) {
     await createNotification(

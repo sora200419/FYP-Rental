@@ -27,8 +27,8 @@ export function Step6Deposit({ data, onChange }: Props) {
               onClick={() => onChange({ depositRefundDays: days })}
               className={`px-4 py-2 rounded-lg border-2 text-sm font-medium transition-colors ${
                 data.depositRefundDays === days
-                  ? 'border-blue-600 bg-blue-50 text-blue-700'
-                  : 'border-gray-200 text-gray-700 hover:border-gray-300'
+                  ? 'border-[#C49A3C] bg-[rgba(196,154,60,0.06)] text-[#C49A3C]'
+                  : 'border-white/10 text-white/70 hover:border-white/10'
               }`}
             >
               {days} days

@@ -35,7 +35,7 @@ export default function RevokeButton({ revokeUrl }: Props) {
 
   if (state === 'revoked') {
     return (
-      <span className="text-orange-700 text-sm font-semibold bg-orange-50 border border-orange-200 px-3 py-1.5 rounded-lg">
+      <span className="text-[#E8B84B] text-sm font-semibold bg-[rgba(251,191,36,0.08)] border border-[rgba(251,191,36,0.25)] px-3 py-1.5 rounded-lg">
         Revoked
       </span>
     );
@@ -50,7 +50,7 @@ export default function RevokeButton({ revokeUrl }: Props) {
           placeholder="Reason for revocation…"
           rows={3}
           autoFocus
-          className="w-full text-xs border border-orange-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-orange-400 resize-none"
+          className="w-full rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-xs text-white placeholder:text-white/20 focus:border-[rgba(196,154,60,0.5)] focus:outline-none focus:ring-0 transition-colors resize-none"
         />
         <div className="flex gap-1.5">
           <button
@@ -63,7 +63,7 @@ export default function RevokeButton({ revokeUrl }: Props) {
           <button
             onClick={() => { setState('idle'); setReason(''); }}
             disabled={loading}
-            className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-600 text-xs font-semibold py-1.5 rounded-lg transition-colors"
+            className="flex-1 bg-white/5 hover:bg-white/10 text-white/60 text-xs font-semibold py-1.5 rounded-lg transition-colors"
           >
             Cancel
           </button>
@@ -75,7 +75,7 @@ export default function RevokeButton({ revokeUrl }: Props) {
   return (
     <button
       onClick={() => setState('revoking')}
-      className="border border-orange-200 hover:bg-orange-50 text-orange-600 text-sm font-semibold px-4 py-1.5 rounded-lg transition-colors"
+      className="border border-[rgba(251,191,36,0.25)] hover:bg-[rgba(251,191,36,0.08)] text-[#E8B84B] text-sm font-semibold px-4 py-1.5 rounded-lg transition-colors"
     >
       Revoke
     </button>

@@ -2,9 +2,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { logAudit, getIp } from '@/lib/audit';
 
 export async function DELETE(
-  _req: NextRequest,
+  req: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
   const session = await getServerSession(authOptions);
@@ -40,6 +41,15 @@ export async function DELETE(
       { status: 409 },
     );
   }
+
+  await logAudit({
+    actorId: session.user.id,
+    action: 'AGREEMENT_DELETED',
+    entityName: 'Agreement',
+    entityId: id,
+    previousData: agreement as object,
+    ipAddress: getIp(req),
+  });
 
   await prisma.agreement.delete({ where: { id } });
 

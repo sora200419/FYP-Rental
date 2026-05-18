@@ -123,9 +123,9 @@ export default function TenantAgreementActions({
 
   if (success) {
     return (
-      <div className="bg-green-50 border border-green-200 rounded-xl px-5 py-4 flex items-center gap-3">
+      <div className="bg-[rgba(74,222,128,0.08)] border border-[rgba(74,222,128,0.25)] rounded-xl px-5 py-4 flex items-center gap-3">
         <svg
-          className="w-5 h-5 text-green-500 shrink-0"
+          className="w-5 h-5 text-[#4ade80] shrink-0"
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"
@@ -137,19 +137,19 @@ export default function TenantAgreementActions({
             d="M5 13l4 4L19 7"
           />
         </svg>
-        <p className="text-green-800 font-medium text-sm">{success}</p>
+        <p className="text-[#4ade80] font-medium text-sm">{success}</p>
       </div>
     );
   }
 
   return (
-    <div className="bg-white rounded-xl border border-gray-200 p-6">
+    <div className="bg-[#1C2740] rounded-xl border border-[rgba(196,154,60,0.15)] p-6">
       <div className="flex items-start justify-between gap-4 mb-4">
         <div>
-          <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wider">
+          <h2 className="text-sm font-semibold text-white/50 uppercase tracking-wider">
             Your Response
           </h2>
-          <p className="text-sm text-gray-600 mt-2">
+          <p className="text-sm text-white/60 mt-2">
             You are reviewing Version {currentVersion}. Read the agreement,
             plain language summary, red-flag analysis, and history before
             choosing your next step.
@@ -159,18 +159,18 @@ export default function TenantAgreementActions({
 
       {mode === 'idle' && (
         <div>
-          <div className="bg-gray-50 border border-gray-200 rounded-xl px-4 py-4 mb-5">
-            <p className="text-sm font-semibold text-gray-900">
+          <div className="bg-white/[0.03] border border-[rgba(196,154,60,0.15)] rounded-xl px-4 py-4 mb-5">
+            <p className="text-sm font-semibold text-white">
               Final decision options
             </p>
-            <p className="text-xs text-gray-600 mt-1 leading-relaxed">
+            <p className="text-xs text-white/60 mt-1 leading-relaxed">
               Signing records your digital acceptance first. You will still
               need to upload the signed hard-copy file, and the landlord must
               approve it before the tenancy activates. Requesting changes sends
               a structured negotiation record back to the landlord for revision.
             </p>
             {isCorporate && (
-              <p className="text-xs text-blue-700 mt-2 leading-relaxed">
+              <p className="text-xs text-[#C49A3C] mt-2 leading-relaxed">
                 Only the authorized signatory can complete the legal signing or
                 submit binding agreement changes for this corporate tenancy.
               </p>
@@ -187,7 +187,7 @@ export default function TenantAgreementActions({
             </button>
             <button
               onClick={() => setMode('requesting_changes')}
-              className="flex-1 border border-gray-300 text-gray-600 hover:bg-gray-50 font-semibold py-3 rounded-lg transition-colors text-sm"
+              className="flex-1 border border-white/10 text-white/60 hover:bg-white/5 font-semibold py-3 rounded-lg transition-colors text-sm"
             >
               Request Structured Changes
             </button>
@@ -197,32 +197,32 @@ export default function TenantAgreementActions({
 
       {mode === 'signing' && (
         <div>
-          <div className="bg-amber-50 border border-amber-200 rounded-xl px-5 py-4 mb-5">
-            <p className="text-amber-900 font-semibold text-sm mb-1">
+          <div className="bg-[rgba(251,191,36,0.08)] border border-[rgba(251,191,36,0.25)] rounded-xl px-5 py-4 mb-5">
+            <p className="text-[#E8B84B] font-semibold text-sm mb-1">
               Final signing step
             </p>
-            <p className="text-amber-700 text-xs leading-relaxed">
+            <p className="text-[#E8B84B] text-xs leading-relaxed">
               By signing, you confirm that you reviewed this agreement version,
               understood its terms, and accept the digital-signing step for
               this tenancy. After that, you must upload the signed hard-copy
               file for landlord approval.
             </p>
             {isCorporate && (
-              <p className="text-amber-800 text-xs leading-relaxed mt-2">
+              <p className="text-[#E8B84B] text-xs leading-relaxed mt-2">
                 This signature is being captured in your role as the authorized
                 signatory for the lease party, not as an occupant.
               </p>
             )}
           </div>
 
-          <label className="flex items-start gap-3 p-4 bg-gray-50 rounded-xl border border-gray-200 cursor-pointer mb-5">
+          <label className="flex items-start gap-3 p-4 bg-white/[0.03] rounded-xl border border-[rgba(196,154,60,0.15)] cursor-pointer mb-5">
             <input
               type="checkbox"
               checked={acknowledged}
               onChange={(event) => setAcknowledged(event.target.checked)}
               className="mt-0.5 accent-green-600 w-4 h-4 shrink-0"
             />
-            <span className="text-sm text-gray-700 leading-relaxed">
+            <span className="text-sm text-white/70 leading-relaxed">
               I have reviewed Version {currentVersion} of this agreement, the
               plain-language summary, and the red-flag analysis. I understand
               the terms and agree to sign electronically
@@ -232,7 +232,7 @@ export default function TenantAgreementActions({
             </span>
           </label>
 
-          {error && <p className="text-red-500 text-sm mb-4">{error}</p>}
+          {error && <p className="text-[#f87171] text-sm mb-4">{error}</p>}
 
           <div className="flex gap-3">
             <button
@@ -242,14 +242,14 @@ export default function TenantAgreementActions({
                 setError(null);
               }}
               disabled={isLoading}
-              className="flex-1 border border-gray-300 text-gray-600 hover:bg-gray-50 font-semibold py-3 rounded-lg transition-colors text-sm"
+              className="flex-1 border border-white/10 text-white/60 hover:bg-white/5 font-semibold py-3 rounded-lg transition-colors text-sm"
             >
               Back
             </button>
             <button
               onClick={handleAccept}
               disabled={!acknowledged || isLoading}
-              className="flex-1 bg-green-600 hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white font-semibold py-3 rounded-lg transition-colors text-sm"
+              className="flex-1 bg-green-600 hover:bg-green-700 disabled:bg-white/10 disabled:cursor-not-allowed text-white font-semibold py-3 rounded-lg transition-colors text-sm"
             >
               {isLoading
                 ? 'Processing...'
@@ -263,11 +263,11 @@ export default function TenantAgreementActions({
 
       {mode === 'requesting_changes' && (
         <div className="space-y-4">
-          <div className="bg-blue-50 border border-blue-200 rounded-xl px-4 py-4">
-            <p className="text-sm font-semibold text-blue-900">
+          <div className="bg-[rgba(196,154,60,0.06)] border border-[rgba(196,154,60,0.2)] rounded-xl px-4 py-4">
+            <p className="text-sm font-semibold text-[#C49A3C]">
               Structured change request
             </p>
-            <p className="text-xs text-blue-700 mt-1 leading-relaxed">
+            <p className="text-xs text-[#C49A3C] mt-1 leading-relaxed">
               Add one or more clause requests so the landlord can see exactly
               what needs to be revised. You can include an optional general note
               at the end.
@@ -277,10 +277,10 @@ export default function TenantAgreementActions({
           {changeRequests.map((request, index) => (
             <div
               key={index}
-              className="border border-gray-200 rounded-xl p-4 space-y-3"
+              className="border border-[rgba(196,154,60,0.15)] rounded-xl p-4 space-y-3"
             >
               <div className="flex items-center justify-between gap-3">
-                <p className="text-sm font-semibold text-gray-900">
+                <p className="text-sm font-semibold text-white">
                   Request {index + 1}
                 </p>
                 {changeRequests.length > 1 && (
@@ -293,7 +293,7 @@ export default function TenantAgreementActions({
                         ),
                       )
                     }
-                    className="text-xs font-medium text-red-600 hover:text-red-700"
+                    className="text-xs font-medium text-[#f87171] hover:opacity-80"
                   >
                     Remove
                   </button>
@@ -301,7 +301,7 @@ export default function TenantAgreementActions({
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-gray-500 mb-1">
+                <label className="block text-xs font-medium text-white/50 mb-1">
                   Clause / section category
                 </label>
                 <select
@@ -315,7 +315,7 @@ export default function TenantAgreementActions({
                       ),
                     )
                   }
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full rounded-lg border border-white/10 bg-[#1C2740] text-white px-3 py-2 text-sm focus:border-[rgba(196,154,60,0.5)] focus:outline-none focus:ring-0 transition-colors"
                 >
                   {CATEGORY_OPTIONS.map((option) => (
                     <option key={option} value={option}>
@@ -326,7 +326,7 @@ export default function TenantAgreementActions({
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-gray-500 mb-1">
+                <label className="block text-xs font-medium text-white/50 mb-1">
                   What should change?
                 </label>
                 <textarea
@@ -345,12 +345,12 @@ export default function TenantAgreementActions({
                   }
                   rows={2}
                   placeholder="Example: Reduce the security deposit from 3 months to 2 months."
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                  className="w-full rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-sm text-white placeholder:text-white/20 focus:border-[rgba(196,154,60,0.5)] focus:outline-none focus:ring-0 transition-colors resize-none"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-gray-500 mb-1">
+                <label className="block text-xs font-medium text-white/50 mb-1">
                   Why are you requesting this change?
                 </label>
                 <textarea
@@ -366,12 +366,12 @@ export default function TenantAgreementActions({
                   }
                   rows={2}
                   placeholder="Explain the concern so the landlord understands the request."
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                  className="w-full rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-sm text-white placeholder:text-white/20 focus:border-[rgba(196,154,60,0.5)] focus:outline-none focus:ring-0 transition-colors resize-none"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-gray-500 mb-1">
+                <label className="block text-xs font-medium text-white/50 mb-1">
                   Optional note
                 </label>
                 <textarea
@@ -387,7 +387,7 @@ export default function TenantAgreementActions({
                   }
                   rows={2}
                   placeholder="Any extra context or example wording."
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                  className="w-full rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-sm text-white placeholder:text-white/20 focus:border-[rgba(196,154,60,0.5)] focus:outline-none focus:ring-0 transition-colors resize-none"
                 />
               </div>
             </div>
@@ -398,13 +398,13 @@ export default function TenantAgreementActions({
             onClick={() =>
               setChangeRequests((current) => [...current, { ...EMPTY_REQUEST }])
             }
-            className="text-sm font-medium text-blue-600 hover:text-blue-700"
+            className="text-sm font-medium text-[#C49A3C] hover:opacity-80"
           >
             + Add another change request
           </button>
 
           <div>
-            <label className="block text-xs font-medium text-gray-500 mb-1">
+            <label className="block text-xs font-medium text-white/50 mb-1">
               Optional general note to landlord
             </label>
             <textarea
@@ -412,11 +412,11 @@ export default function TenantAgreementActions({
               onChange={(event) => setGeneralNote(event.target.value)}
               rows={3}
               placeholder="Optional summary note covering the overall negotiation."
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+              className="w-full rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-sm text-white placeholder:text-white/20 focus:border-[rgba(196,154,60,0.5)] focus:outline-none focus:ring-0 transition-colors resize-none"
             />
           </div>
 
-          {error && <p className="text-red-500 text-sm">{error}</p>}
+          {error && <p className="text-[#f87171] text-sm">{error}</p>}
 
           <div className="flex gap-3">
             <button
@@ -425,14 +425,14 @@ export default function TenantAgreementActions({
                 setError(null);
               }}
               disabled={isLoading}
-              className="flex-1 border border-gray-300 text-gray-600 hover:bg-gray-50 font-semibold py-2.5 rounded-lg transition-colors text-sm"
+              className="flex-1 border border-white/10 text-white/60 hover:bg-white/5 font-semibold py-2.5 rounded-lg transition-colors text-sm"
             >
               Cancel
             </button>
             <button
               onClick={handleRequestChanges}
               disabled={isLoading || !hasValidChangeRequest}
-              className="flex-1 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-semibold py-2.5 rounded-lg transition-colors text-sm"
+              className="flex-1 bg-gradient-to-br from-[#C49A3C] to-[#E8B84B] hover:opacity-90 disabled:opacity-50 text-[#1C2740] font-semibold py-2.5 rounded-lg transition-colors text-sm"
             >
               {isLoading ? 'Sending...' : 'Send Change Request'}
             </button>
@@ -441,7 +441,7 @@ export default function TenantAgreementActions({
       )}
 
       {error && mode === 'idle' && (
-        <p className="text-red-500 text-sm mt-3">{error}</p>
+        <p className="text-[#f87171] text-sm mt-3">{error}</p>
       )}
     </div>
   );

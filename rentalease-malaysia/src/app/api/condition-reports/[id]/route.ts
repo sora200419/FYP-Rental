@@ -2,16 +2,11 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
-import { v2 as cloudinary } from 'cloudinary';
-
-cloudinary.config({
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-  api_key: process.env.CLOUDINARY_API_KEY,
-  api_secret: process.env.CLOUDINARY_API_SECRET,
-});
+import { deletePaymentProof } from '@/lib/cloudinary';
+import { logAudit, getIp } from '@/lib/audit';
 
 export async function DELETE(
-  _req: NextRequest,
+  req: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
   const session = await getServerSession(authOptions);
@@ -52,10 +47,16 @@ export async function DELETE(
     );
   }
 
-  // Delete Cloudinary photos before removing the DB record
-  await Promise.allSettled(
-    report.photos.map((p) => cloudinary.uploader.destroy(p.publicId)),
-  );
+  await logAudit({
+    actorId: session.user.id,
+    action: 'CONDITION_REPORT_DELETED',
+    entityName: 'ConditionReport',
+    entityId: id,
+    previousData: report as object,
+    ipAddress: getIp(req),
+  });
+
+  await Promise.allSettled(report.photos.map((p) => deletePaymentProof(p.publicId)));
 
   await prisma.conditionReport.delete({ where: { id } });
 

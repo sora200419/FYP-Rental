@@ -46,7 +46,7 @@ export default function TerminateForm({ tenancyId }: Props) {
   return (
     <form onSubmit={handleSubmit} className="space-y-5">
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
+        <label className="block text-sm font-medium text-white/70 mb-1">
           Reason for termination
         </label>
         <textarea
@@ -54,7 +54,7 @@ export default function TerminateForm({ tenancyId }: Props) {
           onChange={(e) => setReason(e.target.value)}
           rows={4}
           placeholder="State the grounds for termination (e.g. breach of tenancy terms, non-payment of rent, mutual agreement, sale of property)…"
-          className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-500 resize-none"
+          className="w-full rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-sm text-white placeholder:text-white/20 focus:border-[rgba(196,154,60,0.5)] focus:outline-none focus:ring-0 transition-colors resize-none"
           required
           minLength={10}
         />
@@ -65,27 +65,27 @@ export default function TerminateForm({ tenancyId }: Props) {
           type="checkbox"
           checked={confirmed}
           onChange={(e) => setConfirmed(e.target.checked)}
-          className="mt-0.5 h-4 w-4 rounded border-gray-300 text-red-600 focus:ring-red-500"
+          className="mt-0.5 h-4 w-4 rounded border-white/10 text-[#f87171] focus:ring-[#f87171]"
         />
-        <span className="text-sm text-gray-700">
+        <span className="text-sm text-white/70">
           I confirm that I have provided the required notice period as per the tenancy agreement and Malaysian tenancy law, and I understand this action is irreversible.
         </span>
       </label>
 
-      {error && <p className="text-red-500 text-sm">{error}</p>}
+      {error && <p className="text-[#f87171] text-sm">{error}</p>}
 
       <div className="flex gap-3">
         <button
           type="submit"
           disabled={submitting || !confirmed}
-          className="bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white font-semibold px-6 py-2.5 rounded-lg text-sm transition-colors"
+          className="bg-[rgba(248,113,113,0.1)] border border-[rgba(248,113,113,0.25)] hover:opacity-90 disabled:opacity-50 text-[#f87171] font-semibold px-6 py-2.5 rounded-lg text-sm transition-colors"
         >
           {submitting ? 'Processing…' : 'Serve Notice & Terminate'}
         </button>
         <button
           type="button"
           onClick={() => router.back()}
-          className="border border-gray-300 text-gray-700 font-semibold px-5 py-2.5 rounded-lg text-sm hover:bg-gray-50 transition-colors"
+          className="border border-white/10 text-white/70 font-semibold px-5 py-2.5 rounded-lg text-sm hover:bg-white/5 transition-colors"
         >
           Cancel
         </button>

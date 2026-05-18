@@ -49,7 +49,7 @@ export default function VerifyButton({ userId, disabled = false }: Props) {
 
   if (state === 'verified') {
     return (
-      <span className="text-green-700 text-sm font-semibold bg-green-50 border border-green-200 px-3 py-1.5 rounded-lg">
+      <span className="text-[#4ade80] text-sm font-semibold bg-[rgba(74,222,128,0.1)] border border-[rgba(74,222,128,0.25)] px-3 py-1.5 rounded-lg">
         Verified
       </span>
     );
@@ -57,7 +57,7 @@ export default function VerifyButton({ userId, disabled = false }: Props) {
 
   if (state === 'rejected') {
     return (
-      <span className="text-red-700 text-sm font-semibold bg-red-50 border border-red-200 px-3 py-1.5 rounded-lg">
+      <span className="text-[#f87171] text-sm font-semibold bg-[rgba(248,113,113,0.1)] border border-[rgba(248,113,113,0.25)] px-3 py-1.5 rounded-lg">
         Rejected
       </span>
     );
@@ -72,7 +72,7 @@ export default function VerifyButton({ userId, disabled = false }: Props) {
           placeholder="Reason for rejection…"
           rows={3}
           autoFocus
-          className="w-full text-xs border border-red-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-red-400 resize-none"
+          className="w-full rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-xs text-white placeholder:text-white/20 focus:border-[rgba(248,113,113,0.5)] focus:outline-none focus:ring-0 transition-colors resize-none"
         />
         <div className="flex gap-1.5">
           <button
@@ -85,7 +85,7 @@ export default function VerifyButton({ userId, disabled = false }: Props) {
           <button
             onClick={() => { setState('idle'); setReason(''); }}
             disabled={loading}
-            className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-600 text-xs font-semibold py-1.5 rounded-lg transition-colors"
+            className="flex-1 bg-white/5 hover:bg-white/10 text-white/60 text-xs font-semibold py-1.5 rounded-lg transition-colors"
           >
             Cancel
           </button>
@@ -107,7 +107,7 @@ export default function VerifyButton({ userId, disabled = false }: Props) {
       <button
         onClick={() => setState('rejecting')}
         disabled={loading}
-        className="border border-red-200 hover:bg-red-50 text-red-600 text-sm font-semibold px-4 py-1.5 rounded-lg transition-colors"
+        className="border border-[rgba(248,113,113,0.25)] hover:bg-[rgba(248,113,113,0.08)] text-[#f87171] text-sm font-semibold px-4 py-1.5 rounded-lg transition-colors"
       >
         Reject
       </button>

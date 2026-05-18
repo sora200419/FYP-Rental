@@ -65,10 +65,10 @@ export default function DepositVerificationCard({
   };
 
   const statusBadge: Record<string, string> = {
-    PENDING: 'bg-gray-100 text-gray-500',
-    UNDER_REVIEW: 'bg-amber-100 text-amber-700',
-    PAID: 'bg-green-100 text-green-700',
-    REJECTED: 'bg-red-100 text-red-600',
+    PENDING: 'bg-white/5 text-white/50',
+    UNDER_REVIEW: 'bg-[rgba(251,191,36,0.08)] text-[#E8B84B]',
+    PAID: 'bg-[rgba(74,222,128,0.1)] text-[#4ade80]',
+    REJECTED: 'bg-[rgba(248,113,113,0.1)] text-[#f87171]',
   };
 
   const statusLabel: Record<string, string> = {
@@ -79,21 +79,21 @@ export default function DepositVerificationCard({
   };
 
   return (
-    <div className="mt-4 border-t border-gray-100 pt-4">
+    <div className="mt-4 border-t border-[rgba(196,154,60,0.1)] pt-4">
       <div className="flex items-center justify-between mb-3">
-        <p className="text-sm font-semibold text-gray-700">
+        <p className="text-sm font-semibold text-white/70">
           Deposit — {depositAmount}
         </p>
         <span
-          className={`text-xs font-semibold px-2.5 py-1 rounded-full ${statusBadge[depositStatus] ?? 'bg-gray-100 text-gray-500'}`}
+          className={`text-xs font-semibold px-2.5 py-1 rounded-full ${statusBadge[depositStatus] ?? 'bg-white/5 text-white/50'}`}
         >
           {statusLabel[depositStatus] ?? depositStatus}
         </span>
       </div>
 
       {depositStatus === 'REJECTED' && rejectionReason && (
-        <div className="bg-red-50 border border-red-200 rounded-lg px-3 py-2 mb-3">
-          <p className="text-xs text-red-700">
+        <div className="bg-[rgba(248,113,113,0.08)] border border-[rgba(248,113,113,0.25)] rounded-lg px-3 py-2 mb-3">
+          <p className="text-xs text-[#f87171]">
             <span className="font-semibold">Rejected:</span> {rejectionReason}
           </p>
         </div>
@@ -123,7 +123,7 @@ export default function DepositVerificationCard({
       )}
 
       {depositStatus === 'PENDING' && (
-        <p className="text-xs text-gray-400 italic">
+        <p className="text-xs text-white/40 italic">
           Tenant has not uploaded deposit proof yet.
         </p>
       )}
@@ -140,7 +140,7 @@ export default function DepositVerificationCard({
           <button
             onClick={() => setMode('rejecting')}
             disabled={isLoading}
-            className="flex-1 border border-red-300 text-red-600 hover:bg-red-50 disabled:opacity-50 text-sm font-semibold py-2 rounded-lg transition-colors"
+            className="flex-1 border border-[rgba(248,113,113,0.25)] text-[#f87171] hover:bg-[rgba(248,113,113,0.08)] disabled:opacity-50 text-sm font-semibold py-2 rounded-lg transition-colors"
           >
             Reject
           </button>
@@ -154,7 +154,7 @@ export default function DepositVerificationCard({
             onChange={(e) => setRejectReason(e.target.value)}
             rows={3}
             placeholder="Explain why the proof is insufficient…"
-            className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-red-400 resize-none mb-3"
+            className="w-full rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-sm text-white placeholder:text-white/20 focus:border-[rgba(196,154,60,0.5)] focus:outline-none focus:ring-0 transition-colors resize-none mb-3"
           />
           <div className="flex gap-2">
             <button
@@ -163,7 +163,7 @@ export default function DepositVerificationCard({
                 setRejectReason('');
               }}
               disabled={isLoading}
-              className="flex-1 border border-gray-300 text-gray-600 hover:bg-gray-50 text-sm font-semibold py-2 rounded-lg transition-colors"
+              className="flex-1 border border-white/10 text-white/60 hover:bg-white/5 text-sm font-semibold py-2 rounded-lg transition-colors"
             >
               Cancel
             </button>
@@ -178,7 +178,7 @@ export default function DepositVerificationCard({
         </div>
       )}
 
-      {error && <p className="text-red-500 text-xs mt-2">{error}</p>}
+      {error && <p className="text-[#f87171] text-xs mt-2">{error}</p>}
     </div>
   );
 }

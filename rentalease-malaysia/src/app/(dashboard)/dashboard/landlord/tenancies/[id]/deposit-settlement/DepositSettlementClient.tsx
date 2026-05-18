@@ -47,18 +47,18 @@ const STATUS_LABEL: Record<RefundStatus, string> = {
 };
 
 const STATUS_STYLE: Record<RefundStatus, string> = {
-  PROPOSED: 'bg-amber-100 text-amber-700',
-  IN_REVIEW: 'bg-blue-100 text-blue-700',
-  AGREED: 'bg-green-100 text-green-700',
-  DISPUTED: 'bg-red-100 text-red-600',
-  PAID: 'bg-green-100 text-green-700',
+  PROPOSED: 'bg-[rgba(251,191,36,0.08)] text-[#E8B84B]',
+  IN_REVIEW: 'bg-[rgba(196,154,60,0.1)] text-[#C49A3C]',
+  AGREED: 'bg-[rgba(74,222,128,0.1)] text-[#4ade80]',
+  DISPUTED: 'bg-[rgba(248,113,113,0.1)] text-[#f87171]',
+  PAID: 'bg-[rgba(74,222,128,0.1)] text-[#4ade80]',
 };
 
 const DEDUCTION_STYLE: Record<DeductionStatus, string> = {
-  PROPOSED: 'text-amber-600',
-  ACCEPTED: 'text-green-600',
-  DISPUTED: 'text-red-600',
-  WITHDRAWN: 'text-gray-300 line-through',
+  PROPOSED: 'text-[#E8B84B]',
+  ACCEPTED: 'text-[#4ade80]',
+  DISPUTED: 'text-[#f87171]',
+  WITHDRAWN: 'text-white/30 line-through',
 };
 
 export default function DepositSettlementClient({
@@ -198,19 +198,19 @@ export default function DepositSettlementClient({
   if (!refund) {
     return (
       <div className="space-y-5">
-        <div className="bg-white rounded-xl border border-gray-200 p-6 text-center">
-          <svg className="w-10 h-10 text-gray-300 mb-3 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div className="bg-[#1C2740] rounded-xl border border-[rgba(196,154,60,0.15)] p-6 text-center">
+          <svg className="w-10 h-10 text-white/30 mb-3 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
-          <p className="font-semibold text-gray-800">Start deposit settlement</p>
-          <p className="text-sm text-gray-400 mt-1 mb-5">
+          <p className="font-semibold text-white">Start deposit settlement</p>
+          <p className="text-sm text-white/40 mt-1 mb-5">
             Create a deposit refund record. You can then add deductions for any damages or unpaid amounts, and {tenantName} will be notified to review.
           </p>
-          {error && <p className="text-red-500 text-sm mb-3">{error}</p>}
+          {error && <p className="text-[#f87171] text-sm mb-3">{error}</p>}
           <button
             onClick={createRefund}
             disabled={loading}
-            className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-semibold px-6 py-2.5 rounded-lg text-sm"
+            className="bg-gradient-to-br from-[#C49A3C] to-[#E8B84B] hover:opacity-90 disabled:opacity-50 text-[#1C2740] font-semibold px-6 py-2.5 rounded-lg text-sm"
           >
             {loading ? 'Creating…' : '→ Start Settlement'}
           </button>
@@ -226,39 +226,39 @@ export default function DepositSettlementClient({
   return (
     <div className="space-y-5">
       {/* Status header */}
-      <div className="bg-white rounded-xl border border-gray-200 p-5 flex items-center justify-between">
+      <div className="bg-[#1C2740] rounded-xl border border-[rgba(196,154,60,0.15)] p-5 flex items-center justify-between">
         <div>
-          <p className="text-sm text-gray-400">Refund Status</p>
+          <p className="text-sm text-white/40">Refund Status</p>
           <span className={`inline-block mt-1 text-sm font-semibold px-3 py-1 rounded-full ${STATUS_STYLE[refund.status]}`}>
             {STATUS_LABEL[refund.status]}
           </span>
         </div>
         <div className="text-right">
-          <p className="text-xs text-gray-400">Original deposit</p>
-          <p className="font-semibold text-gray-900">{formatRM(refund.originalAmount)}</p>
-          <p className="text-xs text-gray-400 mt-2">Refund amount</p>
-          <p className={`font-bold text-lg ${refund.refundAmount === 0 ? 'text-red-600' : 'text-green-700'}`}>
+          <p className="text-xs text-white/40">Original deposit</p>
+          <p className="font-semibold text-white">{formatRM(refund.originalAmount)}</p>
+          <p className="text-xs text-white/40 mt-2">Refund amount</p>
+          <p className={`font-bold text-lg ${refund.refundAmount === 0 ? 'text-[#f87171]' : 'text-[#4ade80]'}`}>
             {formatRM(refund.refundAmount)}
           </p>
         </div>
       </div>
 
       {/* Deductions list */}
-      <div className="bg-white rounded-xl border border-gray-200 p-5">
-        <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-4">
+      <div className="bg-[#1C2740] rounded-xl border border-[rgba(196,154,60,0.15)] p-5">
+        <h2 className="text-sm font-semibold text-white/50 uppercase tracking-wider mb-4">
           Deductions
         </h2>
 
         {refund.deductions.length === 0 && (
-          <p className="text-sm text-gray-400 mb-4">No deductions added. Full deposit will be refunded.</p>
+          <p className="text-sm text-white/40 mb-4">No deductions added. Full deposit will be refunded.</p>
         )}
 
         {refund.deductions.length > 0 && (
           <div className="space-y-3 mb-4">
             {refund.deductions.map((d) => (
-              <div key={d.id} className="flex items-start justify-between gap-4 py-2 border-b border-gray-50 last:border-0">
+              <div key={d.id} className="flex items-start justify-between gap-4 py-2 border-b border-white/[0.06] last:border-0">
                 <div className="flex-1 min-w-0">
-                  <p className={`text-sm font-medium ${d.status === 'WITHDRAWN' ? 'text-gray-300 line-through' : 'text-gray-800'}`}>
+                  <p className={`text-sm font-medium ${d.status === 'WITHDRAWN' ? 'text-white/30 line-through' : 'text-white'}`}>
                     {d.reason}
                   </p>
                   <div className="flex items-center gap-2 mt-0.5">
@@ -268,20 +268,20 @@ export default function DepositSettlementClient({
                        d.status === 'DISPUTED' ? 'Disputed' : 'Withdrawn'}
                     </span>
                     {d.tenantDisputeNote && (
-                      <span className="text-xs text-red-500 truncate max-w-[200px]" title={d.tenantDisputeNote}>
+                      <span className="text-xs text-[#f87171] truncate max-w-[200px]" title={d.tenantDisputeNote}>
                         — &quot;{d.tenantDisputeNote}&quot;
                       </span>
                     )}
                   </div>
                 </div>
                 <div className="flex items-center gap-3 flex-shrink-0">
-                  <span className={`text-sm font-semibold ${d.status === 'WITHDRAWN' ? 'text-gray-300' : 'text-gray-900'}`}>
+                  <span className={`text-sm font-semibold ${d.status === 'WITHDRAWN' ? 'text-white/30' : 'text-white'}`}>
                     {formatRM(d.amount)}
                   </span>
                   {d.status === 'PROPOSED' && canAddDeductions && (
                     <button
                       onClick={() => withdrawDeduction(d.id)}
-                      className="text-xs text-red-400 hover:text-red-600"
+                      className="text-xs text-[#f87171]/60 hover:text-[#f87171]"
                     >
                       Withdraw
                     </button>
@@ -292,8 +292,8 @@ export default function DepositSettlementClient({
 
             {activeDeductions.length > 0 && (
               <div className="flex justify-between pt-2 text-sm">
-                <span className="text-gray-500">Total deductions</span>
-                <span className="font-semibold text-gray-900">
+                <span className="text-white/50">Total deductions</span>
+                <span className="font-semibold text-white">
                   {formatRM(activeDeductions.reduce((s, d) => s + d.amount, 0))}
                 </span>
               </div>
@@ -303,15 +303,15 @@ export default function DepositSettlementClient({
 
         {/* Add deduction form */}
         {canAddDeductions && (
-          <div className="border-t border-gray-100 pt-4">
-            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Add Deduction</p>
+          <div className="border-t border-[rgba(196,154,60,0.1)] pt-4">
+            <p className="text-xs font-semibold text-white/40 uppercase tracking-wider mb-3">Add Deduction</p>
             <div className="space-y-3">
               <input
                 type="text"
                 value={newReason}
                 onChange={(e) => setNewReason(e.target.value)}
                 placeholder="Reason (e.g. damaged bedroom door, RM 350)"
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-sm text-white placeholder:text-white/20 focus:border-[rgba(196,154,60,0.5)] focus:outline-none focus:ring-0 transition-colors"
               />
               <div className="flex gap-2">
                 <input
@@ -321,12 +321,12 @@ export default function DepositSettlementClient({
                   placeholder="Amount (RM)"
                   min="0"
                   step="0.01"
-                  className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="flex-1 rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-sm text-white placeholder:text-white/20 focus:border-[rgba(196,154,60,0.5)] focus:outline-none focus:ring-0 transition-colors"
                 />
                 <button
                   onClick={addDeduction}
                   disabled={addingDeduction || !newReason.trim() || !newAmount}
-                  className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-semibold px-4 py-2 rounded-lg text-sm"
+                  className="bg-gradient-to-br from-[#C49A3C] to-[#E8B84B] hover:opacity-90 disabled:opacity-50 text-[#1C2740] font-semibold px-4 py-2 rounded-lg text-sm"
                 >
                   {addingDeduction ? '…' : '+ Add'}
                 </button>
@@ -335,7 +335,7 @@ export default function DepositSettlementClient({
               {/* Move-out photo references */}
               {moveOutPhotos.length > 0 && (
                 <div>
-                  <p className="text-xs text-gray-400 mb-1.5">Attach move-out photos as evidence (optional)</p>
+                  <p className="text-xs text-white/40 mb-1.5">Attach move-out photos as evidence (optional)</p>
                   <div className="flex flex-wrap gap-2">
                     {moveOutPhotos.map((photo) => (
                       <label key={photo.id} className="cursor-pointer">
@@ -349,11 +349,11 @@ export default function DepositSettlementClient({
                             )
                           }
                         />
-                        <div className={`relative w-14 h-14 rounded-lg overflow-hidden border-2 transition-colors ${selectedPhotos.includes(photo.id) ? 'border-blue-500' : 'border-gray-200'}`}>
+                        <div className={`relative w-14 h-14 rounded-lg overflow-hidden border-2 transition-colors ${selectedPhotos.includes(photo.id) ? 'border-[#C49A3C]' : 'border-[rgba(196,154,60,0.15)]'}`}>
                           {/* eslint-disable-next-line @next/next/no-img-element */}
                           <img src={photo.imageUrl} alt={photo.area} className="w-full h-full object-cover" />
                           {selectedPhotos.includes(photo.id) && (
-                            <div className="absolute inset-0 bg-blue-500/20 flex items-center justify-center">
+                            <div className="absolute inset-0 bg-[#C49A3C]/20 flex items-center justify-center">
                               <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
                               </svg>
@@ -372,9 +372,9 @@ export default function DepositSettlementClient({
 
       {/* Mark as paid */}
       {canMarkPaid && (
-        <div className="bg-green-50 border border-green-200 rounded-xl p-5">
-          <p className="font-semibold text-green-800 text-sm mb-1">All parties agreed — ready to pay</p>
-          <p className="text-green-700 text-xs mb-4">
+        <div className="bg-[rgba(74,222,128,0.08)] border border-[rgba(74,222,128,0.25)] rounded-xl p-5">
+          <p className="font-semibold text-[#4ade80] text-sm mb-1">All parties agreed — ready to pay</p>
+          <p className="text-[#4ade80] text-xs mb-4">
             Refund {formatRM(refund.refundAmount)} to {tenantName} and upload proof of transfer.
           </p>
           <input
@@ -389,8 +389,8 @@ export default function DepositSettlementClient({
             htmlFor="proof-upload"
             className={`inline-flex items-center gap-2 text-sm font-semibold px-5 py-2.5 rounded-lg cursor-pointer transition-colors ${
               uploadingProof
-                ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
-                : 'bg-green-600 hover:bg-green-700 text-white'
+                ? 'bg-white/10 text-white/40 cursor-not-allowed'
+                : 'bg-[rgba(74,222,128,0.1)] border border-[rgba(74,222,128,0.25)] text-[#4ade80] hover:opacity-90'
             }`}
           >
             {uploadingProof ? 'Uploading…' : 'Upload Payment Proof & Mark Paid'}
@@ -400,19 +400,19 @@ export default function DepositSettlementClient({
 
       {/* Paid state */}
       {refund.status === 'PAID' && (
-        <div className="bg-green-50 border border-green-200 rounded-xl p-5 flex items-center gap-3">
-          <svg className="w-6 h-6 text-green-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div className="bg-[rgba(74,222,128,0.08)] border border-[rgba(74,222,128,0.25)] rounded-xl p-5 flex items-center gap-3">
+          <svg className="w-6 h-6 text-[#4ade80] shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
           </svg>
           <div>
-            <p className="font-semibold text-green-800 text-sm">Deposit refund paid</p>
+            <p className="font-semibold text-[#4ade80] text-sm">Deposit refund paid</p>
             {refund.paidAt && (
-              <p className="text-green-600 text-xs mt-0.5">
+              <p className="text-[#4ade80] text-xs mt-0.5">
                 Paid on {new Date(refund.paidAt).toLocaleDateString('en-MY', { day: 'numeric', month: 'long', year: 'numeric' })}
               </p>
             )}
             {refund.paidProofUrl && (
-              <a href={refund.paidProofUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-600 hover:underline">
+              <a href={refund.paidProofUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-[#C49A3C] hover:underline">
                 View proof ↗
               </a>
             )}
@@ -422,15 +422,15 @@ export default function DepositSettlementClient({
 
       {/* Disputed state */}
       {refund.status === 'DISPUTED' && (
-        <div className="bg-red-50 border border-red-200 rounded-xl p-5">
-          <p className="font-semibold text-red-800 text-sm">Dispute unresolved</p>
-          <p className="text-red-600 text-xs mt-1 leading-relaxed">
+        <div className="bg-[rgba(248,113,113,0.08)] border border-[rgba(248,113,113,0.25)] rounded-xl p-5">
+          <p className="font-semibold text-[#f87171] text-sm">Dispute unresolved</p>
+          <p className="text-[#f87171] text-xs mt-1 leading-relaxed">
             One or more deductions are disputed. Consider withdrawing the disputed deductions to reach agreement, or proceed to external mediation.
           </p>
         </div>
       )}
 
-      {error && <p className="text-red-500 text-sm">{error}</p>}
+      {error && <p className="text-[#f87171] text-sm">{error}</p>}
     </div>
   );
 }

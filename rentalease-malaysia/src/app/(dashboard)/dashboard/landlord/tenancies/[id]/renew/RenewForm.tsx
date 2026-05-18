@@ -74,8 +74,8 @@ export default function RenewForm({ tenancyId, currentEndDate, currentMonthlyRen
     }
   };
 
-  const inputClass = 'w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500';
-  const labelClass = 'block text-sm font-medium text-gray-700 mb-1';
+  const inputClass = 'w-full rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-sm text-white placeholder:text-white/20 focus:border-[rgba(196,154,60,0.5)] focus:outline-none focus:ring-0 transition-colors';
+  const labelClass = 'block text-sm font-medium text-white/70 mb-1';
 
   return (
     <form onSubmit={handleSubmit} className="space-y-5">
@@ -131,24 +131,24 @@ export default function RenewForm({ tenancyId, currentEndDate, currentMonthlyRen
         </div>
       </div>
 
-      <div className="bg-blue-50 border border-blue-200 rounded-lg px-4 py-3 text-xs text-blue-700">
+      <div className="bg-[rgba(196,154,60,0.06)] border border-[rgba(196,154,60,0.2)] rounded-lg px-4 py-3 text-xs text-[#C49A3C]">
         A new tenancy invitation will be sent to the tenant. They must accept before you can draft a new agreement.
       </div>
 
-      {error && <p className="text-red-500 text-sm">{error}</p>}
+      {error && <p className="text-[#f87171] text-sm">{error}</p>}
 
       <div className="flex gap-3">
         <button
           type="submit"
           disabled={submitting}
-          className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-semibold px-6 py-2.5 rounded-lg text-sm transition-colors"
+          className="bg-gradient-to-br from-[#C49A3C] to-[#E8B84B] hover:opacity-90 disabled:opacity-50 text-[#1C2740] font-semibold px-6 py-2.5 rounded-lg text-sm transition-colors"
         >
           {submitting ? 'Creating renewal…' : 'Create Renewal Tenancy'}
         </button>
         <button
           type="button"
           onClick={() => router.back()}
-          className="border border-gray-300 text-gray-700 font-semibold px-5 py-2.5 rounded-lg text-sm hover:bg-gray-50 transition-colors"
+          className="border border-white/10 text-white/70 font-semibold px-5 py-2.5 rounded-lg text-sm hover:bg-white/5 transition-colors"
         >
           Cancel
         </button>

@@ -75,70 +75,70 @@ export default function TenancyInvitationCard({
   if (responded) {
     return (
       <div
-        className={`rounded-xl border p-6 ${responded === 'accepted' ? 'bg-green-50 border-green-200' : 'bg-gray-50 border-gray-200'}`}
+        className={`rounded-xl border p-6 ${responded === 'accepted' ? 'bg-[rgba(74,222,128,0.08)] border-[rgba(74,222,128,0.25)]' : 'bg-white/[0.03] border-[rgba(196,154,60,0.15)]'}`}
       >
         <p
-          className={`font-semibold text-sm ${responded === 'accepted' ? 'text-green-800' : 'text-gray-600'}`}
+          className={`font-semibold text-sm ${responded === 'accepted' ? 'text-[#4ade80]' : 'text-white/60'}`}
         >
           {responded === 'accepted'
             ? 'Invitation accepted — your landlord will now prepare the agreement.'
             : 'Invitation declined.'}
         </p>
-        <p className="text-xs text-gray-400 mt-1">Refreshing your dashboard…</p>
+        <p className="text-xs text-white/40 mt-1">Refreshing your dashboard…</p>
       </div>
     );
   }
 
   return (
-    <div className="bg-white rounded-xl border border-blue-200 p-6 shadow-sm">
+    <div className="bg-[#1C2740] rounded-xl border border-[rgba(196,154,60,0.2)] p-6 shadow-sm">
       <div className="flex items-start justify-between mb-4">
         <div>
-          <p className="font-bold text-gray-900">{propertyAddress}</p>
-          <p className="text-sm text-gray-500 mt-0.5">
+          <p className="font-bold text-white">{propertyAddress}</p>
+          <p className="text-sm text-white/50 mt-0.5">
             {propertyCity} &mdash;{' '}
             <span className="font-medium">{roomLabel}</span>
           </p>
         </div>
-        <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-blue-100 text-blue-700 shrink-0">
+        <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-[rgba(196,154,60,0.1)] text-[#C49A3C] shrink-0">
           Invitation
         </span>
       </div>
 
       <div className="grid grid-cols-2 gap-3 text-sm mb-4">
         <div>
-          <p className="text-gray-400 text-xs">Monthly Rent</p>
-          <p className="font-bold text-blue-600 mt-0.5">
+          <p className="text-white/40 text-xs">Monthly Rent</p>
+          <p className="font-bold text-[#C49A3C] mt-0.5">
             {formatRM(rentAmount)}
           </p>
         </div>
         <div>
-          <p className="text-gray-400 text-xs">Security Deposit</p>
-          <p className="font-semibold text-gray-800 mt-0.5">
+          <p className="text-white/40 text-xs">Security Deposit</p>
+          <p className="font-semibold text-white mt-0.5">
             {formatRM(depositAmount)}
           </p>
         </div>
         <div>
-          <p className="text-gray-400 text-xs">Start Date</p>
-          <p className="font-medium text-gray-800 mt-0.5">
+          <p className="text-white/40 text-xs">Start Date</p>
+          <p className="font-medium text-white mt-0.5">
             {formatDate(startDate)}
           </p>
         </div>
         <div>
-          <p className="text-gray-400 text-xs">End Date</p>
-          <p className="font-medium text-gray-800 mt-0.5">
+          <p className="text-white/40 text-xs">End Date</p>
+          <p className="font-medium text-white mt-0.5">
             {formatDate(endDate)}
           </p>
         </div>
       </div>
 
-      <div className="bg-gray-50 rounded-lg px-4 py-3 mb-4">
-        <p className="text-xs text-gray-400 mb-1">Invited by</p>
-        <p className="text-sm font-semibold text-gray-800">{landlordName}</p>
-        <p className="text-xs text-gray-500">{landlordEmail}</p>
+      <div className="bg-white/[0.03] rounded-lg px-4 py-3 mb-4">
+        <p className="text-xs text-white/40 mb-1">Invited by</p>
+        <p className="text-sm font-semibold text-white">{landlordName}</p>
+        <p className="text-xs text-white/50">{landlordEmail}</p>
       </div>
 
-      <div className="bg-blue-50 border border-blue-100 rounded-lg px-4 py-3 mb-4">
-        <p className="text-xs text-blue-700">
+      <div className="bg-[rgba(196,154,60,0.06)] border border-[rgba(196,154,60,0.1)] rounded-lg px-4 py-3 mb-4">
+        <p className="text-xs text-[#C49A3C]">
           <strong>Accepting</strong> means the landlord can proceed to generate
           a tenancy agreement for your review. You can still request changes
           before signing. <strong>Declining</strong> cancels this invitation.
@@ -146,7 +146,7 @@ export default function TenancyInvitationCard({
       </div>
 
       {error && (
-        <p className="text-red-600 text-xs bg-red-50 border border-red-200 rounded-lg px-3 py-2 mb-4">
+        <p className="text-[#f87171] text-xs bg-[rgba(248,113,113,0.08)] border border-[rgba(248,113,113,0.25)] rounded-lg px-3 py-2 mb-4">
           {error}
         </p>
       )}
@@ -155,7 +155,7 @@ export default function TenancyInvitationCard({
         <button
           onClick={() => handleAction('decline')}
           disabled={!!isLoading}
-          className="flex-1 border border-gray-300 text-gray-600 hover:bg-gray-50 disabled:opacity-50 text-sm font-semibold py-2.5 rounded-lg transition-colors"
+          className="flex-1 border border-white/10 text-white/60 hover:bg-white/5 disabled:opacity-50 text-sm font-semibold py-2.5 rounded-lg transition-colors"
         >
           {isLoading === 'decline' ? 'Declining…' : 'Decline'}
         </button>

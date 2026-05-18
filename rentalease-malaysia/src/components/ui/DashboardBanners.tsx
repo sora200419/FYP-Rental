@@ -19,9 +19,9 @@ interface Banner {
 }
 
 const COLOR_CLASSES: Record<BannerColor, { wrapper: string; icon: string }> = {
-  blue:  { wrapper: 'bg-blue-50 border-blue-200 text-blue-800',   icon: 'text-blue-500' },
-  red:   { wrapper: 'bg-red-50 border-red-200 text-red-800',      icon: 'text-red-500'  },
-  amber: { wrapper: 'bg-amber-50 border-amber-200 text-amber-800', icon: 'text-amber-500' },
+  blue:  { wrapper: 'bg-[rgba(196,154,60,0.06)] border-[rgba(196,154,60,0.2)] text-[#C49A3C]',   icon: 'text-[#C49A3C]' },
+  red:   { wrapper: 'bg-[rgba(248,113,113,0.08)] border-[rgba(248,113,113,0.25)] text-[#f87171]', icon: 'text-[#f87171]' },
+  amber: { wrapper: 'bg-[rgba(251,191,36,0.08)] border-[rgba(251,191,36,0.25)] text-[#E8B84B]',  icon: 'text-[#E8B84B]' },
 };
 
 function InfoIcon({ className }: { className?: string }) {

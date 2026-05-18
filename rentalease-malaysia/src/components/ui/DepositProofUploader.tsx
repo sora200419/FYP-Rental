@@ -81,12 +81,12 @@ export default function DepositProofUploader({
   // ── PAID ──────────────────────────────────────────────────────────────────
   if (depositStatus === 'PAID') {
     return (
-      <div className="bg-green-50 border border-green-200 rounded-xl p-4">
+      <div className="bg-[rgba(74,222,128,0.08)] border border-[rgba(74,222,128,0.25)] rounded-xl p-4">
         <div className="flex items-center gap-2 mb-3">
-          <span className="text-green-600 font-bold text-sm">
+          <span className="text-[#4ade80] font-bold text-sm">
             Deposit Confirmed
           </span>
-          <span className="text-xs text-gray-400">{depositAmount}</span>
+          <span className="text-xs text-white/40">{depositAmount}</span>
         </div>
         {existingProofs.length > 0 && (
           <div className="flex flex-wrap gap-2">
@@ -96,7 +96,7 @@ export default function DepositProofUploader({
                 href={p.imageUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="relative block w-16 h-16 rounded-lg overflow-hidden border border-green-200 hover:opacity-80 transition-opacity"
+                className="relative block w-16 h-16 rounded-lg overflow-hidden border border-[rgba(74,222,128,0.25)] hover:opacity-80 transition-opacity"
               >
                 <Image
                   src={p.imageUrl}
@@ -116,8 +116,8 @@ export default function DepositProofUploader({
   // ── UNDER REVIEW ─────────────────────────────────────────────────────────
   if (depositStatus === 'UNDER_REVIEW') {
     return (
-      <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
-        <p className="text-blue-800 text-sm font-semibold mb-2">
+      <div className="bg-[rgba(196,154,60,0.06)] border border-[rgba(196,154,60,0.2)] rounded-xl p-4">
+        <p className="text-[#C49A3C] text-sm font-semibold mb-2">
           ⏳ Deposit proof submitted — awaiting landlord confirmation
         </p>
         {existingProofs.length > 0 && (
@@ -128,7 +128,7 @@ export default function DepositProofUploader({
                 href={p.imageUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="relative block w-16 h-16 rounded-lg overflow-hidden border border-blue-200 hover:opacity-80 transition-opacity"
+                className="relative block w-16 h-16 rounded-lg overflow-hidden border border-[rgba(196,154,60,0.2)] hover:opacity-80 transition-opacity"
               >
                 <Image
                   src={p.imageUrl}
@@ -149,17 +149,17 @@ export default function DepositProofUploader({
   return (
     <div className="space-y-3">
       {depositStatus === 'REJECTED' && depositRejectionReason && (
-        <div className="bg-red-50 border border-red-200 rounded-lg px-4 py-3">
-          <p className="text-red-700 text-sm font-semibold">
+        <div className="bg-[rgba(248,113,113,0.08)] border border-[rgba(248,113,113,0.25)] rounded-lg px-4 py-3">
+          <p className="text-[#f87171] text-sm font-semibold">
             Proof rejected — please re-upload
           </p>
-          <p className="text-red-600 text-xs mt-1">{depositRejectionReason}</p>
+          <p className="text-[#f87171] text-xs mt-1">{depositRejectionReason}</p>
         </div>
       )}
 
       {/* Preview of selected file */}
       {preview && (
-        <div className="relative w-24 h-24 rounded-lg overflow-hidden border border-gray-300">
+        <div className="relative w-24 h-24 rounded-lg overflow-hidden border border-white/10">
           <Image
             src={preview}
             alt="Preview"
@@ -173,7 +173,7 @@ export default function DepositProofUploader({
       {!file ? (
         <button
           onClick={() => inputRef.current?.click()}
-          className="flex items-center gap-2 border border-dashed border-gray-300 rounded-lg px-4 py-3 text-sm text-gray-500 hover:border-blue-400 hover:text-blue-600 transition-colors w-full justify-center"
+          className="flex items-center gap-2 border border-dashed border-white/10 rounded-lg px-4 py-3 text-sm text-white/50 hover:border-[rgba(196,154,60,0.5)] hover:text-[#C49A3C] transition-colors w-full justify-center"
         >
           <svg
             className="w-4 h-4"
@@ -195,14 +195,14 @@ export default function DepositProofUploader({
           <button
             onClick={handleUpload}
             disabled={isUploading}
-            className="flex-1 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-sm font-semibold py-2 rounded-lg transition-colors"
+            className="flex-1 bg-gradient-to-br from-[#C49A3C] to-[#E8B84B] hover:opacity-90 disabled:opacity-50 text-[#1C2740] text-sm font-semibold py-2 rounded-lg transition-colors"
           >
             {isUploading ? 'Uploading…' : 'Submit proof'}
           </button>
           <button
             onClick={handleCancel}
             disabled={isUploading}
-            className="flex-1 border border-gray-300 text-gray-600 hover:bg-gray-50 text-sm font-semibold py-2 rounded-lg transition-colors"
+            className="flex-1 border border-white/10 text-white/60 hover:bg-white/5 text-sm font-semibold py-2 rounded-lg transition-colors"
           >
             Cancel
           </button>
@@ -217,7 +217,7 @@ export default function DepositProofUploader({
         onChange={handleFileChange}
       />
 
-      {error && <p className="text-red-500 text-xs">{error}</p>}
+      {error && <p className="text-[#f87171] text-xs">{error}</p>}
     </div>
   );
 }

@@ -39,7 +39,7 @@ export default function PropertyPhotoGallery({
 
   if (photos.length === 0) {
     return (
-      <p className="text-sm text-gray-400 text-center py-4">
+      <p className="text-sm text-white/40 text-center py-4">
         No photos yet. Upload some to showcase this property.
       </p>
     );
@@ -48,7 +48,7 @@ export default function PropertyPhotoGallery({
   return (
     <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
       {photos.map((photo) => (
-        <div key={photo.id} className="relative group rounded-lg overflow-hidden border border-gray-200">
+        <div key={photo.id} className="relative group rounded-lg overflow-hidden border border-[rgba(196,154,60,0.15)]">
           <Image
             src={photo.imageUrl}
             alt={photo.caption ?? 'Property photo'}
@@ -57,7 +57,7 @@ export default function PropertyPhotoGallery({
             className="w-full h-36 object-cover"
           />
           {photo.caption && (
-            <p className="text-xs text-gray-600 px-2 py-1 bg-white truncate">
+            <p className="text-xs text-white/60 px-2 py-1 bg-[#1C2740] truncate">
               {photo.caption}
             </p>
           )}

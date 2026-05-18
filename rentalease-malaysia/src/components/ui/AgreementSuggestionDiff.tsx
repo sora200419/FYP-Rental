@@ -14,40 +14,42 @@ function getBlockStyles(
   type: DiffRow['type'],
 ): string {
   if (type === 'unchanged') {
-    return 'border border-gray-200 bg-white text-gray-700';
+    return 'border border-[rgba(196,154,60,0.12)] bg-[#161f30] text-white/60';
   }
 
   if (type === 'modified') {
     return side === 'current'
-      ? 'border border-amber-300 bg-amber-50 text-amber-950'
-      : 'border border-emerald-300 bg-emerald-50 text-emerald-950';
+      ? 'border-l-2 border-l-amber-400 border border-amber-400/30 bg-amber-950/40 text-amber-100'
+      : 'border-l-2 border-l-emerald-400 border border-emerald-400/30 bg-emerald-950/40 text-emerald-100';
   }
 
   if (type === 'removed') {
     return side === 'current'
-      ? 'border border-rose-300 bg-rose-50 text-rose-950'
-      : 'border border-dashed border-gray-200 bg-gray-50 text-gray-400';
+      ? 'border-l-2 border-l-rose-400 border border-rose-400/30 bg-rose-950/40 text-rose-100'
+      : 'border border-dashed border-white/10 bg-white/[0.02] text-white/30';
   }
 
+  // added
   return side === 'suggested'
-    ? 'border border-purple-300 bg-purple-50 text-purple-950'
-    : 'border border-dashed border-gray-200 bg-gray-50 text-gray-400';
+    ? 'border-l-2 border-l-emerald-400 border border-emerald-400/30 bg-emerald-950/40 text-emerald-100'
+    : 'border border-dashed border-white/10 bg-white/[0.02] text-white/30';
 }
 
 function getBadgeStyles(type: DiffRow['type']): string {
   if (type === 'unchanged') {
-    return 'bg-gray-100 text-gray-500';
+    return 'bg-white/5 text-white/40';
   }
 
   if (type === 'modified') {
-    return 'bg-amber-100 text-amber-700';
+    return 'bg-amber-400/15 text-amber-300';
   }
 
   if (type === 'removed') {
-    return 'bg-rose-100 text-rose-700';
+    return 'bg-rose-400/15 text-rose-300';
   }
 
-  return 'bg-purple-100 text-purple-700';
+  // added
+  return 'bg-emerald-400/15 text-emerald-300';
 }
 
 function getBadgeLabel(type: DiffRow['type']): string {
@@ -100,44 +102,44 @@ export default function AgreementSuggestionDiff({
   );
 
   return (
-    <div className="bg-white">
-      <div className="border-b border-purple-200 px-4 py-3">
-        <p className="text-sm font-semibold text-purple-900">
+    <div className="bg-[#1C2740]">
+      <div className="border-b border-[rgba(196,154,60,0.2)] px-4 py-4">
+        <p className="text-sm font-semibold text-white">
           {summary.changedBlocks === 0
             ? 'No visible text changes detected'
             : `${summary.changedBlocks} changed block${summary.changedBlocks === 1 ? '' : 's'} detected`}
         </p>
-        <p className="text-xs text-purple-700 mt-1">
+        <p className="text-xs text-white/50 mt-1">
           Left shows the current agreement. Right shows the AI suggestion.
           Changed blocks are highlighted before you apply anything to the editor.
         </p>
         {instruction ? (
-          <p className="mt-2 text-xs text-purple-800">
+          <p className="mt-2 text-xs text-[#C49A3C]">
             <span className="font-semibold">Instruction applied:</span>{' '}
             {instruction}
           </p>
         ) : null}
         <div className="flex flex-wrap gap-2 mt-3 text-[11px] font-medium">
-          <span className="rounded-full bg-amber-100 px-2.5 py-1 text-amber-700">
+          <span className="rounded-full bg-amber-400/15 px-2.5 py-1 text-amber-300">
             {summary.modifiedBlocks} changed
           </span>
-          <span className="rounded-full bg-purple-100 px-2.5 py-1 text-purple-700">
+          <span className="rounded-full bg-emerald-400/15 px-2.5 py-1 text-emerald-300">
             {summary.addedBlocks} added
           </span>
-          <span className="rounded-full bg-rose-100 px-2.5 py-1 text-rose-700">
+          <span className="rounded-full bg-rose-400/15 px-2.5 py-1 text-rose-300">
             {summary.removedBlocks} removed
           </span>
         </div>
         {changedRows.length > 0 ? (
-          <div className="mt-3 rounded-lg border border-purple-200 bg-purple-50/70 px-3 py-3">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-purple-700">
+          <div className="mt-3 rounded-lg border border-[rgba(196,154,60,0.2)] bg-[rgba(196,154,60,0.05)] px-3 py-3">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#C49A3C]">
               Changed Sections
             </p>
             <div className="mt-2 flex flex-wrap gap-2">
               {changedRows.map((row, index) => (
                 <span
                   key={`summary-${index}`}
-                  className="rounded-full border border-purple-200 bg-white px-2.5 py-1 text-[11px] text-purple-800"
+                  className="rounded-full border border-[rgba(196,154,60,0.3)] bg-[rgba(196,154,60,0.08)] px-2.5 py-1 text-[11px] text-[#E8B84B]"
                 >
                   {getBlockTitle(row)}
                 </span>
@@ -145,12 +147,12 @@ export default function AgreementSuggestionDiff({
             </div>
           </div>
         ) : null}
-        <label className="mt-3 inline-flex items-center gap-2 text-xs text-purple-700">
+        <label className="mt-3 inline-flex items-center gap-2 text-xs text-white/50 cursor-pointer">
           <input
             type="checkbox"
             checked={showUnchanged}
             onChange={(event) => setShowUnchanged(event.target.checked)}
-            className="h-4 w-4 accent-purple-600"
+            className="h-4 w-4 accent-[#C49A3C]"
           />
           Show unchanged blocks
         </label>
@@ -158,7 +160,7 @@ export default function AgreementSuggestionDiff({
 
       <div className="grid gap-3 px-4 py-4 lg:grid-cols-2">
         <div>
-          <p className="mb-2 text-xs font-semibold uppercase tracking-[0.12em] text-gray-500">
+          <p className="mb-2 text-xs font-semibold uppercase tracking-[0.12em] text-white/50">
             Current Agreement
           </p>
           <div className="space-y-3">
@@ -173,7 +175,7 @@ export default function AgreementSuggestionDiff({
                   >
                     {getBadgeLabel(row.type)}
                   </span>
-                  <span className="text-[11px] text-gray-400">
+                  <span className="text-[11px] text-white/40">
                     Block {index + 1}
                   </span>
                 </div>
@@ -184,7 +186,7 @@ export default function AgreementSuggestionDiff({
         </div>
 
         <div>
-          <p className="mb-2 text-xs font-semibold uppercase tracking-[0.12em] text-gray-500">
+          <p className="mb-2 text-xs font-semibold uppercase tracking-[0.12em] text-white/50">
             AI Suggested Agreement
           </p>
           <div className="space-y-3">
@@ -199,7 +201,7 @@ export default function AgreementSuggestionDiff({
                   >
                     {getBadgeLabel(row.type)}
                   </span>
-                  <span className="text-[11px] text-gray-400">
+                  <span className="text-[11px] text-white/40">
                     Block {index + 1}
                   </span>
                 </div>

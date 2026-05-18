@@ -55,3 +55,20 @@ body {
   95%  { opacity: 1; }
   100% { transform: translateY(200px); opacity: 0; }
 }
+
+/* Dark option elements — native select dropdown inherits OS styling, override here */
+option {
+  background-color: #1C2740;
+  color: #ffffff;
+}
+
+/* Hide browser-native password reveal/clear buttons — we use our own toggle */
+input[type="password"]::-ms-reveal,
+input[type="password"]::-ms-clear {
+  display: none;
+}
+input[type="password"]::-webkit-contacts-auto-fill-button,
+input[type="password"]::-webkit-credentials-auto-fill-button {
+  visibility: hidden;
+  pointer-events: none;
+}

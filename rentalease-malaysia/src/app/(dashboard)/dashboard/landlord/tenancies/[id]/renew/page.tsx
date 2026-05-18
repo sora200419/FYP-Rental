@@ -36,26 +36,26 @@ export default async function RenewPage({
 
   return (
     <div className="max-w-xl">
-      <div className="flex items-center gap-2 text-sm text-gray-400 mb-6">
-        <Link href="/dashboard/landlord/tenancies" className="hover:text-blue-600 transition-colors">
+      <div className="flex items-center gap-2 text-sm text-white/40 mb-6">
+        <Link href="/dashboard/landlord/tenancies" className="hover:text-[#C49A3C] transition-colors">
           Tenancies
         </Link>
         <span>/</span>
-        <Link href={`/dashboard/landlord/tenancies/${id}`} className="hover:text-blue-600 transition-colors">
+        <Link href={`/dashboard/landlord/tenancies/${id}`} className="hover:text-[#C49A3C] transition-colors">
           {tenancy.room.property.address} — {tenancy.room.label}
         </Link>
         <span>/</span>
-        <span className="text-gray-700 font-medium">Renew</span>
+        <span className="text-white/70 font-medium">Renew</span>
       </div>
 
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Renew Tenancy</h1>
-        <p className="text-gray-500 text-sm mt-1">
+        <h1 className="text-2xl font-bold text-white">Renew Tenancy</h1>
+        <p className="text-white/50 text-sm mt-1">
           Create a new tenancy for {tenancy.tenant.name} in the same room. The tenant will receive an invitation to accept the renewed terms.
         </p>
       </div>
 
-      <div className="bg-white rounded-xl border border-gray-200 p-6">
+      <div className="bg-[#1C2740] rounded-xl border border-[rgba(196,154,60,0.15)] p-6">
         <RenewForm
           tenancyId={id}
           currentEndDate={tenancy.endDate.toISOString()}

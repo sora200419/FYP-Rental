@@ -20,9 +20,9 @@ export function Step2Utilities({ data, onChange, roomMeta }: Props) {
       description="Define how utility bills and maintenance services are handled."
     >
       {/* Utility inclusion summary from room */}
-      <div className="bg-blue-50 border border-blue-200 rounded-lg px-4 py-3 text-sm text-blue-800">
+      <div className="bg-[rgba(196,154,60,0.06)] border border-[rgba(196,154,60,0.2)] rounded-lg px-4 py-3 text-sm text-[#C49A3C]">
         <p className="font-semibold mb-1">Utilities included in rent (from room setup):</p>
-        <ul className="list-disc list-inside text-blue-700 space-y-0.5">
+        <ul className="list-disc list-inside text-[#C49A3C] space-y-0.5">
           <li>WiFi / Internet: {roomMeta.wifiIncluded ? 'Included' : 'Not included'}</li>
           <li>Water: {roomMeta.waterIncluded ? 'Included' : 'Not included'}</li>
           <li>Electricity: {roomMeta.electricIncluded ? 'Included' : 'Not included'}</li>
@@ -54,7 +54,7 @@ export function Step2Utilities({ data, onChange, roomMeta }: Props) {
       )}
 
       {allIncluded && (
-        <div className="text-sm text-gray-500 italic">All utilities are included — payment arrangement not applicable.</div>
+        <div className="text-sm text-white/50 italic">All utilities are included — payment arrangement not applicable.</div>
       )}
 
       <FieldGroup label="Utility bill dispute resolution" help="If there is a dispute over the utility bill amount:">
@@ -75,7 +75,7 @@ export function Step2Utilities({ data, onChange, roomMeta }: Props) {
               placeholder="e.g. Unifi, Maxis, Time"
             />
             <div>
-              <p className="text-sm font-medium text-gray-700 mb-1">Account managed by:</p>
+              <p className="text-sm font-medium text-white/70 mb-1">Account managed by:</p>
               <div className="flex gap-3 flex-wrap">
                 {[
                   { value: 'LANDLORD', label: 'Landlord' },
@@ -88,8 +88,8 @@ export function Step2Utilities({ data, onChange, roomMeta }: Props) {
                     onClick={() => onChange({ internetAccountManager: opt.value })}
                     className={`px-4 py-2 rounded-lg border-2 text-sm font-medium transition-colors ${
                       data.internetAccountManager === opt.value
-                        ? 'border-blue-600 bg-blue-50 text-blue-700'
-                        : 'border-gray-200 text-gray-700 hover:border-gray-300'
+                        ? 'border-[#C49A3C] bg-[rgba(196,154,60,0.06)] text-[#C49A3C]'
+                        : 'border-white/10 text-white/70 hover:border-white/10'
                     }`}
                   >
                     {opt.label}

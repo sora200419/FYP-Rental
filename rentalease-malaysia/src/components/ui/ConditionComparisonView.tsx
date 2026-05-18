@@ -22,18 +22,18 @@ type Props = {
 }
 
 const STATUS_BADGE: Record<string, { label: string; className: string }> = {
-  DRAFT:                  { label: 'Draft',               className: 'bg-gray-100 text-gray-600' },
-  SUBMITTED:              { label: 'Submitted',           className: 'bg-blue-100 text-blue-700' },
-  PENDING_REVIEW:         { label: 'Pending Review',      className: 'bg-amber-100 text-amber-700' },
+  DRAFT:                  { label: 'Draft',               className: 'bg-white/5 text-white/60' },
+  SUBMITTED:              { label: 'Submitted',           className: 'bg-[rgba(196,154,60,0.1)] text-[#C49A3C]' },
+  PENDING_REVIEW:         { label: 'Pending Review',      className: 'bg-[rgba(251,191,36,0.08)] text-[#E8B84B]' },
   CORRECTION_REQUESTED:   { label: 'Correction Requested', className: 'bg-orange-100 text-orange-700' },
   COUNTER_EVIDENCE_ADDED: { label: 'Counter Evidence',    className: 'bg-purple-100 text-purple-700' },
-  ACCEPTED:               { label: 'Accepted',            className: 'bg-green-100 text-green-700' },
-  DISPUTED:               { label: 'Disputed',            className: 'bg-red-100 text-red-700' },
-  LOCKED:                 { label: 'Locked',              className: 'bg-gray-200 text-gray-700' },
+  ACCEPTED:               { label: 'Accepted',            className: 'bg-[rgba(74,222,128,0.1)] text-[#4ade80]' },
+  DISPUTED:               { label: 'Disputed',            className: 'bg-[rgba(248,113,113,0.1)] text-[#f87171]' },
+  LOCKED:                 { label: 'Locked',              className: 'bg-white/10 text-white/70' },
 }
 
 function StatusBadge({ status }: { status: string }) {
-  const cfg = STATUS_BADGE[status] ?? { label: status, className: 'bg-gray-100 text-gray-600' }
+  const cfg = STATUS_BADGE[status] ?? { label: status, className: 'bg-white/5 text-white/60' }
   return (
     <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold ${cfg.className}`}>
       {cfg.label}
@@ -44,8 +44,8 @@ function StatusBadge({ status }: { status: string }) {
 function PhotoGrid({ photos }: { photos: ComparisonPhoto[] }) {
   if (photos.length === 0) {
     return (
-      <div className="flex items-center justify-center h-24 rounded-lg bg-gray-50 border border-dashed border-gray-200">
-        <p className="text-xs text-gray-400">Not documented</p>
+      <div className="flex items-center justify-center h-24 rounded-lg bg-white/[0.03] border border-dashed border-[rgba(196,154,60,0.15)]">
+        <p className="text-xs text-white/40">Not documented</p>
       </div>
     )
   }
@@ -53,7 +53,7 @@ function PhotoGrid({ photos }: { photos: ComparisonPhoto[] }) {
     <div className="grid grid-cols-3 gap-2">
       {photos.map((photo) => (
         <div key={photo.id}>
-          <div className="relative aspect-square rounded-lg overflow-hidden bg-gray-100">
+          <div className="relative aspect-square rounded-lg overflow-hidden bg-white/5">
             <Image
               src={photo.imageUrl}
               alt={photo.caption ?? 'Condition photo'}
@@ -63,7 +63,7 @@ function PhotoGrid({ photos }: { photos: ComparisonPhoto[] }) {
             />
           </div>
           {photo.caption && (
-            <p className="text-[10px] text-gray-400 mt-1 text-center truncate">
+            <p className="text-[10px] text-white/40 mt-1 text-center truncate">
               {photo.caption}
             </p>
           )}
@@ -75,14 +75,14 @@ function PhotoGrid({ photos }: { photos: ComparisonPhoto[] }) {
 
 function RoomCard({ group }: { group: RoomGroup }) {
   return (
-    <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
-      <div className="bg-gray-50 border-b border-gray-200 px-4 py-2.5 flex items-center gap-2">
-        <span className="text-sm font-semibold text-gray-700">{group.roomLabel}</span>
-        <span className="text-xs text-gray-400">
+    <div className="bg-[#1C2740] border border-[rgba(196,154,60,0.15)] rounded-xl overflow-hidden">
+      <div className="bg-white/[0.03] border-b border-[rgba(196,154,60,0.15)] px-4 py-2.5 flex items-center gap-2">
+        <span className="text-sm font-semibold text-white/70">{group.roomLabel}</span>
+        <span className="text-xs text-white/40">
           · {group.moveInPhotos.length} move-in · {group.moveOutPhotos.length} move-out
         </span>
       </div>
-      <div className="grid grid-cols-2 divide-x divide-gray-100">
+      <div className="grid grid-cols-2 divide-x divide-[rgba(255,255,255,0.06)]">
         <div className="p-4">
           <PhotoGrid photos={group.moveInPhotos} />
         </div>
@@ -109,47 +109,47 @@ export default function ConditionComparisonView({
     <div className="max-w-4xl">
       <Link
         href={backHref}
-        className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-blue-600 mb-6 transition-colors"
+        className="inline-flex items-center gap-1.5 text-sm text-white/50 hover:text-[#C49A3C] mb-6 transition-colors"
       >
         ← Back to Condition Reports
       </Link>
 
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Move-In vs Move-Out</h1>
-        <p className="text-gray-500 text-sm mt-1">
+        <h1 className="text-2xl font-bold text-white">Move-In vs Move-Out</h1>
+        <p className="text-white/50 text-sm mt-1">
           {propertyLabel} · Tenant: {tenantName}
         </p>
       </div>
 
       {/* Summary bar */}
       <div className="grid grid-cols-2 gap-4 mb-6">
-        <div className="bg-white border border-gray-200 rounded-xl px-5 py-4 border-l-4 border-l-blue-500">
+        <div className="bg-[#1C2740] border border-[rgba(196,154,60,0.15)] rounded-xl px-5 py-4 border-l-4 border-l-blue-500">
           <p className="text-xs font-semibold uppercase tracking-wide text-blue-500 mb-1">Move-In</p>
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-sm font-semibold text-gray-900">
+            <span className="text-sm font-semibold text-white">
               {new Date(moveInReport.createdAt).toLocaleDateString('en-MY', {
                 day: 'numeric', month: 'short', year: 'numeric',
               })}
             </span>
             <StatusBadge status={moveInReport.status} />
           </div>
-          <p className="text-xs text-gray-500 mt-1">
+          <p className="text-xs text-white/50 mt-1">
             By {moveInReport.createdByName} · {moveInReport.photoCount}{' '}
             {moveInReport.photoCount === 1 ? 'photo' : 'photos'}
           </p>
         </div>
 
-        <div className="bg-white border border-gray-200 rounded-xl px-5 py-4 border-l-4 border-l-amber-400">
+        <div className="bg-[#1C2740] border border-[rgba(196,154,60,0.15)] rounded-xl px-5 py-4 border-l-4 border-l-amber-400">
           <p className="text-xs font-semibold uppercase tracking-wide text-amber-500 mb-1">Move-Out</p>
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-sm font-semibold text-gray-900">
+            <span className="text-sm font-semibold text-white">
               {new Date(moveOutReport.createdAt).toLocaleDateString('en-MY', {
                 day: 'numeric', month: 'short', year: 'numeric',
               })}
             </span>
             <StatusBadge status={moveOutReport.status} />
           </div>
-          <p className="text-xs text-gray-500 mt-1">
+          <p className="text-xs text-white/50 mt-1">
             By {moveOutReport.createdByName} · {moveOutReport.photoCount}{' '}
             {moveOutReport.photoCount === 1 ? 'photo' : 'photos'}
           </p>
@@ -157,9 +157,9 @@ export default function ConditionComparisonView({
       </div>
 
       {isEmpty ? (
-        <div className="text-center py-20 bg-white rounded-xl border border-gray-200">
-          <p className="text-gray-700 font-semibold text-lg">No photos to compare</p>
-          <p className="text-gray-400 text-sm mt-1">
+        <div className="text-center py-20 bg-[#1C2740] rounded-xl border border-[rgba(196,154,60,0.15)]">
+          <p className="text-white/70 font-semibold text-lg">No photos to compare</p>
+          <p className="text-white/40 text-sm mt-1">
             Neither report has any photos uploaded yet.
           </p>
         </div>
@@ -183,7 +183,7 @@ export default function ConditionComparisonView({
           {/* Move-in only */}
           {moveInOnly.length > 0 && (
             <div className="mb-6">
-              <p className="text-xs font-semibold uppercase tracking-wide text-gray-400 mb-2">
+              <p className="text-xs font-semibold uppercase tracking-wide text-white/40 mb-2">
                 Move-In only (no matching move-out room)
               </p>
               <div className="space-y-3">
@@ -197,7 +197,7 @@ export default function ConditionComparisonView({
           {/* Move-out only */}
           {moveOutOnly.length > 0 && (
             <div className="mb-6">
-              <p className="text-xs font-semibold uppercase tracking-wide text-gray-400 mb-2">
+              <p className="text-xs font-semibold uppercase tracking-wide text-white/40 mb-2">
                 Move-Out only (no matching move-in room)
               </p>
               <div className="space-y-3">

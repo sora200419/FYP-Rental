@@ -108,7 +108,6 @@ async function deleteUsers(userIds: string[]) {
 
     // Direct user relations
     await tx.notification.deleteMany({ where: { userId: { in: userIds } } });
-    await tx.tenantDocument.deleteMany({ where: { userId: { in: userIds } } });
 
     // Finally, delete the users
     const result = await tx.user.deleteMany({ where: { id: { in: userIds } } });

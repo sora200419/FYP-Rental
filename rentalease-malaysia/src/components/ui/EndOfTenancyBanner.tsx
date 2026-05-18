@@ -22,9 +22,9 @@ export function EndOfTenancyBanner({
   const urgency = daysLeft <= 7 ? 'red' : daysLeft <= 14 ? 'amber' : 'blue';
 
   const colorClasses = {
-    red: 'bg-red-50 border-red-200 text-red-800',
-    amber: 'bg-amber-50 border-amber-200 text-amber-800',
-    blue: 'bg-blue-50 border-blue-200 text-blue-800',
+    red: 'bg-[rgba(248,113,113,0.08)] border-[rgba(248,113,113,0.25)] text-[#f87171]',
+    amber: 'bg-[rgba(251,191,36,0.08)] border-[rgba(251,191,36,0.25)] text-[#E8B84B]',
+    blue: 'bg-[rgba(196,154,60,0.06)] border-[rgba(196,154,60,0.2)] text-[#C49A3C]',
   }[urgency];
 
   return (
@@ -42,13 +42,13 @@ export function EndOfTenancyBanner({
           <>
             <Link
               href={`/dashboard/landlord/tenancies/${tenancyId}/renew`}
-              className="text-xs font-semibold bg-white/60 hover:bg-white border border-current rounded-lg px-3 py-1.5 transition-colors"
+              className="text-xs font-semibold bg-white/10 hover:bg-white/20 border border-current rounded-lg px-3 py-1.5 transition-colors"
             >
               Renew Tenancy
             </Link>
             <Link
               href={`/dashboard/landlord/tenancies/${tenancyId}/terminate`}
-              className="text-xs font-semibold bg-white/60 hover:bg-white border border-current rounded-lg px-3 py-1.5 transition-colors"
+              className="text-xs font-semibold bg-white/10 hover:bg-white/20 border border-current rounded-lg px-3 py-1.5 transition-colors"
             >
               End by Mutual Agreement
             </Link>
@@ -62,7 +62,7 @@ export function EndOfTenancyBanner({
                 ? `/dashboard/landlord/tenancies/${tenancyId}/conditions`
                 : `/dashboard/tenant/conditions`
             }
-            className="text-xs font-semibold bg-white/60 hover:bg-white border border-current rounded-lg px-3 py-1.5 transition-colors"
+            className="text-xs font-semibold bg-white/10 hover:bg-white/20 border border-current rounded-lg px-3 py-1.5 transition-colors"
           >
             Create Move-Out Report
           </Link>
@@ -71,7 +71,7 @@ export function EndOfTenancyBanner({
         {acknowledgedMoveOut && !depositRefundStatus && role === 'LANDLORD' && (
           <Link
             href={`/dashboard/landlord/tenancies/${tenancyId}/deposit-settlement`}
-            className="text-xs font-semibold bg-white/60 hover:bg-white border border-current rounded-lg px-3 py-1.5 transition-colors"
+            className="text-xs font-semibold bg-white/10 hover:bg-white/20 border border-current rounded-lg px-3 py-1.5 transition-colors"
           >
             Start Deposit Settlement
           </Link>
