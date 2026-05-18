@@ -74,27 +74,28 @@ export default async function AgreementPage({
 
   return (
     <div className="max-w-4xl">
-      <div className="flex items-center gap-2 text-sm text-gray-400 mb-6">
+      <div className="flex items-center gap-2 text-sm text-white/40 mb-6">
         <Link
           href="/dashboard/landlord/tenancies"
-          className="hover:text-blue-600 transition-colors"
+          className="hover:text-[#C49A3C] transition-colors"
         >
           Tenancies
         </Link>
         <span>/</span>
         <Link
           href={`/dashboard/landlord/tenancies/${id}`}
-          className="hover:text-blue-600 transition-colors"
+          className="hover:text-[#C49A3C] transition-colors"
         >
           {tenancy.room.property.address}
         </Link>
         <span>/</span>
-        <span className="text-gray-700 font-medium">Agreement</span>
+        <span className="text-white/70 font-medium">Agreement</span>
       </div>
 
       {/* Viewer — always shown */}
       <AgreementViewer
         agreementId={tenancy.agreement.id}
+        tenancyId={tenancy.id}
         status={tenancy.agreement.status}
         rawContent={tenancy.agreement.rawContent}
         plainLanguageSummary={tenancy.agreement.plainLanguageSummary}
@@ -114,13 +115,17 @@ export default async function AgreementPage({
         editable={!isSigned}
         editableInitialContent={tenancy.agreement.rawContent}
         negotiationNotes={tenancy.agreement.negotiationNotes}
+        tenancyStartDate={tenancy.startDate.toISOString()}
+        tenancyEndDate={tenancy.endDate.toISOString()}
+        tenancyMonthlyRent={Number(tenancy.monthlyRent)}
+        tenancyDepositAmount={Number(tenancy.depositAmount)}
       />
 
       {/* Editor — only for landlord, only before signing */}
       {/* If signed, explain why editing is locked */}
       {isSigned && (
-        <div className="mt-6 bg-gray-50 border border-gray-200 rounded-xl px-5 py-4">
-          <p className="text-sm text-gray-500">
+        <div className="mt-6 bg-white/[0.03] border border-[rgba(196,154,60,0.15)] rounded-xl px-5 py-4">
+          <p className="text-sm text-white/50">
             This agreement has been signed by the tenant and cannot be
             edited. If both parties agree to changes, a new tenancy agreement
             would need to be created.
