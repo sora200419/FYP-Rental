@@ -3,6 +3,8 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { createNotification } from '@/lib/notifications';
+import { buildRentScheduleEntries } from '@/lib/payments';
+import { getTenancyStatusAfterDepositApproval } from '@/lib/tenancyLifecycle';
 
 export async function PATCH(
   request: Request,
@@ -29,6 +31,8 @@ export async function PATCH(
   const tenancy = await prisma.tenancy.findUnique({
     where: { id: tenancyId },
     include: {
+      agreement: { select: { status: true } },
+      agreementPreferences: { select: { rentDueDay: true } },
       room: {
         include: {
           property: { select: { landlordId: true, address: true } },
@@ -50,16 +54,48 @@ export async function PATCH(
   }
 
   if (action === 'APPROVE') {
-    await prisma.tenancy.update({
-      where: { id: tenancyId },
-      data: { depositStatus: 'PAID', depositRejectionReason: null },
+    const nextTenancyStatus = getTenancyStatusAfterDepositApproval({
+      currentTenancyStatus: tenancy.status,
+      agreementStatus: tenancy.agreement?.status,
+    });
+    const tenancyWillBeActive = nextTenancyStatus === 'ACTIVE';
+    const scheduledPayments = buildRentScheduleEntries(
+      tenancyId,
+      new Date(tenancy.startDate),
+      new Date(tenancy.endDate),
+      tenancy.monthlyRent,
+      tenancy.agreementPreferences?.rentDueDay ?? null,
+    );
+
+    await prisma.$transaction(async (tx) => {
+      await tx.tenancy.update({
+        where: { id: tenancyId },
+        data: {
+          depositStatus: 'PAID',
+          depositRejectionReason: null,
+          status: nextTenancyStatus,
+        },
+      });
+
+      if (tenancyWillBeActive) {
+        const existingPayments = await tx.rentPayment.count({
+          where: { tenancyId },
+        });
+        if (existingPayments === 0 && scheduledPayments.length > 0) {
+          await tx.rentPayment.createMany({ data: scheduledPayments });
+        }
+      }
     });
 
     await createNotification(
       tenancy.tenantId,
       'DEPOSIT_PROOF_APPROVED',
-      'Deposit confirmed',
-      `Your deposit payment for ${tenancy.room.property.address} has been confirmed by your landlord.`,
+      tenancyWillBeActive
+        ? 'Deposit confirmed - tenancy is now active'
+        : 'Deposit confirmed',
+      tenancyWillBeActive
+        ? `Your deposit payment for ${tenancy.room.property.address} has been confirmed by your landlord. The tenancy is now active and move-in condition photos can start.`
+        : `Your deposit payment for ${tenancy.room.property.address} has been confirmed by your landlord.`,
       `/dashboard/tenant/tenancy`,
     );
   } else {

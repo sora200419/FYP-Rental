@@ -234,6 +234,7 @@ export default function AgreementFinalizeStep({
   };
 
   // ── Finalization ─────────────────────────────────────────────────────
+  // Date string compare is safe — <input type="date"> emits YYYY-MM-DD, where lexical ordering equals chronological ordering.
   const confirmedValid =
     confirmedStartDate.length === 10 &&
     confirmedEndDate.length === 10 &&

@@ -2,6 +2,11 @@
 
 import { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
+import {
+  canLandlordWithdrawDeduction,
+  getLifecycleCompletionState,
+  type DeductionEvidencePhoto,
+} from '@/lib/depositSettlementWorkflow';
 
 type DeductionStatus = 'PROPOSED' | 'ACCEPTED' | 'DISPUTED' | 'WITHDRAWN';
 type RefundStatus = 'PROPOSED' | 'IN_REVIEW' | 'AGREED' | 'DISPUTED' | 'PAID';
@@ -12,6 +17,7 @@ interface Deduction {
   amount: number;
   status: DeductionStatus;
   tenantDisputeNote?: string | null;
+  evidencePhotos?: DeductionEvidencePhoto[];
 }
 
 interface Refund {
@@ -33,7 +39,6 @@ interface MoveOutPhoto {
 interface Props {
   tenancyId: string;
   tenantName: string;
-  depositAmount: number;
   existingRefund: Refund | null;
   moveOutPhotos: MoveOutPhoto[];
 }
@@ -64,7 +69,6 @@ const DEDUCTION_STYLE: Record<DeductionStatus, string> = {
 export default function DepositSettlementClient({
   tenancyId,
   tenantName,
-  depositAmount,
   existingRefund: initialRefund,
   moveOutPhotos,
 }: Props) {
@@ -156,6 +160,7 @@ export default function DepositSettlementClient({
         body: JSON.stringify({ action: 'WITHDRAW' }),
       });
       if (!res.ok) throw new Error((await res.json()).error ?? 'Failed');
+      const data = await res.json();
       setRefund((prev) => {
         if (!prev) return prev;
         const updated = prev.deductions.map((d) =>
@@ -164,7 +169,14 @@ export default function DepositSettlementClient({
         const newTotal = updated
           .filter((d) => d.status !== 'WITHDRAWN')
           .reduce((s, d) => s + d.amount, 0);
-        return { ...prev, deductions: updated, refundAmount: Math.max(0, prev.originalAmount - newTotal) };
+        return {
+          ...prev,
+          deductions: updated,
+          refundAmount: data.refund?.refundAmount !== undefined
+            ? Number(data.refund.refundAmount)
+            : Math.max(0, prev.originalAmount - newTotal),
+          status: data.refund?.status ?? prev.status,
+        };
       });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error');
@@ -221,7 +233,9 @@ export default function DepositSettlementClient({
 
   const activeDeductions = refund.deductions.filter((d) => d.status !== 'WITHDRAWN');
   const canAddDeductions = ['PROPOSED', 'IN_REVIEW'].includes(refund.status);
+  const canWithdrawDeductions = ['PROPOSED', 'IN_REVIEW', 'DISPUTED'].includes(refund.status);
   const canMarkPaid = refund.status === 'AGREED';
+  const lifecycleCompletion = getLifecycleCompletionState(refund.status);
 
   return (
     <div className="space-y-5">
@@ -242,6 +256,17 @@ export default function DepositSettlementClient({
           </p>
         </div>
       </div>
+
+      {lifecycleCompletion && (
+        <div className="rounded-xl border border-[rgba(74,222,128,0.25)] bg-[rgba(74,222,128,0.08)] px-5 py-4">
+          <p className="text-sm font-semibold text-[#4ade80]">
+            {lifecycleCompletion.title}
+          </p>
+          <p className="mt-1 text-xs leading-relaxed text-[#4ade80]">
+            {lifecycleCompletion.message}
+          </p>
+        </div>
+      )}
 
       {/* Deductions list */}
       <div className="bg-[#1C2740] rounded-xl border border-[rgba(196,154,60,0.15)] p-5">
@@ -273,12 +298,32 @@ export default function DepositSettlementClient({
                       </span>
                     )}
                   </div>
+                  {d.evidencePhotos && d.evidencePhotos.length > 0 && (
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      {d.evidencePhotos.map((photo) => (
+                        <a
+                          key={photo.id}
+                          href={photo.imageUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          title={photo.area}
+                        >
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
+                            src={photo.imageUrl}
+                            alt={`Evidence photo for ${photo.area}`}
+                            className="h-12 w-12 rounded-md border border-[rgba(196,154,60,0.2)] object-cover"
+                          />
+                        </a>
+                      ))}
+                    </div>
+                  )}
                 </div>
                 <div className="flex items-center gap-3 flex-shrink-0">
                   <span className={`text-sm font-semibold ${d.status === 'WITHDRAWN' ? 'text-white/30' : 'text-white'}`}>
                     {formatRM(d.amount)}
                   </span>
-                  {d.status === 'PROPOSED' && canAddDeductions && (
+                  {canLandlordWithdrawDeduction(d.status) && canWithdrawDeductions && (
                     <button
                       onClick={() => withdrawDeduction(d.id)}
                       className="text-xs text-[#f87171]/60 hover:text-[#f87171]"

@@ -50,7 +50,6 @@ interface FinalizeChecklistBase {
 
 interface Props {
   agreementId: string;
-  tenancyId?: string;
   status: string;
   rawContent: string;
   plainLanguageSummary: string;
@@ -411,7 +410,6 @@ function DocumentReader({ content }: { content: string }) {
 
 export default function AgreementViewer({
   agreementId,
-  tenancyId,
   status,
   rawContent,
   plainLanguageSummary,
@@ -458,7 +456,13 @@ export default function AgreementViewer({
   const highCount = redFlags.filter((f) => f.severity === 'HIGH').length;
   const isDraftLike = status === 'DRAFT' || status === 'NEGOTIATING';
   const isSigned = status === 'SIGNED';
-  const showFinalizeButton = isDraftLike && !readOnly && finalizeChecklistBase;
+  const hasTenancyTermsForFinalize =
+    tenancyStartDate != null &&
+    tenancyEndDate != null &&
+    tenancyMonthlyRent !== undefined &&
+    tenancyDepositAmount !== undefined;
+  const showFinalizeButton =
+    isDraftLike && !readOnly && finalizeChecklistBase && hasTenancyTermsForFinalize;
   const showEditTab = editable && !readOnly && !isSigned && status !== 'PENDING_SIGNATURE_PROOF';
   const currentVersion = revisions[0]?.versionNumber ?? 1;
   const latestEvents = [...events].sort(
@@ -822,7 +826,6 @@ export default function AgreementViewer({
                   </div>
                   <AgreementEditor
                     agreementId={agreementId}
-                    tenancyId={tenancyId ?? ''}
                     initialContent={editableInitialContent ?? rawContent}
                     negotiationNotes={negotiationNotes}
                     changeRequests={changeRequests}
@@ -1038,15 +1041,14 @@ export default function AgreementViewer({
                 </p>
               </div>
 
-              {showFinalizeButton && tenancyStartDate && tenancyEndDate &&
-                tenancyMonthlyRent !== undefined && tenancyDepositAmount !== undefined && (
+              {showFinalizeButton && (
                 <AgreementFinalizeStep
                   agreementId={agreementId}
                   currentTerms={{
-                    startDate: tenancyStartDate,
-                    endDate: tenancyEndDate,
-                    monthlyRent: tenancyMonthlyRent,
-                    depositAmount: tenancyDepositAmount,
+                    startDate: tenancyStartDate!,
+                    endDate: tenancyEndDate!,
+                    monthlyRent: tenancyMonthlyRent!,
+                    depositAmount: tenancyDepositAmount!,
                   }}
                   finalizeChecklistBase={finalizeChecklistBase!}
                   onFinalized={() => router.refresh()}

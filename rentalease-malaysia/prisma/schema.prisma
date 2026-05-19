@@ -9,18 +9,18 @@ datasource db {
 
 // ─── USER ────────────────────────────────────────────────────────────────────
 model User {
-  id         String   @id @default(cuid())
-  name       String
-  email      String   @unique
-  password   String // bcrypt hash, never plaintext
-  role       Role     @default(TENANT)
-  phone      String?
-  icNumber   String?  @unique // Malaysian IC — sensitive, PDPA 2010 protected
+  id          String   @id @default(cuid())
+  name        String
+  email       String   @unique
+  password    String // bcrypt hash, never plaintext
+  role        Role     @default(TENANT)
+  phone       String?
+  icNumber    String?  @unique // Malaysian IC — sensitive, PDPA 2010 protected
   isVerified  Boolean  @default(false) // set to true by admin after IC review
   isSuspended Boolean  @default(false)
   language    String   @default("en") // "en" or "ms" — bilingual preference
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   ownedProperties                  Property[]                @relation("LandlordProperties")
   tenancies                        Tenancy[]                 @relation("TenantTenancies")
@@ -38,16 +38,16 @@ model User {
   authorizedCorporateTenancies     Tenancy[]                 @relation("AuthorizedCorporateTenancies")
   linkedCorporateOccupancies       CorporateOccupant[]       @relation("LinkedCorporateOccupancies")
 
-  kycRejectedReason String? @db.Text // set by admin on KYC rejection; cleared on approval
-  kycSubmission            KycSubmission?   @relation("UserKyc")
-  reviewedKycSubmissions   KycSubmission[]  @relation("KycReviewer")
+  kycRejectedReason      String?         @db.Text // set by admin on KYC rejection; cleared on approval
+  kycSubmission          KycSubmission?  @relation("UserKyc")
+  reviewedKycSubmissions KycSubmission[] @relation("KycReviewer")
 
   deletedAt     DateTime?
   deletedById   String?
   deletedReason String?
 
-  deletedBy    User?  @relation("DeletedUsers", fields: [deletedById], references: [id])
-  deletedUsers User[] @relation("DeletedUsers")
+  deletedBy         User?      @relation("DeletedUsers", fields: [deletedById], references: [id])
+  deletedUsers      User[]     @relation("DeletedUsers")
   auditLogsAuthored AuditLog[] @relation("AuditLogActor")
 
   notifications       Notification[]
@@ -187,21 +187,21 @@ model Tenancy {
 
   // Future corporate-tenancy scaffolding. Current UI still assumes an
   // individual lease party; these fields stay nullable until that flow exists.
-  leasePartyType          LeasePartyType @default(INDIVIDUAL)
-  companyName             String?
-  companyRegistrationNo   String?
-  authorizedSignatoryName String?
-  authorizedSignatoryIC   String?
-  authorizedSignatoryRole String?
+  leasePartyType            LeasePartyType @default(INDIVIDUAL)
+  companyName               String?
+  companyRegistrationNo     String?
+  authorizedSignatoryName   String?
+  authorizedSignatoryIC     String?
+  authorizedSignatoryRole   String?
   authorizedSignatoryUserId String?
 
   // Foreign key to Room (not Property directly — go through room.property for auth)
   roomId String
   room   Room   @relation(fields: [roomId], references: [id])
 
-  tenantId String
-  tenant   User   @relation("TenantTenancies", fields: [tenantId], references: [id])
-  authorizedSignatoryUser User? @relation("AuthorizedCorporateTenancies", fields: [authorizedSignatoryUserId], references: [id], onDelete: SetNull)
+  tenantId                String
+  tenant                  User   @relation("TenantTenancies", fields: [tenantId], references: [id])
+  authorizedSignatoryUser User?  @relation("AuthorizedCorporateTenancies", fields: [authorizedSignatoryUserId], references: [id], onDelete: SetNull)
 
   // Deposit payment tracking
   depositStatus          DepositStatus @default(PENDING)
@@ -770,10 +770,10 @@ model AuditLog {
   id           String   @id @default(cuid())
   actorId      String
   actor        User     @relation("AuditLogActor", fields: [actorId], references: [id])
-  action       String   // e.g. "USER_DELETED", "PROPERTY_DELETED", "ROOM_DELETED"
-  entityName   String   // Prisma model name: "User", "Property", "Room", etc.
-  entityId     String   // The deleted record's ID
-  previousData Json     // Full snapshot of the record at time of deletion
+  action       String // e.g. "USER_DELETED", "PROPERTY_DELETED", "ROOM_DELETED"
+  entityName   String // Prisma model name: "User", "Property", "Room", etc.
+  entityId     String // The deleted record's ID
+  previousData Json // Full snapshot of the record at time of deletion
   ipAddress    String?
   reason       String?
   createdAt    DateTime @default(now())
@@ -786,9 +786,9 @@ model AuditLog {
 // One submission per user. Resubmission (after REJECTED) upserts this record
 // and deletes old Cloudinary images. Admin reviews photos manually.
 model KycSubmission {
-  id              String    @id @default(cuid())
-  userId          String    @unique
-  user            User      @relation("UserKyc", fields: [userId], references: [id], onDelete: Cascade)
+  id     String @id @default(cuid())
+  userId String @unique
+  user   User   @relation("UserKyc", fields: [userId], references: [id], onDelete: Cascade)
 
   icFrontUrl      String
   icFrontPublicId String
@@ -797,14 +797,14 @@ model KycSubmission {
   selfieUrl       String
   selfiePublicId  String
 
-  status          KycStatus @default(PENDING)
-  rejectedReason  String?   @db.Text
+  status         KycStatus @default(PENDING)
+  rejectedReason String?   @db.Text
 
-  reviewedById    String?
-  reviewedBy      User?     @relation("KycReviewer", fields: [reviewedById], references: [id])
-  reviewedAt      DateTime?
-  submittedAt     DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
+  reviewedById String?
+  reviewedBy   User?     @relation("KycReviewer", fields: [reviewedById], references: [id])
+  reviewedAt   DateTime?
+  submittedAt  DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
 
   @@index([status, submittedAt])
 }

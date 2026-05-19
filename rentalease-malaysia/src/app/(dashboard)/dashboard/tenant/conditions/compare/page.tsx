@@ -6,29 +6,20 @@ import { prisma } from '@/lib/prisma'
 import Link from 'next/link'
 import ConditionComparisonView from '@/components/ui/ConditionComparisonView'
 import { groupPhotosForComparison } from '@/lib/compareConditionReports'
+import { buildTenantConditionTenancyQuery } from '@/lib/conditionReports'
 
-export default async function TenantCompareConditionsPage() {
+export default async function TenantCompareConditionsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ tenancyId?: string }>;
+}) {
   const session = await getServerSession(authOptions)
   if (!session || session.user.role !== 'TENANT') redirect('/login')
 
-  const tenancy = await prisma.tenancy.findFirst({
-    where: {
-      tenantId: session.user.id,
-      status: { in: ['PENDING', 'ACTIVE', 'EXPIRED', 'TERMINATED'] },
-    },
-    include: {
-      room: {
-        include: {
-          property: {
-            include: {
-              landlord: { select: { name: true } },
-            },
-          },
-        },
-      },
-    },
-    orderBy: { createdAt: 'desc' },
-  })
+  const { tenancyId } = await searchParams
+  const tenancy = await prisma.tenancy.findFirst(
+    buildTenantConditionTenancyQuery(session.user.id, tenancyId),
+  )
 
   if (!tenancy) notFound()
 
@@ -56,11 +47,15 @@ export default async function TenantCompareConditionsPage() {
   ])
 
   if (!moveInReport || !moveOutReport) {
-    redirect('/dashboard/tenant/conditions')
+    redirect(
+      tenancyId
+        ? `/dashboard/tenant/conditions?tenancyId=${encodeURIComponent(tenancyId)}`
+        : '/dashboard/tenant/conditions',
+    )
   }
 
   const comparison = groupPhotosForComparison(moveInReport.photos, moveOutReport.photos)
-  const backHref = '/dashboard/tenant/conditions'
+  const backHref = `/dashboard/tenant/conditions?tenancyId=${encodeURIComponent(tenancy.id)}`
   const propertyLabel = `${tenancy.room.property.address}, ${tenancy.room.property.city}`
 
   return (

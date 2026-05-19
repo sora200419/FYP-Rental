@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { uploadConditionPhoto } from '@/lib/cloudinary';
+import { isConditionReportLocked } from '@/lib/conditionReportWorkflow';
 
 export async function POST(
   request: NextRequest,
@@ -32,8 +33,7 @@ export async function POST(
       { status: 404 },
     );
 
-  const LOCKED_STATUSES = ['ACCEPTED', 'DISPUTED', 'LOCKED'];
-  if (LOCKED_STATUSES.includes(report.status))
+  if (isConditionReportLocked(report.status))
     return NextResponse.json(
       { error: 'This report is locked. No further changes are allowed.' },
       { status: 409 },

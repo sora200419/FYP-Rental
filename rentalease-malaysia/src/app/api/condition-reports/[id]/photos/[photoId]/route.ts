@@ -2,8 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
-import { deletePaymentProof } from '@/lib/cloudinary';
+import { deleteConditionPhoto } from '@/lib/cloudinary';
 import { logAudit, getIp } from '@/lib/audit';
+import { isConditionReportLocked } from '@/lib/conditionReportWorkflow';
 
 export async function DELETE(
   request: NextRequest,
@@ -39,8 +40,7 @@ export async function DELETE(
     );
 
   // Once locked, the report is immutable — no deletions allowed.
-  const LOCKED_STATUSES = ['ACCEPTED', 'DISPUTED', 'LOCKED'];
-  if (LOCKED_STATUSES.includes(photo.report.status))
+  if (isConditionReportLocked(photo.report.status))
     return NextResponse.json(
       { error: 'This report is locked and can no longer be modified.' },
       { status: 409 },
@@ -57,7 +57,7 @@ export async function DELETE(
 
   // Delete from Cloudinary first, then the DB record.
   try {
-    await deletePaymentProof(photo.publicId);
+    await deleteConditionPhoto(photo.publicId);
   } catch (err) {
     console.error('Cloudinary delete failed:', err);
     // Non-blocking — still delete the DB record so user isn't stuck.

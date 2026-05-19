@@ -1,9 +1,10 @@
 // src/app/api/condition-reports/route.ts
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
+import type { ReportType } from '@prisma/client';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
-import { createNotification } from '@/lib/notifications';
+import { canCreateMoveInConditionReport } from '@/lib/tenancyLifecycle';
 
 export async function GET(request: Request) {
   const session = await getServerSession(authOptions);
@@ -21,7 +22,6 @@ export async function GET(request: Request) {
     );
   }
 
-  // Verify the user is involved in this tenancy
   const tenancy = await prisma.tenancy.findUnique({
     where: { id: tenancyId },
     include: {
@@ -61,8 +61,11 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  let body: any;
+  let body: {
+    tenancyId?: string;
+    type?: string;
+    notes?: string | null;
+  };
   try {
     body = await request.json();
   } catch {
@@ -80,8 +83,8 @@ export async function POST(request: Request) {
   if (!['MOVE_IN', 'MOVE_OUT', 'INSPECTION'].includes(type)) {
     return NextResponse.json({ error: 'Invalid report type' }, { status: 400 });
   }
+  const reportType = type as ReportType;
 
-  // Verify the user is part of this tenancy
   const tenancy = await prisma.tenancy.findUnique({
     where: { id: tenancyId },
     include: {
@@ -110,30 +113,32 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Access denied' }, { status: 403 });
   }
 
-  // MOVE_IN requires the agreement to be signed (tenancy ACTIVE).
-  // MOVE_OUT and INSPECTION are allowed once the tenancy is live or has ended.
-  const allowedStatuses =
-    type === 'MOVE_IN'
-      ? ['ACTIVE']
-      : ['ACTIVE', 'EXPIRED', 'TERMINATED'];
+  const canCreateForStatus =
+    reportType === 'MOVE_IN'
+      ? canCreateMoveInConditionReport({
+          tenancyStatus: tenancy.status,
+          depositStatus: tenancy.depositStatus,
+        })
+      : ['ACTIVE', 'EXPIRED', 'TERMINATED'].includes(tenancy.status);
 
-  if (!allowedStatuses.includes(tenancy.status)) {
+  if (!canCreateForStatus) {
     const message =
-      type === 'MOVE_IN'
-        ? 'A move-in report can only be created after the tenancy agreement is signed.'
+      reportType === 'MOVE_IN'
+        ? 'A move-in report can only be created after the agreement is signed and the deposit payment is confirmed.'
         : 'A condition report cannot be created for a tenancy that has not yet started.';
     return NextResponse.json({ error: message }, { status: 409 });
   }
 
-  // IMP-04: Prevent duplicate reports of the same non-INSPECTION type
-  if (type !== 'INSPECTION') {
+  if (reportType !== 'INSPECTION') {
     const existing = await prisma.conditionReport.findFirst({
-      where: { tenancyId, type },
+      where: { tenancyId, type: reportType },
       select: { id: true },
     });
     if (existing) {
       return NextResponse.json(
-        { error: `A ${type.toLowerCase().replace('_', '-')} report already exists for this tenancy.` },
+        {
+          error: `A ${reportType.toLowerCase().replace('_', '-')} report already exists for this tenancy.`,
+        },
         { status: 409 },
       );
     }
@@ -142,39 +147,11 @@ export async function POST(request: Request) {
   const report = await prisma.conditionReport.create({
     data: {
       tenancyId,
-      type,
+      type: reportType,
       notes: notes ?? null,
       createdById: session.user.id,
     },
   });
-
-  // Notify the OTHER party about the new report
-  const reportTypeLabel =
-    type === 'MOVE_IN'
-      ? 'Move-in'
-      : type === 'MOVE_OUT'
-        ? 'Move-out'
-        : 'Inspection';
-
-  if (isLandlord) {
-    // Landlord created it — notify the tenant
-    await createNotification(
-      tenancy.tenant.id,
-      'CONDITION_REPORT_CREATED',
-      `${reportTypeLabel} condition report ready to review`,
-      `Your landlord created a ${reportTypeLabel.toLowerCase()} condition report for ${tenancy.room.property.address}. Please review and acknowledge.`,
-      `/dashboard/tenant/conditions`,
-    );
-  } else {
-    // Tenant created it — notify the landlord
-    await createNotification(
-      landlordId,
-      'CONDITION_REPORT_CREATED',
-      `${reportTypeLabel} condition report ready to review`,
-      `${tenancy.tenant.name} created a ${reportTypeLabel.toLowerCase()} condition report for ${tenancy.room.property.address}. Please review and acknowledge.`,
-      `/dashboard/landlord/tenancies/${tenancyId}/conditions`,
-    );
-  }
 
   return NextResponse.json(report, { status: 201 });
 }

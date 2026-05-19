@@ -15,6 +15,7 @@ import Link from 'next/link';
 import PropertyCover from '@/components/ui/PropertyCover';
 import { PageHeader } from '@/components/ui/RedesignPrimitives';
 import { getPropertyCover, TENANCY_STEPS, getTenancyStep } from '@/lib/uiRedesign';
+import { attachEvidencePhotosToDeductions } from '@/lib/depositSettlementWorkflow';
 
 
 const STATUS_HEADLINE: Record<string, { headline: string; description: string }> = {
@@ -71,6 +72,15 @@ export default async function TenantTenancyPage() {
       },
       depositRefund: {
         include: { deductions: { orderBy: { createdAt: 'asc' } } },
+      },
+      conditionReports: {
+        where: { type: 'MOVE_OUT' },
+        include: {
+          photos: {
+            select: { id: true, room: true, imageUrl: true },
+            orderBy: { createdAt: 'asc' },
+          },
+        },
       },
     },
   });
@@ -138,6 +148,13 @@ export default async function TenantTenancyPage() {
   const cover = getPropertyCover(property.photos ?? []);
   const activeStep = getTenancyStep(tenancy.status, tenancy.agreement?.status, tenancy.depositStatus);
   const statusInfo = STATUS_HEADLINE[tenancy.status] ?? { headline: tenancy.status, description: '' };
+  const deductionEvidencePhotos = tenancy.conditionReports.flatMap((report) =>
+    report.photos.map((photo) => ({
+      id: photo.id,
+      area: photo.room,
+      imageUrl: photo.imageUrl,
+    })),
+  );
 
   return (
     <div className="max-w-4xl">
@@ -521,13 +538,17 @@ export default async function TenantTenancyPage() {
               refundAmount: Number(tenancy.depositRefund.refundAmount),
               paidAt: tenancy.depositRefund.paidAt?.toISOString() ?? null,
               paidProofUrl: tenancy.depositRefund.paidProofUrl,
-              deductions: tenancy.depositRefund.deductions.map((d) => ({
-                id: d.id,
-                reason: d.reason,
-                amount: Number(d.amount),
-                status: d.status,
-                tenantDisputeNote: d.tenantDisputeNote,
-              })),
+              deductions: attachEvidencePhotosToDeductions(
+                tenancy.depositRefund.deductions.map((d) => ({
+                  id: d.id,
+                  reason: d.reason,
+                  amount: Number(d.amount),
+                  status: d.status,
+                  tenantDisputeNote: d.tenantDisputeNote,
+                  photoIds: d.photoIds,
+                })),
+                deductionEvidencePhotos,
+              ),
             }}
           />
         )}

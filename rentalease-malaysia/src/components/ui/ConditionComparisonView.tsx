@@ -3,7 +3,12 @@
 
 import Image from 'next/image'
 import Link from 'next/link'
-import type { ComparisonResult, RoomGroup, ComparisonPhoto } from '@/lib/compareConditionReports'
+import {
+  getMoveInBaselineWarning,
+  type ComparisonResult,
+  type RoomGroup,
+  type ComparisonPhoto,
+} from '@/lib/compareConditionReports'
 
 type ReportSummary = {
   createdAt: string
@@ -104,6 +109,7 @@ export default function ConditionComparisonView({
 }: Props) {
   const { matched, moveInOnly, moveOutOnly } = comparison
   const isEmpty = matched.length === 0 && moveInOnly.length === 0 && moveOutOnly.length === 0
+  const baselineWarning = getMoveInBaselineWarning(moveInReport.status)
 
   return (
     <div className="max-w-4xl">
@@ -155,6 +161,17 @@ export default function ConditionComparisonView({
           </p>
         </div>
       </div>
+
+      {baselineWarning && (
+        <div className="mb-6 rounded-xl border border-[rgba(248,113,113,0.25)] bg-[rgba(248,113,113,0.08)] px-5 py-4">
+          <p className="text-sm font-semibold text-[#f87171]">
+            {baselineWarning.title}
+          </p>
+          <p className="mt-1 text-xs leading-relaxed text-[#f87171]">
+            {baselineWarning.message}
+          </p>
+        </div>
+      )}
 
       {isEmpty ? (
         <div className="text-center py-20 bg-[#1C2740] rounded-xl border border-[rgba(196,154,60,0.15)]">

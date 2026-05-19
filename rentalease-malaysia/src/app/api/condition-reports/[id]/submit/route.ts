@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { createNotification } from '@/lib/notifications';
+import { getTenantConditionsHref } from '@/lib/conditionReports';
 
 const MOVE_IN_OUT_MIN_PHOTOS = 6;
 const MOVE_IN_OUT_MIN_CHECKLIST = 4;
@@ -102,7 +103,7 @@ export async function PATCH(
       'CONDITION_REPORT_SUBMITTED',
       `${reportTypeLabel} condition report ready for review`,
       `Your landlord submitted a ${reportTypeLabel.toLowerCase()} condition report for ${report.tenancy.room.property.address}. Please review and respond.`,
-      `/dashboard/tenant/conditions`,
+      getTenantConditionsHref(report.tenancyId),
     );
   } else {
     await createNotification(

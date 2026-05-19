@@ -28,6 +28,7 @@ const confirmedTermsSchema = z
       .number()
       .min(0, 'Deposit amount must be 0 or more'),
   })
+  // String compare is safe — regex above guarantees YYYY-MM-DD, where lexical ordering equals chronological ordering.
   .refine((d) => d.endDate > d.startDate, {
     message: 'End date must be after start date',
     path: ['endDate'],

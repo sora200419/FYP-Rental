@@ -3,6 +3,8 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { createNotification } from '@/lib/notifications';
+import { getTenantConditionsHref } from '@/lib/conditionReports';
+import { canReviewConditionReport } from '@/lib/conditionReportWorkflow';
 
 export async function PATCH(
   _request: Request,
@@ -43,15 +45,16 @@ export async function PATCH(
   if (!isLandlord && !isTenant)
     return NextResponse.json({ error: 'Access denied' }, { status: 403 });
 
-  if (report.createdById === session.user.id)
+  if (
+    !canReviewConditionReport({
+      status: report.status,
+      createdById: report.createdById,
+      reviewedById: report.reviewedById,
+      currentUserId: session.user.id,
+    })
+  )
     return NextResponse.json(
-      { error: 'You cannot accept your own report.' },
-      { status: 400 },
-    );
-
-  if (!['SUBMITTED', 'PENDING_REVIEW', 'COUNTER_EVIDENCE_ADDED'].includes(report.status))
-    return NextResponse.json(
-      { error: 'This report is not in a reviewable state.' },
+      { error: 'This report is not awaiting your review.' },
       { status: 409 },
     );
 
@@ -74,22 +77,27 @@ export async function PATCH(
     },
   });
 
-  const creatorRole = report.createdBy.role === 'LANDLORD' ? 'landlord' : 'tenant';
   const reportTypeLabel =
     report.type === 'MOVE_IN'
       ? 'Move-in'
       : report.type === 'MOVE_OUT'
         ? 'Move-out'
         : 'Inspection';
+  const isCounterEvidenceReview = report.status === 'COUNTER_EVIDENCE_ADDED';
+  const notificationRecipientId =
+    isCounterEvidenceReview && report.reviewedById
+      ? report.reviewedById
+      : report.createdBy.id;
+  const notificationRecipientIsLandlord = notificationRecipientId === landlordId;
 
   await createNotification(
-    report.createdBy.id,
+    notificationRecipientId,
     'CONDITION_REPORT_ACCEPTED',
     `${reportTypeLabel} condition report accepted`,
     `${session.user.name ?? 'The other party'} accepted your ${reportTypeLabel.toLowerCase()} condition report for ${report.tenancy.room.property.address}.`,
-    creatorRole === 'landlord'
+    notificationRecipientIsLandlord
       ? `/dashboard/landlord/tenancies/${report.tenancyId}/conditions`
-      : `/dashboard/tenant/conditions`,
+      : getTenantConditionsHref(report.tenancyId),
   );
 
   return NextResponse.json({ ok: true });

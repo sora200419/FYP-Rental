@@ -39,9 +39,9 @@ export async function POST(
       { status: 404 },
     );
 
-  if (agreement.status === 'SIGNED')
+  if (!['DRAFT', 'NEGOTIATING'].includes(agreement.status))
     return NextResponse.json(
-      { error: 'Agreement is already signed' },
+      { error: 'Agreement is no longer editable' },
       { status: 409 },
     );
 

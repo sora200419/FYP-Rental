@@ -4,9 +4,13 @@ import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { createNotification } from '@/lib/notifications';
 import { getTenantConditionsHref } from '@/lib/conditionReports';
+import {
+  canReviewConditionReport,
+  CONDITION_REPORT_COUNTER_REVIEW_STATUS,
+} from '@/lib/conditionReportWorkflow';
 
 export async function PATCH(
-  request: Request,
+  _request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
   const session = await getServerSession(authOptions);
@@ -14,28 +18,12 @@ export async function PATCH(
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   const { id } = await params;
-  let body: { correctionNote?: string };
-  try {
-    body = await request.json();
-  } catch {
-    return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
-  }
-  const { correctionNote } = body;
-
-  if (
-    !correctionNote ||
-    typeof correctionNote !== 'string' ||
-    correctionNote.trim().length === 0
-  )
-    return NextResponse.json(
-      { error: 'correctionNote is required and must not be empty.' },
-      { status: 400 },
-    );
 
   const report = await prisma.conditionReport.findUnique({
     where: { id },
     include: {
       createdBy: { select: { id: true, name: true, role: true } },
+      reviewedBy: { select: { id: true, name: true } },
       tenancy: {
         include: {
           tenant: { select: { id: true, name: true } },
@@ -60,46 +48,53 @@ export async function PATCH(
   if (!isLandlord && !isTenant)
     return NextResponse.json({ error: 'Access denied' }, { status: 403 });
 
-  if (report.createdById === session.user.id)
+  if (report.status !== CONDITION_REPORT_COUNTER_REVIEW_STATUS)
     return NextResponse.json(
-      { error: 'You cannot request correction on your own report.' },
-      { status: 400 },
+      { error: 'Only counter evidence can be marked as disputed.' },
+      { status: 409 },
     );
 
-  if (!['SUBMITTED', 'PENDING_REVIEW'].includes(report.status))
+  if (
+    !canReviewConditionReport({
+      status: report.status,
+      createdById: report.createdById,
+      reviewedById: report.reviewedById,
+      currentUserId: session.user.id,
+    })
+  )
     return NextResponse.json(
-      { error: 'This report is not in a reviewable state.' },
+      { error: 'This report is not awaiting your review.' },
       { status: 409 },
     );
 
   await prisma.conditionReport.update({
     where: { id },
     data: {
-      status: 'CORRECTION_REQUESTED',
-      reviewDecision: 'CORRECTION_REQUESTED',
-      reviewedAt: new Date(),
-      reviewedById: session.user.id,
-      correctionNote: correctionNote.trim(),
+      status: 'DISPUTED',
+      acknowledgedAt: new Date(),
+      acknowledgedById: session.user.id,
     },
   });
 
-  const reportTypeLabel =
-    report.type === 'MOVE_IN'
-      ? 'Move-in'
-      : report.type === 'MOVE_OUT'
-        ? 'Move-out'
-        : 'Inspection';
-  const creatorIsLandlord = report.createdBy.role === 'LANDLORD';
+  if (report.reviewedById) {
+    const reportTypeLabel =
+      report.type === 'MOVE_IN'
+        ? 'Move-in'
+        : report.type === 'MOVE_OUT'
+          ? 'Move-out'
+          : 'Inspection';
+    const recipientIsLandlord = report.reviewedById === landlordId;
 
-  await createNotification(
-    report.createdBy.id,
-    'CONDITION_REPORT_CORRECTION_REQUESTED',
-    `Correction requested for ${reportTypeLabel.toLowerCase()} condition report`,
-    `${session.user.name ?? 'The other party'} requested corrections: "${correctionNote.trim().slice(0, 100)}"`,
-    creatorIsLandlord
-      ? `/dashboard/landlord/tenancies/${report.tenancyId}/conditions`
-      : getTenantConditionsHref(report.tenancyId),
-  );
+    await createNotification(
+      report.reviewedById,
+      'CONDITION_REPORT_DISPUTED',
+      `${reportTypeLabel} condition report marked as disputed`,
+      `${session.user.name ?? 'The other party'} reviewed your counter evidence and kept the report disputed for ${report.tenancy.room.property.address}.`,
+      recipientIsLandlord
+        ? `/dashboard/landlord/tenancies/${report.tenancyId}/conditions`
+        : getTenantConditionsHref(report.tenancyId),
+    );
+  }
 
   return NextResponse.json({ ok: true });
 }

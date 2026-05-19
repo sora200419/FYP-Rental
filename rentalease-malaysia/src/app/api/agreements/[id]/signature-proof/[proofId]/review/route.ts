@@ -6,6 +6,7 @@ import { createNotification } from '@/lib/notifications';
 import { buildAgreementEvent } from '@/lib/agreements/history';
 import { buildRentScheduleEntries } from '@/lib/payments';
 import { sendAgreementSignedEmail } from '@/lib/email';
+import { getTenancyStatusAfterAgreementSignatureApproval } from '@/lib/tenancyLifecycle';
 
 export async function PATCH(
   request: Request,
@@ -128,6 +129,11 @@ export async function PATCH(
     agreement.tenancy.monthlyRent,
     agreement.tenancy.agreementPreferences?.rentDueDay ?? null,
   );
+  const nextTenancyStatus = getTenancyStatusAfterAgreementSignatureApproval({
+    currentTenancyStatus: agreement.tenancy.status,
+    depositStatus: agreement.tenancy.depositStatus,
+  });
+  const tenancyWillBeActive = nextTenancyStatus === 'ACTIVE';
 
   await prisma.$transaction(async (tx) => {
     await tx.agreementSignatureProof.update({
@@ -147,14 +153,16 @@ export async function PATCH(
 
     await tx.tenancy.update({
       where: { id: agreement.tenancyId },
-      data: { status: 'ACTIVE' },
+      data: { status: nextTenancyStatus },
     });
 
-    const existingPayments = await tx.rentPayment.count({
-      where: { tenancyId: agreement.tenancyId },
-    });
-    if (existingPayments === 0 && scheduledPayments.length > 0) {
-      await tx.rentPayment.createMany({ data: scheduledPayments });
+    if (tenancyWillBeActive) {
+      const existingPayments = await tx.rentPayment.count({
+        where: { tenancyId: agreement.tenancyId },
+      });
+      if (existingPayments === 0 && scheduledPayments.length > 0) {
+        await tx.rentPayment.createMany({ data: scheduledPayments });
+      }
     }
 
     await tx.agreementEvent.create({
@@ -172,8 +180,12 @@ export async function PATCH(
   await createNotification(
     agreement.tenancy.tenantId,
     'AGREEMENT_SIGNATURE_PROOF_APPROVED',
-    'Agreement fully approved — tenancy is now active',
-    `Your signed agreement for ${agreement.tenancy.room.property.address} has been approved by the landlord. The tenancy is now active and move-in can start.`,
+    tenancyWillBeActive
+      ? 'Agreement fully approved - tenancy is now active'
+      : 'Agreement signature approved - deposit pending',
+    tenancyWillBeActive
+      ? `Your signed agreement for ${agreement.tenancy.room.property.address} has been approved by the landlord. The tenancy is now active and move-in can start.`
+      : `Your signed agreement for ${agreement.tenancy.room.property.address} has been approved by the landlord. Upload your deposit proof and wait for landlord confirmation before move-in condition photos.`,
     '/dashboard/tenant/tenancy',
   );
 

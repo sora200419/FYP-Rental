@@ -13,6 +13,7 @@ import CorporateOccupantRosterManager from '@/components/ui/CorporateOccupantRos
 import PropertyCover from '@/components/ui/PropertyCover';
 import { PageHeader } from '@/components/ui/RedesignPrimitives';
 import { getPropertyCover, TENANCY_STEPS, getTenancyStep } from '@/lib/uiRedesign';
+import { getDepositSettlementEntry } from '@/lib/depositSettlementWorkflow';
 
 const PILL_BASE = 'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium';
 
@@ -151,6 +152,11 @@ export default async function TenancyDetailPage({
   const acknowledgedMoveOut = tenancy.conditionReports.find(
     (r) => r.type === 'MOVE_OUT' && r.acknowledgedAt,
   );
+  const depositSettlementEntry = getDepositSettlementEntry({
+    role: 'LANDLORD',
+    acknowledgedMoveOut: Boolean(acknowledgedMoveOut),
+    depositRefundStatus: tenancy.depositRefund?.status ?? null,
+  });
 
   const isOverdue = (dueDate: Date, status: string) =>
     status === 'PENDING' && new Date(dueDate) < now;
@@ -329,13 +335,18 @@ export default async function TenancyDetailPage({
               {hasMoveOutReport && !acknowledgedMoveOut && (
                 <p className="text-[#E8B84B] text-xs">Move-out report awaiting acknowledgement before deposit settlement can begin.</p>
               )}
-              {acknowledgedMoveOut && !tenancy.depositRefund && (
+              {depositSettlementEntry && (
                 <Link
                   href={`/dashboard/landlord/tenancies/${id}/deposit-settlement`}
                   className="text-sm font-medium text-[#C49A3C] hover:underline mt-1 block"
                 >
-                  Start Deposit Settlement
+                  {depositSettlementEntry.label}
                 </Link>
+              )}
+              {depositSettlementEntry?.description && (
+                <p className="text-white/40 text-xs mt-1">
+                  {depositSettlementEntry.description}
+                </p>
               )}
             </div>
           </div>

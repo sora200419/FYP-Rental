@@ -6,7 +6,6 @@ import AgreementSuggestionDiff from './AgreementSuggestionDiff';
 
 interface Props {
   agreementId: string;
-  tenancyId: string;
   initialContent: string;
   negotiationNotes?: string | null;
   changeRequests?: Array<{
@@ -27,7 +26,6 @@ type AiState =
 
 export default function AgreementEditor({
   agreementId,
-  tenancyId,
   initialContent,
   negotiationNotes,
   changeRequests = [],

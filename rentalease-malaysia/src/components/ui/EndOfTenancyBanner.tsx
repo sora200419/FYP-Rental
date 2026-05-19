@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { getDepositSettlementEntry } from '@/lib/depositSettlementWorkflow';
 
 interface EndOfTenancyBannerProps {
   tenancyId: string;
@@ -20,6 +21,11 @@ export function EndOfTenancyBanner({
   depositRefundStatus,
 }: EndOfTenancyBannerProps) {
   const urgency = daysLeft <= 7 ? 'red' : daysLeft <= 14 ? 'amber' : 'blue';
+  const depositSettlementEntry = getDepositSettlementEntry({
+    role,
+    acknowledgedMoveOut,
+    depositRefundStatus,
+  });
 
   const colorClasses = {
     red: 'bg-[rgba(248,113,113,0.08)] border-[rgba(248,113,113,0.25)] text-[#f87171]',
@@ -68,12 +74,13 @@ export function EndOfTenancyBanner({
           </Link>
         )}
 
-        {acknowledgedMoveOut && !depositRefundStatus && role === 'LANDLORD' && (
+        {depositSettlementEntry && (
           <Link
             href={`/dashboard/landlord/tenancies/${tenancyId}/deposit-settlement`}
+            title={depositSettlementEntry.description}
             className="text-xs font-semibold bg-white/10 hover:bg-white/20 border border-current rounded-lg px-3 py-1.5 transition-colors"
           >
-            Start Deposit Settlement
+            {depositSettlementEntry.label}
           </Link>
         )}
       </div>

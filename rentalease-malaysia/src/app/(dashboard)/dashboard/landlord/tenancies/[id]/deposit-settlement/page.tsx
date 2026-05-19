@@ -4,6 +4,7 @@ import { redirect, notFound } from 'next/navigation';
 import { prisma } from '@/lib/prisma';
 import Link from 'next/link';
 import DepositSettlementClient from './DepositSettlementClient';
+import { attachEvidencePhotosToDeductions } from '@/lib/depositSettlementWorkflow';
 
 export default async function DepositSettlementPage({
   params,
@@ -46,6 +47,12 @@ export default async function DepositSettlementPage({
 
   const moveInStatus = moveInReport?.status ?? null;
   const moveOutStatus = moveOutReport?.status ?? null;
+  const moveOutPhotos =
+    moveOutReport?.photos.map((p) => ({
+      id: p.id,
+      area: p.room,
+      imageUrl: p.imageUrl,
+    })) ?? [];
 
   const warnings: string[] = [];
   if (!moveInReport) warnings.push('No move-in report exists. Baseline evidence is missing.');
@@ -90,7 +97,6 @@ export default async function DepositSettlementPage({
       <DepositSettlementClient
         tenancyId={id}
         tenantName={tenancy.tenant.name}
-        depositAmount={Number(tenancy.depositAmount)}
         existingRefund={tenancy.depositRefund ? {
           id: tenancy.depositRefund.id,
           status: tenancy.depositRefund.status,
@@ -98,15 +104,19 @@ export default async function DepositSettlementPage({
           refundAmount: Number(tenancy.depositRefund.refundAmount),
           paidAt: tenancy.depositRefund.paidAt?.toISOString() ?? null,
           paidProofUrl: tenancy.depositRefund.paidProofUrl,
-          deductions: tenancy.depositRefund.deductions.map((d) => ({
-            id: d.id,
-            reason: d.reason,
-            amount: Number(d.amount),
-            status: d.status,
-            tenantDisputeNote: d.tenantDisputeNote,
-          })),
+          deductions: attachEvidencePhotosToDeductions(
+            tenancy.depositRefund.deductions.map((d) => ({
+              id: d.id,
+              reason: d.reason,
+              amount: Number(d.amount),
+              status: d.status,
+              tenantDisputeNote: d.tenantDisputeNote,
+              photoIds: d.photoIds,
+            })),
+            moveOutPhotos,
+          ),
         } : null}
-        moveOutPhotos={moveOutReport?.photos.map((p) => ({ id: p.id, area: p.room, imageUrl: p.imageUrl })) ?? []}
+        moveOutPhotos={moveOutPhotos}
       />
     </div>
   );

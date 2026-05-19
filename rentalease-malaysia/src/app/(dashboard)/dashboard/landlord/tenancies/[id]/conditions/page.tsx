@@ -8,6 +8,7 @@ import ConditionReportCard from '@/components/ui/ConditionReportCard';
 import ConditionPhotoUploader from '@/components/ui/ConditionPhotoUploader';
 import CreateConditionReport from '@/components/ui/CreateConditionReport';
 import ConditionChecklistEditor from '@/components/ui/ConditionChecklistEditor';
+import { isConditionReportLocked } from '@/lib/conditionReportWorkflow';
 
 export default async function LandlordConditionsPage({
   params,
@@ -76,8 +77,8 @@ export default async function LandlordConditionsPage({
       </div>
 
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-        <div>
+      <div className="flex flex-col gap-4 mb-6 lg:flex-row lg:items-start lg:justify-between">
+        <div className="min-w-0">
           <h1 className="text-2xl font-bold text-white">
             Property Condition
           </h1>
@@ -86,11 +87,11 @@ export default async function LandlordConditionsPage({
             &middot; Tenant: {tenancy.tenant.name}
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2 lg:justify-end">
           {canCompare && (
             <Link
               href={`/dashboard/landlord/tenancies/${tenancyId}/conditions/compare`}
-              className="inline-flex items-center text-sm font-medium px-4 py-2 rounded-lg border border-white/10 text-white/70 hover:bg-white/5 transition-colors bg-[#1C2740]"
+              className="inline-flex shrink-0 items-center whitespace-nowrap text-sm font-medium px-4 py-2 rounded-lg border border-white/10 text-white/70 hover:bg-white/5 transition-colors bg-[#1C2740]"
             >
               Compare Move-In vs Move-Out
             </Link>
@@ -127,8 +128,7 @@ export default async function LandlordConditionsPage({
       ) : (
         <div className="space-y-6">
           {reports.map((report) => {
-            const LOCKED_STATUSES = ['ACCEPTED', 'DISPUTED', 'LOCKED'];
-            const isLocked = LOCKED_STATUSES.includes(report.status);
+            const isLocked = isConditionReportLocked(report.status);
             const isCreator = report.createdBy.id === session.user.id;
             const showChecklist = isCreator && ['DRAFT', 'CORRECTION_REQUESTED'].includes(report.status) && report.type !== 'INSPECTION';
             return (
@@ -145,6 +145,7 @@ export default async function LandlordConditionsPage({
                   createdByRole={report.createdBy.role}
                   createdById={report.createdBy.id}
                   reviewedAt={report.reviewedAt?.toISOString() ?? null}
+                  reviewedById={report.reviewedById}
                   reviewedByName={report.reviewedBy?.name ?? null}
                   photos={report.photos}
                   checklistItems={report.checklistItems.map((i) => ({

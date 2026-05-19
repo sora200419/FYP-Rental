@@ -70,6 +70,10 @@ export async function deletePaymentProof(publicId: string): Promise<void> {
   await cloudinary.uploader.destroy(publicId);
 }
 
+export async function deleteConditionPhoto(publicId: string): Promise<void> {
+  await cloudinary.uploader.destroy(publicId, { resource_type: 'image' });
+}
+
 
 // Uploads a signed agreement proof. Uses auto resource_type because the tenant
 // may provide either a PDF scan or phone-captured image of the signed hard copy.

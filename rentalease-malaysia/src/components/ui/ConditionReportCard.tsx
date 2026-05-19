@@ -5,6 +5,10 @@ import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import ConditionEvidenceProgress from '@/components/ui/ConditionEvidenceProgress';
 import ConditionReviewActions from '@/components/ui/ConditionReviewActions';
+import {
+  canReviewConditionReport,
+  isConditionReportLocked,
+} from '@/lib/conditionReportWorkflow';
 
 interface Photo {
   id: string;
@@ -31,6 +35,7 @@ interface Props {
   createdByRole: string;
   createdById: string;
   reviewedAt: string | null;
+  reviewedById: string | null;
   reviewedByName: string | null;
   photos: Photo[];
   checklistItems: ChecklistItem[];
@@ -78,7 +83,7 @@ function DeletePhotoButton({ reportId, photoId }: { reportId: string; photoId: s
       className="absolute top-1 left-1 bg-red-500 hover:bg-red-600 disabled:opacity-50 text-white text-xs w-5 h-5 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-10"
       title="Delete photo"
     >
-      {isDeleting ? '…' : '×'}
+      {isDeleting ? '...' : 'x'}
     </button>
   );
 }
@@ -113,7 +118,7 @@ function SubmitForReviewButton({ reportId }: { reportId: string }) {
         disabled={loading}
         className="bg-gradient-to-br from-[#C49A3C] to-[#E8B84B] hover:opacity-90 disabled:opacity-50 text-[#1C2740] text-sm font-semibold px-5 py-2.5 rounded-lg transition-colors"
       >
-        {loading ? 'Submitting…' : 'Submit for Review'}
+        {loading ? 'Submitting...' : 'Submit for Review'}
       </button>
       {error && <p className="text-[#f87171] text-xs mt-1">{error}</p>}
     </div>
@@ -123,13 +128,18 @@ function SubmitForReviewButton({ reportId }: { reportId: string }) {
 export default function ConditionReportCard({
   reportId, type, status, notes, correctionNote, counterNote,
   createdAt, createdByName, createdByRole, createdById,
-  reviewedAt, reviewedByName, photos, checklistItems, currentUserId,
+  reviewedAt, reviewedById, reviewedByName, photos, checklistItems, currentUserId,
 }: Props) {
-  const LOCKED_STATUSES = ['ACCEPTED', 'DISPUTED', 'LOCKED'];
-  const isLocked = LOCKED_STATUSES.includes(status);
+  const isLocked = isConditionReportLocked(status);
   const isCreator = createdById === currentUserId;
-  const canReview = !isCreator && ['SUBMITTED', 'PENDING_REVIEW', 'COUNTER_EVIDENCE_ADDED'].includes(status);
+  const canReview = canReviewConditionReport({
+    status,
+    createdById,
+    reviewedById,
+    currentUserId,
+  });
   const canSubmit = isCreator && ['DRAFT', 'CORRECTION_REQUESTED'].includes(status);
+  const isCounterEvidenceReview = status === 'COUNTER_EVIDENCE_ADDED';
 
   const badge = STATUS_BADGE[status] ?? { label: status, className: 'bg-white/5 text-white/60' };
   const typeLabel = TYPE_LABELS[type] ?? type;
@@ -192,7 +202,7 @@ export default function ConditionReportCard({
             </span>
           </div>
           <p className="text-xs text-white/40 mt-0.5">
-            Created by {createdByName} ({createdByRole.toLowerCase()}) · {formatDate(createdAt)}
+            Created by {createdByName} ({createdByRole.toLowerCase()}) - {formatDate(createdAt)}
           </p>
         </div>
         <p className="text-xs text-white/40">{photos.length} {photos.length === 1 ? 'photo' : 'photos'}</p>
@@ -225,9 +235,9 @@ export default function ConditionReportCard({
         </div>
       )}
 
-      {/* Photos — split view if disputed */}
+      {/* Photos - split view if counter evidence exists */}
       <div className="px-6 py-4 space-y-5">
-        {status === 'DISPUTED' && counterPhotos.length > 0 ? (
+        {['COUNTER_EVIDENCE_ADDED', 'DISPUTED'].includes(status) && counterPhotos.length > 0 ? (
           <>
             <div>
               <p className="text-xs font-bold text-white/50 uppercase tracking-wider mb-3">
@@ -304,7 +314,13 @@ export default function ConditionReportCard({
 
         {status === 'DISPUTED' && reviewedAt && (
           <div className="flex items-center gap-2 text-[#f87171] text-sm">
-            <span>Disputed — counter evidence submitted by {reviewedByName} on {formatDate(reviewedAt)}</span>
+            <span>Disputed - counter evidence submitted by {reviewedByName} on {formatDate(reviewedAt)}</span>
+          </div>
+        )}
+
+        {status === 'COUNTER_EVIDENCE_ADDED' && reviewedAt && (
+          <div className="mb-3 text-sm text-[#E8B84B]">
+            Counter evidence submitted by {reviewedByName} on {formatDate(reviewedAt)}.
           </div>
         )}
 
@@ -314,7 +330,12 @@ export default function ConditionReportCard({
           <p className="text-xs text-white/40">Waiting for the other party to review.</p>
         )}
 
-        {canReview && <ConditionReviewActions reportId={reportId} />}
+        {canReview && (
+          <ConditionReviewActions
+            reportId={reportId}
+            mode={isCounterEvidenceReview ? 'counter-review' : 'initial-review'}
+          />
+        )}
       </div>
     </div>
   );

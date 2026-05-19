@@ -17,6 +17,25 @@ export type ComparisonResult = {
   moveOutOnly: RoomGroup[]
 }
 
+export type MoveInBaselineWarning = {
+  tone: 'danger'
+  title: string
+  message: string
+}
+
+export function getMoveInBaselineWarning(
+  moveInStatus: string,
+): MoveInBaselineWarning | null {
+  if (moveInStatus !== 'DISPUTED') return null
+
+  return {
+    tone: 'danger',
+    title: 'Move-in baseline is disputed',
+    message:
+      'Review both original move-in evidence and counter evidence before deciding deposit deductions.',
+  }
+}
+
 export function groupPhotosForComparison(
   moveInPhotos: ComparisonPhoto[],
   moveOutPhotos: ComparisonPhoto[],

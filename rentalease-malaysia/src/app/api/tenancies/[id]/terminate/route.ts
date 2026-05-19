@@ -7,6 +7,7 @@ import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { createNotification } from '@/lib/notifications';
 import { z } from 'zod';
+import { validateImmediateTerminationDate } from '@/lib/tenancyLifecycle';
 
 const terminateSchema = z.object({
   reason: z.string().min(10, 'Please provide a reason (at least 10 characters)'),
@@ -47,6 +48,9 @@ export async function POST(
   if (!parsed.success) return NextResponse.json({ error: parsed.error.issues[0].message }, { status: 400 });
 
   const at = parsed.data.terminationDate ? new Date(parsed.data.terminationDate) : new Date();
+  const validationError = validateImmediateTerminationDate(at);
+  if (validationError)
+    return NextResponse.json({ error: validationError }, { status: 400 });
 
   await prisma.$transaction([
     prisma.tenancy.update({
@@ -55,6 +59,18 @@ export async function POST(
         status: 'TERMINATED',
         terminatedAt: at,
         terminatedReason: parsed.data.reason,
+      },
+    }),
+    prisma.rentPayment.updateMany({
+      where: {
+        tenancyId: id,
+        status: 'PENDING',
+        dueDate: { gt: at },
+      },
+      data: {
+        status: 'WAIVED',
+        notes:
+          'Automatically waived because the tenancy was terminated before this rent due date.',
       },
     }),
     prisma.room.update({

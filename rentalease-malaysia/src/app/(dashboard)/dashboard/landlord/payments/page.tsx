@@ -6,6 +6,7 @@ import Link from 'next/link';
 import PaymentVerificationCard from '@/components/ui/PaymentVerficationCard';
 import DepositVerificationCard from '@/components/ui/DepositVerificationCard';
 import { PageHeader, StatCard, SectionCard } from '@/components/ui/RedesignPrimitives';
+import { getRentPaymentStatusForTenancyLifecycle } from '@/lib/tenancyLifecycle';
 
 export default async function LandlordPaymentsPage() {
   const session = await getServerSession(authOptions);
@@ -69,13 +70,26 @@ export default async function LandlordPaymentsPage() {
     `RM ${Number(amount).toLocaleString('en-MY', { minimumFractionDigits: 2 })}`;
 
   const today = new Date();
+  const getPaymentDisplayStatus = (payment: (typeof allPayments)[number]) =>
+    getRentPaymentStatusForTenancyLifecycle({
+      paymentStatus: payment.status,
+      dueDate: payment.dueDate,
+      tenancyStatus: payment.tenancy.status,
+      terminatedAt: payment.tenancy.terminatedAt,
+    });
 
   const underReview = allPayments.filter((p) => p.status === 'UNDER_REVIEW');
   const pending = allPayments.filter(
-    (p) => p.status === 'PENDING' || p.status === 'LATE',
+    (p) => {
+      const status = getPaymentDisplayStatus(p);
+      return status === 'PENDING' || status === 'LATE';
+    },
   );
   const paid = allPayments.filter(
-    (p) => p.status === 'PAID' || p.status === 'WAIVED',
+    (p) => {
+      const status = getPaymentDisplayStatus(p);
+      return status === 'PAID' || status === 'WAIVED';
+    },
   );
   const overdue = pending.filter((p) => new Date(p.dueDate) < today);
 
@@ -195,7 +209,6 @@ export default async function LandlordPaymentsPage() {
                 <PaymentRow
                   key={payment.id}
                   payment={payment}
-                  formatDate={formatDate}
                   formatRM={formatRM}
                 >
                   <PaymentVerificationCard
@@ -221,7 +234,6 @@ export default async function LandlordPaymentsPage() {
                   <PaymentRow
                     key={payment.id}
                     payment={payment}
-                    formatDate={formatDate}
                     formatRM={formatRM}
                   >
                     <div className="mt-2">
@@ -247,35 +259,37 @@ export default async function LandlordPaymentsPage() {
 
       {/* ── Rent: Paid ──────────────────────────────────────────────────────── */}
       {paid.length > 0 && (
-          <SectionCard title="Rent — Paid" className="mb-8">
+          <SectionCard title="Rent — Paid / Waived" className="mb-8">
             <div className="space-y-4">
-              {paid.map((payment) => (
-                <PaymentRow
-                  key={payment.id}
-                  payment={payment}
-                  formatDate={formatDate}
-                  formatRM={formatRM}
-                >
-                  <div className="mt-2 flex items-center gap-2">
-                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-[rgba(74,222,128,0.12)] text-[#4ade80] ring-1 ring-[rgba(74,222,128,0.3)] ring-inset">
-                      {payment.status === 'WAIVED' ? 'Waived' : 'Paid'}
-                    </span>
-                    <span className="text-xs text-white/40">
-                      Due {formatDate(payment.dueDate)}
-                    </span>
-                    {payment.proofs.length > 0 && (
-                      <a
-                        href={payment.proofs[0].imageUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-xs text-[#C49A3C] hover:underline"
-                      >
-                        View proof
-                      </a>
-                    )}
-                  </div>
-                </PaymentRow>
-              ))}
+              {paid.map((payment) => {
+                const displayStatus = getPaymentDisplayStatus(payment);
+                return (
+                  <PaymentRow
+                    key={payment.id}
+                    payment={payment}
+                    formatRM={formatRM}
+                  >
+                    <div className="mt-2 flex items-center gap-2">
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-[rgba(74,222,128,0.12)] text-[#4ade80] ring-1 ring-[rgba(74,222,128,0.3)] ring-inset">
+                        {displayStatus === 'WAIVED' ? 'Waived' : 'Paid'}
+                      </span>
+                      <span className="text-xs text-white/40">
+                        Due {formatDate(payment.dueDate)}
+                      </span>
+                      {payment.proofs.length > 0 && (
+                        <a
+                          href={payment.proofs[0].imageUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-xs text-[#C49A3C] hover:underline"
+                        >
+                          View proof
+                        </a>
+                      )}
+                    </div>
+                  </PaymentRow>
+                );
+              })}
             </div>
           </SectionCard>
       )}
@@ -303,12 +317,10 @@ type PaymentWithRelations = {
 
 function PaymentRow({
   payment,
-  formatDate,
   formatRM,
   children,
 }: {
   payment: PaymentWithRelations;
-  formatDate: (d: Date) => string;
   formatRM: (a: unknown) => string;
   children: React.ReactNode;
 }) {

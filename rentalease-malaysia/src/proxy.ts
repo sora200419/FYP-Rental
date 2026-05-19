@@ -6,10 +6,22 @@ export default withAuth(
     const token = req.nextauth.token;
     const pathname = req.nextUrl.pathname;
     const role = token?.role;
+    const isApiRoute = pathname.startsWith('/api/');
 
-    // Redirect suspended users out regardless of role
+    // Block suspended users from both dashboard navigation and API calls
     if (token?.isSuspended === true) {
+      if (isApiRoute) {
+        return new NextResponse(
+          JSON.stringify({ error: 'Your account has been suspended.' }),
+          { status: 403, headers: { 'Content-Type': 'application/json' } },
+        );
+      }
       return NextResponse.redirect(new URL('/login?reason=suspended', req.url));
+    }
+
+    // API routes: suspension check above is the only concern; pass through
+    if (isApiRoute) {
+      return NextResponse.next();
     }
 
     // ADMIN users go to their own dashboard; block them from landlord/tenant routes
@@ -38,7 +50,13 @@ export default withAuth(
   },
   {
     callbacks: {
-      authorized: ({ token }) => !!token,
+      authorized: ({ token, req }) => {
+        // API routes handle their own authentication — always pass through so
+        // unauthenticated API calls get a proper 401 from the route handler.
+        if (req.nextUrl.pathname.startsWith('/api/')) return true;
+        // Dashboard routes require a valid session.
+        return !!token;
+      },
     },
     pages: {
       signIn: '/login',
@@ -47,5 +65,6 @@ export default withAuth(
 );
 
 export const config = {
-  matcher: ['/dashboard/:path*'],
+  // Cover dashboard routes + all API routes except NextAuth's own /api/auth/* endpoints
+  matcher: ['/dashboard/:path*', '/api/((?!auth/).*)'],
 };

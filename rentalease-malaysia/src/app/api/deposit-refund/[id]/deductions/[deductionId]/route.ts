@@ -6,11 +6,25 @@ import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { createNotification } from '@/lib/notifications';
 import { z } from 'zod';
+import {
+  canLandlordWithdrawDeduction,
+  getRefundStatusAfterDeductionWithdrawal,
+} from '@/lib/depositSettlementWorkflow';
 
-const tenantSchema = z.object({
-  action: z.enum(['ACCEPT', 'DISPUTE']),
-  disputeNote: z.string().optional(),
-});
+const tenantSchema = z
+  .object({
+    action: z.enum(['ACCEPT', 'DISPUTE']),
+    disputeNote: z.string().optional(),
+  })
+  .superRefine((data, ctx) => {
+    if (data.action === 'DISPUTE' && (!data.disputeNote || data.disputeNote.trim().length < 5)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'Please provide a dispute reason (at least 5 characters).',
+        path: ['disputeNote'],
+      });
+    }
+  });
 
 const landlordSchema = z.object({
   action: z.literal('WITHDRAW'),
@@ -44,6 +58,7 @@ export async function PATCH(
       refund: {
         select: {
           id: true,
+          status: true,
           originalAmount: true,
           // Include id on each deduction so we can filter by id (BUG-03)
           deductions: { select: { id: true, amount: true, status: true } },
@@ -59,13 +74,14 @@ export async function PATCH(
   });
 
   if (!deduction) return NextResponse.json({ error: 'Deduction not found' }, { status: 404 });
-  if (deduction.status !== 'PROPOSED')
-    return NextResponse.json({ error: 'Deduction already responded to' }, { status: 409 });
 
   let body: unknown;
   try { body = await request.json(); } catch { return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 }); }
 
   if (session.user.role === 'TENANT') {
+    if (deduction.status !== 'PROPOSED')
+      return NextResponse.json({ error: 'Deduction already responded to' }, { status: 409 });
+
     const parsed = tenantSchema.safeParse(body);
     if (!parsed.success) return NextResponse.json({ error: parsed.error.issues[0].message }, { status: 400 });
 
@@ -138,6 +154,11 @@ export async function PATCH(
   // Landlord withdrawing
   const parsed = landlordSchema.safeParse(body);
   if (!parsed.success) return NextResponse.json({ error: parsed.error.issues[0].message }, { status: 400 });
+  if (!canLandlordWithdrawDeduction(deduction.status))
+    return NextResponse.json(
+      { error: 'Only proposed or disputed deductions can be withdrawn.' },
+      { status: 409 },
+    );
 
   await prisma.depositDeduction.update({
     where: { id: deductionId },
@@ -149,11 +170,20 @@ export async function PATCH(
     .filter((d) => d.status !== 'WITHDRAWN' && d.id !== deductionId)
     .reduce((s, d) => s + Number(d.amount), 0);
 
-  await prisma.depositRefund.update({
+  const refundStatus = getRefundStatusAfterDeductionWithdrawal(
+    deduction.refund.status,
+    deduction.refund.deductions,
+    deductionId,
+  );
+
+  const refund = await prisma.depositRefund.update({
     where: { id },
-    data: { refundAmount: Math.max(0, Number(deduction.refund.originalAmount) - remaining) },
+    data: {
+      refundAmount: Math.max(0, Number(deduction.refund.originalAmount) - remaining),
+      status: refundStatus,
+    },
   });
 
   const updated = await prisma.depositDeduction.findUnique({ where: { id: deductionId } });
-  return NextResponse.json({ deduction: updated });
+  return NextResponse.json({ deduction: updated, refund });
 }

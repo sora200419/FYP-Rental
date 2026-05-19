@@ -95,7 +95,6 @@ export default async function AgreementPage({
       {/* Viewer — always shown */}
       <AgreementViewer
         agreementId={tenancy.agreement.id}
-        tenancyId={tenancy.id}
         status={tenancy.agreement.status}
         rawContent={tenancy.agreement.rawContent}
         plainLanguageSummary={tenancy.agreement.plainLanguageSummary}

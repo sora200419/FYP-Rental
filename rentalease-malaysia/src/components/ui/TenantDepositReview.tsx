@@ -2,6 +2,10 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import {
+  getLifecycleCompletionState,
+  type DeductionEvidencePhoto,
+} from '@/lib/depositSettlementWorkflow';
 
 type DeductionStatus = 'PROPOSED' | 'ACCEPTED' | 'DISPUTED' | 'WITHDRAWN';
 type RefundStatus = 'PROPOSED' | 'IN_REVIEW' | 'AGREED' | 'DISPUTED' | 'PAID';
@@ -12,6 +16,7 @@ interface Deduction {
   amount: number;
   status: DeductionStatus;
   tenantDisputeNote?: string | null;
+  evidencePhotos?: DeductionEvidencePhoto[];
 }
 
 interface Refund {
@@ -87,6 +92,7 @@ export default function TenantDepositReview({ refund: initialRefund }: Props) {
   };
 
   const pendingDeductions = refund.deductions.filter((d) => d.status === 'PROPOSED');
+  const lifecycleCompletion = getLifecycleCompletionState(refund.status);
 
   return (
     <div className="bg-[#1C2740] rounded-xl border border-[rgba(196,154,60,0.15)] p-6 space-y-4">
@@ -98,6 +104,17 @@ export default function TenantDepositReview({ refund: initialRefund }: Props) {
           {STATUS_LABEL[refund.status]}
         </span>
       </div>
+
+      {lifecycleCompletion && (
+        <div className="rounded-lg border border-[rgba(74,222,128,0.25)] bg-[rgba(74,222,128,0.08)] px-4 py-3">
+          <p className="text-sm font-semibold text-[#4ade80]">
+            {lifecycleCompletion.title}
+          </p>
+          <p className="mt-1 text-xs leading-relaxed text-[#4ade80]">
+            {lifecycleCompletion.message}
+          </p>
+        </div>
+      )}
 
       <div className="grid grid-cols-2 gap-3 text-sm">
         <div>
@@ -124,6 +141,33 @@ export default function TenantDepositReview({ refund: initialRefund }: Props) {
                   <p className="text-sm font-medium text-white flex-1">{d.reason}</p>
                   <span className="text-sm font-semibold text-white ml-3">{formatRM(d.amount)}</span>
                 </div>
+
+                {d.evidencePhotos && d.evidencePhotos.length > 0 && (
+                  <div className="mb-3">
+                    <p className="mb-1.5 text-xs font-medium text-white/40">
+                      Attached evidence
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      {d.evidencePhotos.map((photo) => (
+                        <a
+                          key={photo.id}
+                          href={photo.imageUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="block"
+                          title={photo.area}
+                        >
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
+                            src={photo.imageUrl}
+                            alt={`Evidence photo for ${photo.area}`}
+                            className="h-16 w-16 rounded-lg border border-[rgba(196,154,60,0.2)] object-cover"
+                          />
+                        </a>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
                 {d.status === 'PROPOSED' ? (
                   <div className="space-y-2">

@@ -3,6 +3,8 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { createNotification } from '@/lib/notifications';
+import { getTenantConditionsHref } from '@/lib/conditionReports';
+import { getCounterEvidenceNextStatus } from '@/lib/conditionReportWorkflow';
 
 export async function PATCH(
   request: Request,
@@ -84,7 +86,7 @@ export async function PATCH(
   await prisma.conditionReport.update({
     where: { id },
     data: {
-      status: 'DISPUTED',
+      status: getCounterEvidenceNextStatus(),
       reviewDecision: 'COUNTER_EVIDENCE_ADDED',
       reviewedAt: new Date(),
       reviewedById: session.user.id,
@@ -105,10 +107,10 @@ export async function PATCH(
     report.createdBy.id,
     'CONDITION_REPORT_COUNTER_EVIDENCE',
     `Counter evidence added to ${reportTypeLabel.toLowerCase()} condition report`,
-    `${session.user.name ?? 'The other party'} added counter evidence. The report is now marked as disputed.`,
+    `${session.user.name ?? 'The other party'} added counter evidence. Please review and respond.`,
     creatorRole === 'landlord'
       ? `/dashboard/landlord/tenancies/${report.tenancyId}/conditions`
-      : `/dashboard/tenant/conditions`,
+      : getTenantConditionsHref(report.tenancyId),
   );
 
   return NextResponse.json({ ok: true });

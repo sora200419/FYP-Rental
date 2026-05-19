@@ -7,29 +7,37 @@ import ConditionReportCard from '@/components/ui/ConditionReportCard';
 import ConditionPhotoUploader from '@/components/ui/ConditionPhotoUploader';
 import CreateConditionReport from '@/components/ui/CreateConditionReport';
 import ConditionChecklistEditor from '@/components/ui/ConditionChecklistEditor';
+import {
+  buildTenantConditionReviewTenancyQuery,
+  buildTenantConditionTenancyQuery,
+} from '@/lib/conditionReports';
+import {
+  canReviewConditionReport,
+  isConditionReportLocked,
+} from '@/lib/conditionReportWorkflow';
 
-export default async function TenantConditionsPage() {
+export default async function TenantConditionsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ tenancyId?: string }>;
+}) {
   const session = await getServerSession(authOptions);
   if (!session || session.user.role !== 'TENANT') redirect('/login');
 
-  const tenancy = await prisma.tenancy.findFirst({
-    where: {
-      tenantId: session.user.id,
-      status: { in: ['PENDING', 'ACTIVE', 'EXPIRED', 'TERMINATED'] },
-    },
-    include: {
-      room: {
-        include: {
-          property: {
-            include: {
-              landlord: { select: { name: true } },
-            },
-          },
-        },
-      },
-    },
-    orderBy: { createdAt: 'desc' },
-  });
+  const { tenancyId } = await searchParams;
+  const tenancy =
+    (tenancyId
+      ? await prisma.tenancy.findFirst(
+          buildTenantConditionTenancyQuery(session.user.id, tenancyId),
+        )
+      : await prisma.tenancy.findFirst(
+          buildTenantConditionReviewTenancyQuery(session.user.id),
+        )) ??
+    (tenancyId
+      ? null
+      : await prisma.tenancy.findFirst(
+          buildTenantConditionTenancyQuery(session.user.id),
+        ));
 
   if (!tenancy) {
     return (
@@ -79,14 +87,18 @@ export default async function TenantConditionsPage() {
 
   const pendingAck = reports.filter(
     (r) =>
-      ['SUBMITTED', 'PENDING_REVIEW', 'COUNTER_EVIDENCE_ADDED'].includes(r.status) &&
-      r.createdBy.id !== session.user.id,
+      canReviewConditionReport({
+        status: r.status,
+        createdById: r.createdBy.id,
+        reviewedById: r.reviewedById,
+        currentUserId: session.user.id,
+      }),
   ).length;
 
   return (
     <div className="max-w-4xl">
-      <div className="flex items-center justify-between mb-6">
-        <div>
+      <div className="flex flex-col gap-4 mb-6 lg:flex-row lg:items-start lg:justify-between">
+        <div className="min-w-0">
           <h1 className="text-2xl font-bold text-white">
             Property Condition
           </h1>
@@ -96,7 +108,7 @@ export default async function TenantConditionsPage() {
             &middot; Landlord: {tenancy.room.property.landlord.name}
           </p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3 lg:justify-end">
           {pendingAck > 0 && (
             <span className="bg-amber-500 text-white text-xs font-bold px-2.5 py-1 rounded-full">
               {pendingAck} to review
@@ -104,8 +116,8 @@ export default async function TenantConditionsPage() {
           )}
           {canCompare && (
             <Link
-              href="/dashboard/tenant/conditions/compare"
-              className="inline-flex items-center text-sm font-medium px-4 py-2 rounded-lg border border-[rgba(196,154,60,0.2)] text-white/70 hover:bg-white/5 transition-colors bg-[#1C2740]"
+              href={`/dashboard/tenant/conditions/compare?tenancyId=${encodeURIComponent(tenancy.id)}`}
+              className="inline-flex shrink-0 items-center whitespace-nowrap text-sm font-medium px-4 py-2 rounded-lg border border-[rgba(196,154,60,0.2)] text-white/70 hover:bg-white/5 transition-colors bg-[#1C2740]"
             >
               Compare Move-In vs Move-Out
             </Link>
@@ -142,8 +154,7 @@ export default async function TenantConditionsPage() {
       ) : (
         <div className="space-y-6">
           {reports.map((report) => {
-            const LOCKED_STATUSES = ['ACCEPTED', 'DISPUTED', 'LOCKED'];
-            const isLocked = LOCKED_STATUSES.includes(report.status);
+            const isLocked = isConditionReportLocked(report.status);
             const isCreator = report.createdBy.id === session.user.id;
             const showChecklist = isCreator && ['DRAFT', 'CORRECTION_REQUESTED'].includes(report.status) && report.type !== 'INSPECTION';
             return (
@@ -160,6 +171,7 @@ export default async function TenantConditionsPage() {
                   createdByRole={report.createdBy.role}
                   createdById={report.createdBy.id}
                   reviewedAt={report.reviewedAt?.toISOString() ?? null}
+                  reviewedById={report.reviewedById}
                   reviewedByName={report.reviewedBy?.name ?? null}
                   photos={report.photos}
                   checklistItems={report.checklistItems.map((i) => ({

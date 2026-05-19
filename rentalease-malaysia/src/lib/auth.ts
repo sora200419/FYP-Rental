@@ -56,6 +56,10 @@ export const authOptions: NextAuthOptions = {
           throw new Error('This account has been removed.');
         }
 
+        if (user.isSuspended) {
+          throw new Error('Your account has been suspended. Please contact support.');
+        }
+
         // Compare the submitted password with the hashed password
         const isValidPassword = await bcrypt.compare(
           credentials.password,
@@ -84,6 +88,14 @@ export const authOptions: NextAuthOptions = {
         token.id = user.id;
         token.language = (user as { language: string }).language ?? 'en';
         token.isSuspended = (user as { isSuspended: boolean }).isSuspended ?? false;
+      } else if (token.id) {
+        // Re-fetch suspension status on every subsequent request so that admin
+        // suspension takes effect immediately without requiring sign-out/sign-in.
+        const dbUser = await prisma.user.findUnique({
+          where: { id: token.id as string },
+          select: { isSuspended: true },
+        });
+        if (dbUser) token.isSuspended = dbUser.isSuspended;
       }
       // Allow updating name/language via session update() call
       if (trigger === 'update') {

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 
 // Common room labels for Malaysian residential properties.
@@ -42,7 +42,6 @@ export default function ConditionPhotoUploader({ reportId }: Props) {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Show instant preview while the upload happens
     setPreview(URL.createObjectURL(file));
     handleUpload(file);
   };
@@ -72,7 +71,6 @@ export default function ConditionPhotoUploader({ reportId }: Props) {
         throw new Error(result.error ?? 'Upload failed');
       }
 
-      // Success — clear form and refresh
       setCaption('');
       setPreview(null);
       router.refresh();
@@ -88,12 +86,16 @@ export default function ConditionPhotoUploader({ reportId }: Props) {
   };
 
   return (
-    <div className="bg-gray-50 rounded-xl border border-gray-200 p-5">
-      <p className="text-sm font-semibold text-gray-700 mb-4">Add Photos</p>
+    <div className="rounded-xl border border-[rgba(196,154,60,0.15)] bg-[#111827]/55 p-5 shadow-[0_12px_32px_rgba(0,0,0,0.18)]">
+      <div className="mb-4">
+        <p className="text-sm font-semibold text-white">Add Photos</p>
+        <p className="mt-0.5 text-xs text-white/40">
+          Upload room evidence for this condition report.
+        </p>
+      </div>
 
-      {/* Room selector */}
       <div className="mb-3">
-        <label className="block text-xs font-medium text-gray-500 mb-1">
+        <label className="mb-1.5 block text-xs font-semibold text-white/55">
           Room / Area
         </label>
         {!useCustomRoom ? (
@@ -101,10 +103,10 @@ export default function ConditionPhotoUploader({ reportId }: Props) {
             <select
               value={selectedRoom}
               onChange={(e) => setSelectedRoom(e.target.value)}
-              className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="flex-1 rounded-lg border border-[rgba(196,154,60,0.18)] bg-[#0f172a] px-3 py-2 text-sm text-white shadow-inner shadow-black/10 [color-scheme:dark] focus:border-[#C49A3C] focus:outline-none focus:ring-2 focus:ring-[rgba(196,154,60,0.25)]"
             >
               {ROOM_OPTIONS.map((room) => (
-                <option key={room} value={room}>
+                <option key={room} value={room} className="bg-[#0f172a] text-white">
                   {room}
                 </option>
               ))}
@@ -112,7 +114,7 @@ export default function ConditionPhotoUploader({ reportId }: Props) {
             <button
               type="button"
               onClick={() => setUseCustomRoom(true)}
-              className="text-xs text-blue-600 hover:underline px-2 shrink-0"
+              className="shrink-0 rounded-lg border border-[rgba(196,154,60,0.2)] px-3 text-xs font-semibold text-[#C49A3C] transition-colors hover:bg-[rgba(196,154,60,0.1)] hover:text-[#E8B84B]"
             >
               Custom
             </button>
@@ -124,7 +126,7 @@ export default function ConditionPhotoUploader({ reportId }: Props) {
               value={customRoom}
               onChange={(e) => setCustomRoom(e.target.value)}
               placeholder="e.g. Laundry Area, Rooftop"
-              className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="flex-1 rounded-lg border border-[rgba(196,154,60,0.18)] bg-[#0f172a] px-3 py-2 text-sm text-white placeholder:text-white/30 shadow-inner shadow-black/10 focus:border-[#C49A3C] focus:outline-none focus:ring-2 focus:ring-[rgba(196,154,60,0.25)]"
             />
             <button
               type="button"
@@ -132,7 +134,7 @@ export default function ConditionPhotoUploader({ reportId }: Props) {
                 setUseCustomRoom(false);
                 setCustomRoom('');
               }}
-              className="text-xs text-gray-500 hover:underline px-2 shrink-0"
+              className="shrink-0 rounded-lg border border-white/10 px-3 text-xs font-semibold text-white/50 transition-colors hover:bg-white/5 hover:text-white/70"
             >
               Preset
             </button>
@@ -140,10 +142,9 @@ export default function ConditionPhotoUploader({ reportId }: Props) {
         )}
       </div>
 
-      {/* Caption */}
       <div className="mb-3">
-        <label className="block text-xs font-medium text-gray-500 mb-1">
-          Caption <span className="text-gray-400">(optional)</span>
+        <label className="mb-1.5 block text-xs font-semibold text-white/55">
+          Caption <span className="text-white/30">(optional)</span>
         </label>
         <input
           type="text"
@@ -151,47 +152,46 @@ export default function ConditionPhotoUploader({ reportId }: Props) {
           onChange={(e) => setCaption(e.target.value)}
           placeholder="e.g. Scratch on wall near window"
           maxLength={500}
-          className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="w-full rounded-lg border border-[rgba(196,154,60,0.18)] bg-[#0f172a] px-3 py-2 text-sm text-white placeholder:text-white/30 shadow-inner shadow-black/10 focus:border-[#C49A3C] focus:outline-none focus:ring-2 focus:ring-[rgba(196,154,60,0.25)]"
         />
       </div>
 
-      {/* Upload preview */}
       {preview && (
-        <div className="mb-3 relative w-20 h-20 rounded-lg overflow-hidden border border-blue-200 opacity-60">
+        <div className="relative mb-3 h-20 w-20 overflow-hidden rounded-lg border border-[rgba(196,154,60,0.35)] opacity-75">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={preview}
-            alt="Uploading..."
-            className="w-full h-full object-cover"
+            alt="Uploading preview"
+            className="h-full w-full object-cover"
           />
-          <div className="absolute inset-0 flex items-center justify-center bg-black/20">
-            <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+          <div className="absolute inset-0 flex items-center justify-center bg-black/35">
+            <div className="h-4 w-4 animate-spin rounded-full border-2 border-[#E8B84B] border-t-transparent" />
           </div>
         </div>
       )}
 
-      {/* File input + upload button */}
       <div>
         <input
           ref={fileInputRef}
           type="file"
           accept="image/*"
           onChange={handleFileSelect}
+          disabled={isUploading}
           className="hidden"
           id={`condition-upload-${reportId}`}
         />
         <label
           htmlFor={`condition-upload-${reportId}`}
-          className={`inline-flex items-center gap-2 text-sm font-medium px-4 py-2 rounded-lg border transition-colors cursor-pointer ${
+          className={`inline-flex cursor-pointer items-center gap-2 rounded-lg border px-4 py-2 text-sm font-semibold transition-colors ${
             isUploading
-              ? 'border-gray-200 text-gray-400 cursor-not-allowed bg-gray-50'
-              : 'border-blue-300 text-blue-600 hover:bg-blue-50 bg-white'
+              ? 'cursor-not-allowed border-white/10 bg-white/5 text-white/30'
+              : 'border-[rgba(196,154,60,0.35)] bg-[rgba(196,154,60,0.08)] text-[#E8B84B] hover:border-[#C49A3C] hover:bg-[rgba(196,154,60,0.14)]'
           }`}
         >
           {isUploading ? (
             <>
-              <span className="w-4 h-4 border-2 border-blue-300 border-t-transparent rounded-full animate-spin" />
-              Uploading…
+              <span className="h-4 w-4 animate-spin rounded-full border-2 border-[#E8B84B] border-t-transparent" />
+              Uploading...
             </>
           ) : (
             <>Choose Photo</>
@@ -199,7 +199,7 @@ export default function ConditionPhotoUploader({ reportId }: Props) {
         </label>
       </div>
 
-      {error && <p className="text-red-500 text-xs mt-2">{error}</p>}
+      {error && <p className="mt-2 text-xs text-[#f87171]">{error}</p>}
     </div>
   );
 }

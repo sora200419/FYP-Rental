@@ -8,6 +8,7 @@ import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { createNotification } from '@/lib/notifications';
 import { z } from 'zod';
+import { validateRenewalPeriod } from '@/lib/tenancyLifecycle';
 
 const renewSchema = z.object({
   startDate: z.string().datetime(),
@@ -33,7 +34,7 @@ export async function POST(
       room: { property: { landlordId: session.user.id } },
       status: { in: ['ACTIVE', 'EXPIRED'] },
     },
-    select: { id: true, roomId: true, tenantId: true },
+    select: { id: true, roomId: true, tenantId: true, endDate: true },
   });
 
   if (!tenancy) return NextResponse.json({ error: 'Tenancy not found or not eligible for renewal' }, { status: 404 });
@@ -46,12 +47,13 @@ export async function POST(
 
   const { startDate, endDate, monthlyRent, depositAmount } = parsed.data;
 
-  const today = new Date().toISOString().split('T')[0];
-  if (startDate.slice(0, 10) < today)
-    return NextResponse.json({ error: 'Start date cannot be in the past' }, { status: 400 });
-
-  if (new Date(endDate) <= new Date(startDate))
-    return NextResponse.json({ error: 'End date must be after start date' }, { status: 400 });
+  const validationError = validateRenewalPeriod({
+    currentEndDate: tenancy.endDate,
+    startDate: new Date(startDate),
+    endDate: new Date(endDate),
+  });
+  if (validationError)
+    return NextResponse.json({ error: validationError }, { status: 400 });
 
   const [renewal] = await prisma.$transaction([
     prisma.tenancy.create({

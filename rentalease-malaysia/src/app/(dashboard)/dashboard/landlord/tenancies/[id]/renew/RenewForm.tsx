@@ -25,6 +25,8 @@ export default function RenewForm({ tenancyId, currentEndDate, currentMonthlyRen
 
   const _d = new Date();
   const today = `${_d.getFullYear()}-${String(_d.getMonth() + 1).padStart(2, '0')}-${String(_d.getDate()).padStart(2, '0')}`;
+  const minimumRenewalStart =
+    toDateInput(defaultStart) > today ? toDateInput(defaultStart) : today;
 
   const [startDate, setStartDate] = useState(toDateInput(defaultStart));
   const [endDate, setEndDate] = useState(toDateInput(defaultEnd));
@@ -38,8 +40,8 @@ export default function RenewForm({ tenancyId, currentEndDate, currentMonthlyRen
     setSubmitting(true);
     setError(null);
 
-    if (startDate < today) {
-      setError('Start date cannot be in the past.');
+    if (startDate < minimumRenewalStart) {
+      setError('Renewal must start after the current tenancy end date.');
       setSubmitting(false);
       return;
     }
@@ -85,7 +87,7 @@ export default function RenewForm({ tenancyId, currentEndDate, currentMonthlyRen
           <input
             type="date"
             value={startDate}
-            min={today}
+            min={minimumRenewalStart}
             onChange={(e) => setStartDate(e.target.value)}
             className={inputClass}
             required
@@ -96,7 +98,7 @@ export default function RenewForm({ tenancyId, currentEndDate, currentMonthlyRen
           <input
             type="date"
             value={endDate}
-            min={today}
+            min={minimumRenewalStart}
             onChange={(e) => setEndDate(e.target.value)}
             className={inputClass}
             required

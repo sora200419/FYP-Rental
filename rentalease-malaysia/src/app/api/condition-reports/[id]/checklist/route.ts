@@ -2,8 +2,7 @@ import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
-
-const LOCKED_STATUSES = ['ACCEPTED', 'DISPUTED', 'LOCKED'];
+import { isConditionReportLocked } from '@/lib/conditionReportWorkflow';
 
 const VALID_REASONS = [
   'PHOTO_UPLOADED',
@@ -58,7 +57,7 @@ export async function POST(
       { status: 404 },
     );
 
-  if (LOCKED_STATUSES.includes(report.status))
+  if (isConditionReportLocked(report.status))
     return NextResponse.json(
       { error: 'This report is locked and cannot be modified.' },
       { status: 409 },
