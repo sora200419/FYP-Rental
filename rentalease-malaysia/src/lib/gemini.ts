@@ -269,11 +269,16 @@ CORPORATE LEASE PARTY
 - Company Name: ${tenancy.companyName ?? 'Not provided'}
 - Authorized Signatory: ${tenancy.authorizedSignatoryName ?? tenancy.tenant.name}${tenancy.authorizedSignatoryRole ? ` (${tenancy.authorizedSignatoryRole})` : ''}
 - Occupant Roster:
-${(tenancy.corporateOccupants ?? []).length > 0
-  ? tenancy.corporateOccupants!
-      .map((occupant) => `  - ${occupant.name}${occupant.roleLabel ? ` (${occupant.roleLabel})` : ''}`)
-      .join('\n')
-  : '  - No occupants listed yet'}
+${
+  (tenancy.corporateOccupants ?? []).length > 0
+    ? tenancy
+        .corporateOccupants!.map(
+          (occupant) =>
+            `  - ${occupant.name}${occupant.roleLabel ? ` (${occupant.roleLabel})` : ''}`,
+        )
+        .join('\n')
+    : '  - No occupants listed yet'
+}
 The agreement must clearly distinguish the corporate lease party / authorized signatory from the staff or occupants staying in the room or unit.
 `
       : '';
@@ -299,7 +304,9 @@ ${tenancy.negotiationContext}
 `
     : '';
 
-  const wizardPolicyBlock = preferences ? buildWizardPolicyBlock(preferences) : '';
+  const wizardPolicyBlock = preferences
+    ? buildWizardPolicyBlock(preferences)
+    : '';
 
   const prompt = `
 You are a Malaysian legal document assistant specialising in residential tenancy agreements.
@@ -525,9 +532,9 @@ Respond ONLY with a valid JSON object containing exactly these two keys:
 }
 
 export interface ExtractedTerms {
-  startDate: string | null;     // ISO YYYY-MM-DD or null if AI couldn't determine
+  startDate: string | null; // ISO YYYY-MM-DD or null if AI couldn't determine
   endDate: string | null;
-  monthlyRent: number | null;   // plain number in RM, or null
+  monthlyRent: number | null; // plain number in RM, or null
   depositAmount: number | null; // plain number in RM, or null
 }
 
@@ -580,17 +587,22 @@ ${rawContent}`;
     // If Gemini returns malformed JSON (e.g. thinking-part bleed-through), log for
     // diagnostics and fall through with an empty object — all fields return null and
     // the UI shows "AI couldn't determine — verify" labels on each field.
-    console.warn('[extractAgreementTerms] JSON parse failed. Raw response:', text);
+    console.warn(
+      '[extractAgreementTerms] JSON parse failed. Raw response:',
+      text,
+    );
     console.warn('[extractAgreementTerms] Parse error:', parseErr);
   }
 
   return {
     startDate:
-      typeof parsed.startDate === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(parsed.startDate)
+      typeof parsed.startDate === 'string' &&
+      /^\d{4}-\d{2}-\d{2}$/.test(parsed.startDate)
         ? parsed.startDate
         : null,
     endDate:
-      typeof parsed.endDate === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(parsed.endDate)
+      typeof parsed.endDate === 'string' &&
+      /^\d{4}-\d{2}-\d{2}$/.test(parsed.endDate)
         ? parsed.endDate
         : null,
     monthlyRent:

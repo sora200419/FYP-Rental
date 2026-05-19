@@ -6,9 +6,8 @@
     "dev": "next dev",
     "build": "prisma generate && prisma migrate deploy && next build",
     "start": "next start",
+    "test": "vitest run --config deployment/vitest.config.ts",
     "lint": "eslint",
-    "test": "vitest run",
-    "test:watch": "vitest",
     "postinstall": "prisma generate"
   },
   "dependencies": {
@@ -34,13 +33,13 @@
     "@tailwindcss/postcss": "^4",
     "@types/bcryptjs": "^2.4.6",
     "@types/multer": "^2.1.0",
-    "@types/node": "^20",
-    "@types/react": "^19",
+    "@types/node": "20.19.41",
+    "@types/react": "19.2.14",
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.1.6",
     "tailwindcss": "^4",
-    "typescript": "^5",
+    "typescript": "5.9.3",
     "vitest": "^3.2.4"
   }
 }
