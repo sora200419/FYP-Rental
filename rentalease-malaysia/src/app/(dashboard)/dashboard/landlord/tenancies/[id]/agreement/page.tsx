@@ -1,7 +1,8 @@
 // src/app/(dashboard)/dashboard/landlord/tenancies/[id]/agreement/page.tsx
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import { redirect, notFound } from 'next/navigation';
+import { redirect } from 'next/navigation';
+import { getDeletedTenancyRedirectUrl } from '@/lib/landlordTenancyRedirect';
 import { prisma } from '@/lib/prisma';
 import Link from 'next/link';
 import AgreementViewer from '@/components/ui/AgreementViewer';
@@ -39,7 +40,8 @@ export default async function AgreementPage({
     },
   });
 
-  if (!tenancy || !tenancy.agreement) notFound();
+  if (!tenancy) redirect(await getDeletedTenancyRedirectUrl(id, session.user.id));
+  if (!tenancy.agreement) redirect(`/dashboard/landlord/tenancies/${id}`);
 
   let redFlags: Array<{
     severity: 'HIGH' | 'MEDIUM' | 'LOW';

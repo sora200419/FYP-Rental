@@ -1,7 +1,8 @@
 // src/app/(dashboard)/dashboard/landlord/tenancies/[id]/conditions/page.tsx
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import { redirect, notFound } from 'next/navigation';
+import { redirect } from 'next/navigation';
+import { getDeletedTenancyRedirectUrl } from '@/lib/landlordTenancyRedirect';
 import { prisma } from '@/lib/prisma';
 import Link from 'next/link';
 import ConditionReportCard from '@/components/ui/ConditionReportCard';
@@ -35,7 +36,7 @@ export default async function LandlordConditionsPage({
     },
   });
 
-  if (!tenancy) notFound();
+  if (!tenancy) redirect(await getDeletedTenancyRedirectUrl(tenancyId, session.user.id));
 
   const reports = await prisma.conditionReport.findMany({
     where: { tenancyId },

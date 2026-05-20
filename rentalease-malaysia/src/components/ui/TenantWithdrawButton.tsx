@@ -17,7 +17,7 @@ export default function TenantWithdrawButton({ tenancyId }: Props) {
     setIsLoading(true);
     setError(null);
     try {
-      const res = await fetch(`/api/tenancies/${tenancyId}/withdraw`, { method: 'POST' });
+      const res = await fetch(`/api/tenancies/${tenancyId}/withdraw`, { method: 'DELETE' });
       const data = await res.json();
       if (!res.ok) {
         setError(data.error || 'Something went wrong.');

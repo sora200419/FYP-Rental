@@ -12,9 +12,10 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { createNotification } from '@/lib/notifications';
+import { logAudit, getIp } from '@/lib/audit';
 
 export async function DELETE(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
   const session = await getServerSession(authOptions);
@@ -31,6 +32,7 @@ export async function DELETE(
       roomId: true,
       room: {
         select: {
+          propertyId: true,
           property: { select: { landlordId: true, address: true, city: true } },
         },
       },
@@ -47,6 +49,20 @@ export async function DELETE(
   const landlordId = tenancy.room.property.landlordId;
   const propertyAddress = `${tenancy.room.property.address}, ${tenancy.room.property.city}`;
 
+  await logAudit({
+    actorId: session.user.id,
+    action: 'TENANCY_WITHDRAWN',
+    entityName: 'Tenancy',
+    entityId: id,
+    previousData: {
+      propertyId: tenancy.room.propertyId,
+      roomId: tenancy.roomId,
+      landlordId,
+    },
+    ipAddress: getIp(request),
+    reason: 'WITHDRAWN',
+  });
+
   await prisma.$transaction([
     prisma.tenancy.delete({ where: { id } }),
     prisma.room.update({
@@ -61,7 +77,7 @@ export async function DELETE(
     'INVITATION_RESPONDED',
     'Tenant withdrew from tenancy',
     `${tenancy.tenant.name} has withdrawn from the pending tenancy at ${propertyAddress}. The room is now available again.`,
-    '/dashboard/landlord',
+    `/dashboard/landlord/properties/${tenancy.room.propertyId}`,
   );
 
   return NextResponse.json({ ok: true });

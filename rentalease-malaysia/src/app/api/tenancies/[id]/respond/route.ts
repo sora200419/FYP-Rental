@@ -5,6 +5,7 @@ import { authOptions } from '@/lib/auth';
 import { canLegallySignCorporateAgreement } from '@/lib/corporate-tenancy-access';
 import { prisma } from '@/lib/prisma';
 import { createNotification } from '@/lib/notifications';
+import { logAudit, getIp } from '@/lib/audit';
 
 export async function PATCH(
   request: Request,
@@ -120,6 +121,20 @@ export async function PATCH(
 
   // DECLINE — delete the tenancy (it was never accepted; no financial records attached)
   // and free the room so the landlord can re-invite another tenant.
+  await logAudit({
+    actorId: session.user.id,
+    action: 'TENANCY_DECLINED',
+    entityName: 'Tenancy',
+    entityId: id,
+    previousData: {
+      propertyId: tenancy.room.propertyId,
+      roomId: tenancy.roomId,
+      landlordId,
+    },
+    ipAddress: getIp(request),
+    reason: 'DECLINED',
+  });
+
   await prisma.$transaction([
     prisma.tenancy.delete({ where: { id } }),
     prisma.room.update({
@@ -133,7 +148,7 @@ export async function PATCH(
     'INVITATION_RESPONDED',
     'Tenant declined your invitation',
     `${responderName} declined the tenancy invitation for ${propertyAddress}.`,
-    '/dashboard/landlord',
+    `/dashboard/landlord/properties/${tenancy.room.propertyId}`,
   );
 
   return NextResponse.json({ ok: true, status: 'DECLINED' });

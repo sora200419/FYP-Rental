@@ -1,6 +1,7 @@
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import { redirect, notFound } from 'next/navigation';
+import { redirect } from 'next/navigation';
+import { getDeletedTenancyRedirectUrl } from '@/lib/landlordTenancyRedirect';
 import { prisma } from '@/lib/prisma';
 import Link from 'next/link';
 import DepositSettlementClient from './DepositSettlementClient';
@@ -20,7 +21,6 @@ export default async function DepositSettlementPage({
     where: {
       id,
       room: { property: { landlordId: session.user.id } },
-      status: { in: ['EXPIRED', 'TERMINATED', 'ACTIVE'] },
     },
     include: {
       tenant: { select: { name: true, email: true } },
@@ -40,7 +40,8 @@ export default async function DepositSettlementPage({
     },
   });
 
-  if (!tenancy) notFound();
+  if (!tenancy) redirect(await getDeletedTenancyRedirectUrl(id, session.user.id));
+  if (!['EXPIRED', 'TERMINATED', 'ACTIVE'].includes(tenancy.status)) redirect(`/dashboard/landlord/tenancies/${id}`);
 
   const moveInReport = tenancy.conditionReports.find((r) => r.type === 'MOVE_IN') ?? null;
   const moveOutReport = tenancy.conditionReports.find((r) => r.type === 'MOVE_OUT') ?? null;

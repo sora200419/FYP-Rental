@@ -1,6 +1,7 @@
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import { redirect, notFound } from 'next/navigation';
+import { redirect } from 'next/navigation';
+import { getDeletedTenancyRedirectUrl } from '@/lib/landlordTenancyRedirect';
 import { prisma } from '@/lib/prisma';
 import Link from 'next/link';
 import { WizardContainer } from '@/components/wizard/WizardContainer';
@@ -29,7 +30,7 @@ export default async function WizardPage({
     },
   });
 
-  if (!tenancy) notFound();
+  if (!tenancy) redirect(await getDeletedTenancyRedirectUrl(id, session.user.id));
 
   // Guard: wizard only accessible for PENDING status (tenant accepted)
   if (tenancy.status === 'INVITED') {

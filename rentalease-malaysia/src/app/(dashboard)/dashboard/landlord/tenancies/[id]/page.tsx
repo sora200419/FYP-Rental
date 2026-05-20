@@ -1,6 +1,7 @@
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import { redirect, notFound } from 'next/navigation';
+import { redirect } from 'next/navigation';
+import { getDeletedTenancyRedirectUrl } from '@/lib/landlordTenancyRedirect';
 import { prisma } from '@/lib/prisma';
 import Link from 'next/link';
 import GenerateAgreementButton from '@/components/ui/GenerateAgreementButton';
@@ -120,7 +121,7 @@ export default async function TenancyDetailPage({
     },
   });
 
-  if (!tenancy) notFound();
+  if (!tenancy) redirect(await getDeletedTenancyRedirectUrl(id, session.user.id));
 
   const formatDate = (date: Date) =>
     new Date(date).toLocaleDateString('en-MY', { day: 'numeric', month: 'long', year: 'numeric' });

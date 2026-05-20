@@ -1,6 +1,7 @@
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import { redirect, notFound } from 'next/navigation';
+import { redirect } from 'next/navigation';
+import { getDeletedTenancyRedirectUrl } from '@/lib/landlordTenancyRedirect';
 import { prisma } from '@/lib/prisma';
 import Link from 'next/link';
 import TerminateForm from './TerminateForm';
@@ -19,17 +20,18 @@ export default async function TerminatePage({
     where: {
       id,
       room: { property: { landlordId: session.user.id } },
-      status: 'ACTIVE',
     },
     select: {
       id: true,
+      status: true,
       endDate: true,
       tenant: { select: { name: true } },
       room: { select: { label: true, property: { select: { address: true } } } },
     },
   });
 
-  if (!tenancy) notFound();
+  if (!tenancy) redirect(await getDeletedTenancyRedirectUrl(id, session.user.id));
+  if (tenancy.status !== 'ACTIVE') redirect(`/dashboard/landlord/tenancies/${id}`);
 
   return (
     <div className="max-w-xl">

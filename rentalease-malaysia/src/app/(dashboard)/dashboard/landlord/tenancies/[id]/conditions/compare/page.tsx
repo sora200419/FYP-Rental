@@ -1,7 +1,8 @@
 // src/app/(dashboard)/dashboard/landlord/tenancies/[id]/conditions/compare/page.tsx
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
-import { redirect, notFound } from 'next/navigation'
+import { redirect } from 'next/navigation'
+import { getDeletedTenancyRedirectUrl } from '@/lib/landlordTenancyRedirect'
 import { prisma } from '@/lib/prisma'
 import Link from 'next/link'
 import ConditionComparisonView from '@/components/ui/ConditionComparisonView'
@@ -32,7 +33,7 @@ export default async function LandlordCompareConditionsPage({
     },
   })
 
-  if (!tenancy) notFound()
+  if (!tenancy) redirect(await getDeletedTenancyRedirectUrl(tenancyId, session.user.id))
 
   const [moveInReport, moveOutReport] = await Promise.all([
     prisma.conditionReport.findFirst({

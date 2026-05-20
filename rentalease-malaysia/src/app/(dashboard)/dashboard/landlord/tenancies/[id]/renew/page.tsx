@@ -1,6 +1,7 @@
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import { redirect, notFound } from 'next/navigation';
+import { redirect } from 'next/navigation';
+import { getDeletedTenancyRedirectUrl } from '@/lib/landlordTenancyRedirect';
 import { prisma } from '@/lib/prisma';
 import Link from 'next/link';
 import RenewForm from './RenewForm';
@@ -19,10 +20,10 @@ export default async function RenewPage({
     where: {
       id,
       room: { property: { landlordId: session.user.id } },
-      status: { in: ['ACTIVE', 'EXPIRED'] },
     },
     select: {
       id: true,
+      status: true,
       startDate: true,
       endDate: true,
       monthlyRent: true,
@@ -32,7 +33,8 @@ export default async function RenewPage({
     },
   });
 
-  if (!tenancy) notFound();
+  if (!tenancy) redirect(await getDeletedTenancyRedirectUrl(id, session.user.id));
+  if (!['ACTIVE', 'EXPIRED'].includes(tenancy.status)) redirect(`/dashboard/landlord/tenancies/${id}`);
 
   return (
     <div className="max-w-xl">
