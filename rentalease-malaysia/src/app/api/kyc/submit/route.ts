@@ -4,15 +4,28 @@ import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { uploadKycImage, deleteKycImage } from '@/lib/cloudinary';
 import { createNotification } from '@/lib/notifications';
+import { kycSubmitRateLimit, enforceLimit } from '@/lib/ratelimit';
 
 const ALLOWED_TYPES = ['image/jpeg', 'image/png'];
 const MAX_SIZE = 10 * 1024 * 1024;
 
 export async function POST(request: NextRequest) {
   const session = await getServerSession(authOptions);
-  if (!session) return NextResponse.json({ error: 'Unauthorised' }, { status: 401 });
+  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   if (session.user.role === 'ADMIN')
     return NextResponse.json({ error: 'Admins do not submit KYC' }, { status: 403 });
+
+  // Rate limit per user — caps both the upload-bandwidth abuse surface and
+  // the cost of running Cloudinary uploads + deletes if a user keeps
+  // re-submitting. 3 per hour is generous for a real user.
+  const { allowed, message } = await enforceLimit(
+    kycSubmitRateLimit,
+    session.user.id,
+    'You can only submit KYC documents 3 times per hour. Please wait before trying again.',
+  );
+  if (!allowed) {
+    return NextResponse.json({ error: message }, { status: 429 });
+  }
 
   const existing = await prisma.kycSubmission.findUnique({
     where: { userId: session.user.id },

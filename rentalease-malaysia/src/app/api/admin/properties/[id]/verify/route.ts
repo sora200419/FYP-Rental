@@ -3,14 +3,15 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { createNotification } from '@/lib/notifications';
+import { logAudit, getIp } from '@/lib/audit';
 
 export async function PATCH(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
   const session = await getServerSession(authOptions);
   if (!session)
-    return NextResponse.json({ error: 'Unauthorised' }, { status: 401 });
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   if (session.user.role !== 'ADMIN')
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
@@ -18,7 +19,7 @@ export async function PATCH(
 
   const property = await prisma.property.findUnique({
     where: { id },
-    select: { id: true, address: true, landlordId: true },
+    select: { id: true, address: true, landlordId: true, isVerified: true },
   });
 
   if (!property)
@@ -27,6 +28,19 @@ export async function PATCH(
   await prisma.property.update({
     where: { id },
     data: { isVerified: true, rejectedReason: null },
+  });
+
+  await logAudit({
+    actorId: session.user.id,
+    action: 'PROPERTY_VERIFIED',
+    entityName: 'Property',
+    entityId: id,
+    previousData: {
+      id: property.id,
+      isVerified: property.isVerified,
+      landlordId: property.landlordId,
+    },
+    ipAddress: getIp(request),
   });
 
   await createNotification(

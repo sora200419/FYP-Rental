@@ -38,7 +38,10 @@ export type AgreementEvent = {
   actorRole: AgreementActorRole;
   actorUserId: string | null;
   summary: string;
-  metadata: null;
+  // Stringified JSON. Use for structured event detail — e.g. on FINALIZED,
+  // record the confirmed terms applied so the audit trail can answer
+  // "what exactly did the landlord lock in here?" later.
+  metadata: string | null;
 };
 
 export function buildAgreementEvent(input: {
@@ -47,6 +50,7 @@ export function buildAgreementEvent(input: {
   actorRole: AgreementActorRole;
   actorUserId: string | null;
   summary: string;
+  metadata?: Record<string, unknown> | null;
 }): AgreementEvent {
   return {
     agreementId: input.agreementId,
@@ -54,7 +58,7 @@ export function buildAgreementEvent(input: {
     actorRole: input.actorRole,
     actorUserId: input.actorUserId,
     summary: input.summary,
-    metadata: null,
+    metadata: input.metadata ? JSON.stringify(input.metadata) : null,
   };
 }
 

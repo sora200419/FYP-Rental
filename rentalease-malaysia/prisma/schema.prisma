@@ -22,6 +22,12 @@ model User {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
+  // Set whenever the password changes (reset or profile update). The JWT
+  // callback compares token.iat against this timestamp to invalidate any
+  // sessions issued before the change — kicks out attackers holding a stolen
+  // JWT after a password reset.
+  passwordChangedAt DateTime?
+
   ownedProperties                  Property[]                @relation("LandlordProperties")
   tenancies                        Tenancy[]                 @relation("TenantTenancies")
   sentMessages                     Message[]                 @relation("SentMessages")
@@ -83,6 +89,9 @@ model Property {
   // A property has many rentable rooms (could be one "Entire Unit" or many rooms)
   rooms  Room[]
   photos PropertyPhoto[]
+
+  @@index([landlordId])
+  @@index([isVerified, createdAt])
 }
 
 // ─── ROOM ─────────────────────────────────────────────────────────────────────
@@ -196,8 +205,9 @@ model Tenancy {
   authorizedSignatoryUserId String?
 
   // Foreign key to Room (not Property directly — go through room.property for auth)
+  // onDelete: Restrict — explicit because we never want to lose historical tenancies.
   roomId String
-  room   Room   @relation(fields: [roomId], references: [id])
+  room   Room   @relation(fields: [roomId], references: [id], onDelete: Restrict)
 
   tenantId                String
   tenant                  User   @relation("TenantTenancies", fields: [tenantId], references: [id])
@@ -216,6 +226,10 @@ model Tenancy {
   depositProofs        DepositProof[]
   coTenants            CoTenant[]
   corporateOccupants   CorporateOccupant[]
+
+  @@index([tenantId])
+  @@index([roomId])
+  @@index([status])
 }
 
 // ─── CO-TENANT ────────────────────────────────────────────────────────────────
@@ -366,6 +380,9 @@ model RentPayment {
   tenancy   Tenancy @relation(fields: [tenancyId], references: [id], onDelete: Cascade)
 
   proofs PaymentProof[]
+
+  @@index([tenancyId, dueDate])
+  @@index([status])
 }
 
 enum PaymentStatus {
@@ -388,6 +405,9 @@ model PaymentProof {
 
   uploadedById String
   uploadedBy   User   @relation("UploadedProofs", fields: [uploadedById], references: [id])
+
+  @@index([paymentId, createdAt])
+  @@index([uploadedById])
 }
 
 // ─── CONDITION REPORT ────────────────────────────────────────────────────────
@@ -419,6 +439,9 @@ model ConditionReport {
 
   photos         ConditionPhoto[]
   checklistItems EvidenceChecklistItem[]
+
+  @@index([tenancyId, status])
+  @@index([createdById])
 }
 
 enum ReportType {
@@ -496,6 +519,10 @@ model Message {
 
   receiverId String
   receiver   User   @relation("ReceivedMessages", fields: [receiverId], references: [id])
+
+  // Hot paths: thread reads (by tenancy ordered by time) and unread counts (by receiver+read flag).
+  @@index([tenancyId, createdAt])
+  @@index([receiverId, read])
 }
 
 // ─── NOTIFICATION ────────────────────────────────────────────────────────────
@@ -636,6 +663,9 @@ model DepositProof {
 
   uploadedById String
   uploadedBy   User   @relation("UploadedDepositProofs", fields: [uploadedById], references: [id])
+
+  @@index([tenancyId, createdAt])
+  @@index([uploadedById])
 }
 
 // ─── DEPOSIT REFUND ───────────────────────────────────────────────────────────
@@ -691,12 +721,19 @@ enum DeductionStatus {
 // ─── PASSWORD RESET TOKEN ─────────────────────────────────────────────────────
 model PasswordResetToken {
   id        String    @id @default(cuid())
+  // Stores sha256(rawToken) — the raw token is sent in the email but never persisted.
+  // A DB leak therefore yields nothing exploitable: an attacker would need to
+  // pre-image the hash, which is computationally infeasible. The field is still
+  // @unique because identical hashes would indicate a hash collision (one in 2^256).
   token     String    @unique
   userId    String
   user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   expiresAt DateTime
   usedAt    DateTime?
   createdAt DateTime  @default(now())
+
+  @@index([userId])
+  @@index([expiresAt])
 }
 
 model AgreementEvent {

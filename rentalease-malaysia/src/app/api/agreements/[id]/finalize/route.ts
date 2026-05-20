@@ -56,7 +56,9 @@ export async function PATCH(
   }
   const { startDate, endDate, monthlyRent, depositAmount } = confirmedTermsResult.data;
 
-  // Verify the agreement exists and the landlord owns it
+  // Verify the agreement exists and the landlord owns it. We include the
+  // tenant's email here so we don't have to re-query after the transaction
+  // commits (previously a second findUnique fetched email separately).
   const agreement = await prisma.agreement.findUnique({
     where: { id },
     include: {
@@ -68,7 +70,7 @@ export async function PATCH(
         select: {
           id: true,
           status: true,
-          tenant: { select: { id: true, name: true, icNumber: true } },
+          tenant: { select: { id: true, name: true, email: true, icNumber: true } },
           agreementPreferences: { select: { isComplete: true } },
           room: {
             include: {
@@ -123,12 +125,26 @@ export async function PATCH(
     );
   }
 
-  await prisma.$transaction([
-    prisma.agreement.update({
-      where: { id },
+  // Atomically finalize. The conditional updateMany + count check guards against
+  // a concurrent PATCH racing past the earlier status guard — two requests can
+  // both pass the read-time check, but only one can satisfy the WHERE clause
+  // here. Without this, two concurrent finalizes could overwrite tenancy terms
+  // twice and emit two FINALIZED events. The interactive transaction also wraps
+  // the dependent writes so a partial commit is impossible.
+  let finalized = false;
+  await prisma.$transaction(async (tx) => {
+    const { count } = await tx.agreement.updateMany({
+      where: { id, status: { in: ['DRAFT', 'NEGOTIATING'] } },
       data: { status: 'FINALIZED' },
-    }),
-    prisma.tenancy.update({
+    });
+    if (count === 0) {
+      // Lost the race — another request already finalized this. Bail out
+      // gracefully (the outer code below will treat this as "already done").
+      return;
+    }
+    finalized = true;
+
+    await tx.tenancy.update({
       where: { id: agreement.tenancy.id },
       data: {
         startDate: new Date(startDate),
@@ -136,25 +152,40 @@ export async function PATCH(
         monthlyRent,
         depositAmount,
       },
-    }),
-    prisma.agreementEvent.create({
+    });
+
+    // Resolve any open structured change requests — the checklist guard above
+    // requires the count to be zero, but mark them explicitly RESOLVED so the
+    // downstream agreement-history view doesn't show stale PENDING rows.
+    await tx.agreementChangeRequest.updateMany({
+      where: { agreementId: id, status: 'PENDING' },
+      data: { status: 'RESOLVED', resolvedAt: new Date() },
+    });
+
+    await tx.agreementEvent.create({
       data: buildAgreementEvent({
         agreementId: id,
         type: 'FINALIZED',
         actorRole: 'LANDLORD',
         actorUserId: session.user.id,
         summary: 'Landlord finalized the agreement for tenant review.',
+        metadata: {
+          confirmedTerms: { startDate, endDate, monthlyRent, depositAmount },
+          previousStatus: agreement.status,
+        },
       }),
-    }),
-  ]);
-
-  // Fetch tenant email for email notification
-  const tenantUser = await prisma.user.findUnique({
-    where: { id: agreement.tenancy.tenant.id },
-    select: { email: true },
+    });
   });
 
-  // Notify tenant to review and sign
+  if (!finalized) {
+    return NextResponse.json(
+      { error: 'Agreement was finalized by another request — refresh to see the latest state.' },
+      { status: 409 },
+    );
+  }
+
+  // Notify tenant to review and sign. createNotification swallows its own
+  // errors (see lib/notifications.ts) so we don't need to wrap it.
   await createNotification(
     agreement.tenancy.tenant.id,
     'AGREEMENT_READY',
@@ -163,15 +194,14 @@ export async function PATCH(
     `/dashboard/tenant/tenancy`,
   );
 
-  // Send email (non-blocking)
-  if (tenantUser) {
-    sendAgreementReadyEmail(
-      tenantUser.email,
-      agreement.tenancy.tenant.name ?? 'Tenant',
-      agreement.tenancy.room.property.address,
-      id,
-    ).catch(console.error);
-  }
+  // Send email (non-blocking) using the email we already loaded in the initial
+  // query — no second user lookup needed.
+  sendAgreementReadyEmail(
+    agreement.tenancy.tenant.email,
+    agreement.tenancy.tenant.name ?? 'Tenant',
+    agreement.tenancy.room.property.address,
+    id,
+  ).catch((err) => console.error('[finalize] agreement-ready email failed:', err));
 
   return NextResponse.json({ ok: true, checklist });
 }

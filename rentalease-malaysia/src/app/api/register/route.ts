@@ -3,6 +3,8 @@ import bcrypt from 'bcryptjs';
 import { prisma } from '@/lib/prisma';
 import { sendWelcomeEmail } from '@/lib/email';
 import { z } from 'zod';
+import { registerRateLimit, enforceLimit } from '@/lib/ratelimit';
+import { getIp } from '@/lib/audit';
 
 // Malaysian IC: YYMMDD-SS-#### or YYMMDSS#### (12 digits, optional dashes)
 const IC_REGEX = /^\d{6}-?\d{2}-?\d{4}$/;
@@ -32,6 +34,18 @@ const fieldsSchema = z.object({
 });
 
 export async function POST(request: NextRequest) {
+  // Rate limit by IP — caps the "create 10,000 fake accounts" attack. A genuine
+  // user registers once; this only impedes scripted abuse.
+  const ip = getIp(request) ?? 'unknown';
+  const { allowed, message } = await enforceLimit(
+    registerRateLimit,
+    ip,
+    'Too many registration attempts. Please try again in an hour.',
+  );
+  if (!allowed) {
+    return NextResponse.json({ error: message }, { status: 429 });
+  }
+
   try {
     const formData = await request.formData();
 

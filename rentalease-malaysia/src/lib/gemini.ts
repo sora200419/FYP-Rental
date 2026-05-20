@@ -6,6 +6,20 @@ import { buildWizardPolicyBlock } from './wizardFormatters';
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
 export const GEMINI_MODEL = 'gemini-2.5-flash';
 
+// Upper bound on the agreement text we send to Gemini. A typical Malaysian
+// residential tenancy agreement is 8-15 KB; 50 KB is generous headroom while
+// capping abuse / runaway prompts. Truncating client-side before sending also
+// avoids paying for tokens we don't intend to use.
+const MAX_AGREEMENT_CHARS_FOR_GEMINI = 50_000;
+
+function truncateForModel(content: string): string {
+  if (content.length <= MAX_AGREEMENT_CHARS_FOR_GEMINI) return content;
+  return (
+    content.slice(0, MAX_AGREEMENT_CHARS_FOR_GEMINI) +
+    '\n[... truncated to protect token budget ...]'
+  );
+}
+
 export interface TenancyForAgreement {
   id: string;
   startDate: Date;
@@ -446,7 +460,7 @@ For "plainLanguageSummary": For each numbered clause, write 2-3 sentences in pla
 For "redFlags": Analyse the agreement and identify clauses that could disadvantage either party or create legal ambiguity under Malaysian law. Pay particular attention to: deposit refund conditions, utility responsibility ambiguity, occupancy limit enforcement, subletting prohibition scope, termination penalties, and notice requirements. Return as a JSON array (can be empty []).
 
 AGREEMENT:
-${rawContent}
+${truncateForModel(rawContent)}
 `;
 
   const analysisSchema = z.object({
@@ -575,7 +589,7 @@ Rules:
 - If you cannot determine a value with confidence, return null for that key.
 
 Agreement text:
-${rawContent}`;
+${truncateForModel(rawContent)}`;
 
   const result = await model.generateContent(prompt);
   const text = result.response.text();

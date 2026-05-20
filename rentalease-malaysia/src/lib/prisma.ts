@@ -5,8 +5,14 @@ const globalForPrisma = globalThis as unknown as {
 };
 
 function createPrismaClient() {
+  // Verbose query logs are valuable in development but expensive (and
+  // potentially leak query patterns / WHERE clauses to log retention) in
+  // production. Gate accordingly. Errors are always logged.
   return new PrismaClient({
-    log: ['query'],
+    log:
+      process.env.NODE_ENV === 'development'
+        ? ['query', 'error', 'warn']
+        : ['error'],
   });
 }
 

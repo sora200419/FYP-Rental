@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { extractAgreementTerms } from '@/lib/gemini';
+import { agreementExtractTermsLimit, enforceLimit } from '@/lib/ratelimit';
 
 /**
  * POST /api/agreements/[id]/extract-terms
@@ -12,6 +13,10 @@ import { extractAgreementTerms } from '@/lib/gemini';
  *
  * Returns ExtractedTerms — any field can be null if the model couldn't
  * determine it. The caller should fall back to current system values for nulls.
+ *
+ * Rate limit: 10 calls per agreement per hour. Each call costs a Gemini API
+ * request, so without this an authenticated landlord could trivially drain
+ * the AI budget by spamming the button. Mirrors agreementAssistLimit.
  */
 export async function POST(
   _request: NextRequest,
@@ -19,7 +24,7 @@ export async function POST(
 ) {
   const session = await getServerSession(authOptions);
   if (!session)
-    return NextResponse.json({ error: 'Unauthorised' }, { status: 401 });
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   if (session.user.role !== 'LANDLORD')
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
@@ -44,6 +49,17 @@ export async function POST(
       { error: 'Agreement is no longer editable' },
       { status: 409 },
     );
+
+  // Rate limit AFTER ownership check so unauthorized callers don't get to consume
+  // the per-agreement bucket and DoS the legitimate landlord.
+  const { allowed, message } = await enforceLimit(
+    agreementExtractTermsLimit,
+    agreementId,
+    'Too many extraction requests for this agreement. Please wait an hour.',
+  );
+  if (!allowed) {
+    return NextResponse.json({ error: message }, { status: 429 });
+  }
 
   try {
     const terms = await extractAgreementTerms(agreement.rawContent);

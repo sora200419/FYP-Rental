@@ -1,10 +1,23 @@
 // src/app/api/payments/[id]/verify/route.ts
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
+import { z } from 'zod';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { createNotification } from '@/lib/notifications';
 import { sendPaymentApprovedEmail, sendPaymentRejectedEmail } from '@/lib/email';
+
+const bodySchema = z.discriminatedUnion('action', [
+  z.object({ action: z.literal('APPROVE') }),
+  z.object({
+    action: z.literal('REJECT'),
+    rejectionReason: z
+      .string()
+      .trim()
+      .min(1, 'Please provide a reason for rejection')
+      .max(500, 'Rejection reason must be 500 characters or fewer'),
+  }),
+]);
 
 export async function PATCH(
   request: Request,
@@ -16,21 +29,10 @@ export async function PATCH(
   }
 
   const { id: paymentId } = await params;
-  let body: { action: string; rejectionReason?: string };
-  try {
-    body = await request.json();
-  } catch {
-    return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
-  }
-  const { action, rejectionReason } = body;
-
-  if (!['APPROVE', 'REJECT'].includes(action)) {
-    return NextResponse.json({ error: 'Invalid action' }, { status: 400 });
-  }
-
-  if (action === 'REJECT' && !rejectionReason?.trim()) {
+  const parsed = bodySchema.safeParse(await request.json().catch(() => ({})));
+  if (!parsed.success) {
     return NextResponse.json(
-      { error: 'Please provide a reason for rejection' },
+      { error: parsed.error.issues[0]?.message ?? 'Invalid request body' },
       { status: 400 },
     );
   }
@@ -41,7 +43,7 @@ export async function PATCH(
     include: {
       tenancy: {
         include: {
-          tenant: { select: { id: true, name: true } },
+          tenant: { select: { id: true, name: true, email: true } },
           room: {
             include: {
               property: {
@@ -62,6 +64,9 @@ export async function PATCH(
     return NextResponse.json({ error: 'Access denied' }, { status: 403 });
   }
 
+  // We re-check status inside the conditional update below so concurrent
+  // Approve+Reject clicks can't both apply. The outer check here is a fast-path
+  // 409 for the common case of refreshing a page that's already been actioned.
   if (payment.status !== 'UNDER_REVIEW') {
     return NextResponse.json(
       { error: 'This payment is not awaiting verification' },
@@ -70,21 +75,29 @@ export async function PATCH(
   }
 
   const tenantId = payment.tenancy.tenant.id;
+  const tenantEmail = payment.tenancy.tenant.email;
+  const tenantName = payment.tenancy.tenant.name ?? 'Tenant';
   const propertyAddress = payment.tenancy.room.property.address;
-
-  const tenantUser = await prisma.user.findUnique({
-    where: { id: tenantId },
-    select: { email: true, name: true },
+  const amountStr = Number(payment.amount).toFixed(2);
+  const monthStr = new Date(payment.dueDate).toLocaleDateString('en-MY', {
+    month: 'long',
+    year: 'numeric',
   });
 
-  const amountStr = Number(payment.amount).toFixed(2);
-  const monthStr = new Date(payment.dueDate).toLocaleDateString('en-MY', { month: 'long', year: 'numeric' });
-
-  if (action === 'APPROVE') {
-    await prisma.rentPayment.update({
-      where: { id: paymentId },
+  if (parsed.data.action === 'APPROVE') {
+    // Conditional update closes the race: two concurrent approve clicks
+    // (or an approve racing a reject) — only the first one whose WHERE
+    // clause matches UNDER_REVIEW will apply. The count tells us if we won.
+    const { count } = await prisma.rentPayment.updateMany({
+      where: { id: paymentId, status: 'UNDER_REVIEW' },
       data: { status: 'PAID', paidDate: new Date(), rejectionReason: null },
     });
+    if (count === 0) {
+      return NextResponse.json(
+        { error: 'This payment was already actioned — refresh to see the latest state.' },
+        { status: 409 },
+      );
+    }
 
     await createNotification(
       tenantId,
@@ -94,16 +107,25 @@ export async function PATCH(
       `/dashboard/tenant/payments`,
     );
 
-    if (tenantUser) sendPaymentApprovedEmail(tenantUser.email, tenantUser.name ?? 'Tenant', amountStr, monthStr).catch(console.error);
+    sendPaymentApprovedEmail(tenantEmail, tenantName, amountStr, monthStr).catch(
+      (err) => console.error('[payments/verify] approval email failed:', err),
+    );
 
     return NextResponse.json({ ok: true, status: 'PAID' });
   }
 
-  // REJECT
-  await prisma.rentPayment.update({
-    where: { id: paymentId },
-    data: { status: 'PENDING', rejectionReason },
+  // REJECT — same race-safe conditional update.
+  const { rejectionReason } = parsed.data;
+  const { count } = await prisma.rentPayment.updateMany({
+    where: { id: paymentId, status: 'UNDER_REVIEW' },
+    data: { status: 'PENDING', rejectionReason, paidDate: null },
   });
+  if (count === 0) {
+    return NextResponse.json(
+      { error: 'This payment was already actioned — refresh to see the latest state.' },
+      { status: 409 },
+    );
+  }
 
   await createNotification(
     tenantId,
@@ -113,7 +135,9 @@ export async function PATCH(
     `/dashboard/tenant/payments`,
   );
 
-  if (tenantUser) sendPaymentRejectedEmail(tenantUser.email, tenantUser.name ?? 'Tenant', amountStr, monthStr, rejectionReason ?? '').catch(console.error);
+  sendPaymentRejectedEmail(tenantEmail, tenantName, amountStr, monthStr, rejectionReason).catch(
+    (err) => console.error('[payments/verify] rejection email failed:', err),
+  );
 
   return NextResponse.json({ ok: true, status: 'PENDING' });
 }
