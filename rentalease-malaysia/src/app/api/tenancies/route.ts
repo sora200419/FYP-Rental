@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { normalizeEmail } from '@/lib/emailAddress';
 import { createNotification } from '@/lib/notifications';
 import { sendInvitationEmail } from '@/lib/email';
 import { buildCorporateTenancyCreateInput } from '@/lib/corporate-tenancy';
@@ -93,6 +94,33 @@ export async function POST(request: Request) {
   ) {
     return NextResponse.json(
       { error: 'Missing required fields' },
+      { status: 400 },
+    );
+  }
+
+  if (!Number.isFinite(monthlyRent) || monthlyRent <= 0) {
+    return NextResponse.json(
+      { error: 'Monthly rent must be greater than zero' },
+      { status: 400 },
+    );
+  }
+
+  if (!Number.isFinite(depositAmount) || depositAmount < 0) {
+    return NextResponse.json(
+      { error: 'Deposit amount cannot be negative' },
+      { status: 400 },
+    );
+  }
+
+  // Dates arrive as YYYY-MM-DD strings and are compared lexically below, so
+  // reject anything that is not a real calendar date in that format.
+  const isIsoDate = (value: string) =>
+    /^\d{4}-\d{2}-\d{2}$/.test(value) &&
+    !Number.isNaN(new Date(`${value}T00:00:00Z`).getTime()) &&
+    new Date(`${value}T00:00:00Z`).toISOString().startsWith(value);
+  if (!isIsoDate(startDate) || !isIsoDate(endDate)) {
+    return NextResponse.json(
+      { error: 'Dates must be valid calendar dates (YYYY-MM-DD)' },
       { status: 400 },
     );
   }
@@ -190,7 +218,7 @@ export async function POST(request: Request) {
   try {
   if (leasePartyType === 'INDIVIDUAL') {
     const tenant = await prisma.user.findUnique({
-      where: { email: tenantEmail.trim() },
+      where: { email: normalizeEmail(tenantEmail) },
       select: { id: true, name: true, email: true, role: true },
     });
 

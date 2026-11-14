@@ -8,26 +8,18 @@ cloudinary.config({
   api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
-// Uploads a file (as a base64 data URI or a buffer converted to base64)
-// to Cloudinary under the rentalease/payments folder.
-// Returns the secure URL and public_id for storage in the database.
-export async function uploadPaymentProof(
+// Uploads a tenant-supplied proof document (rent payment or deposit) to the
+// given folder. Uses the auto resource type because proofs may be either a
+// photo of a receipt or a PDF bank statement.
+export async function uploadProofDocument(
   fileBuffer: Buffer,
-  fileName: string,
+  mimeType: string,
+  folder: 'rentalease/payment-proofs' | 'rentalease/deposit-proofs',
 ): Promise<{ url: string; publicId: string }> {
-  // Convert the raw buffer to a base64 data URI that Cloudinary accepts
-  const base64 = fileBuffer.toString('base64');
-  const dataUri = `data:image/jpeg;base64,${base64}`;
-
+  const dataUri = `data:${mimeType};base64,${fileBuffer.toString('base64')}`;
   const result = await cloudinary.uploader.upload(dataUri, {
-    folder: 'rentalease/payments',
-    public_id: `${Date.now()}-${fileName.replace(/\.[^/.]+$/, '')}`,
-    resource_type: 'image',
-    // Automatically optimise quality and format for web viewing
-    transformation: [
-      { quality: 'auto', fetch_format: 'auto' },
-      { width: 1920, crop: 'limit' }, // cap at 1920px width — enough for proof photos
-    ],
+    folder,
+    resource_type: 'auto',
   });
 
   return {
@@ -64,8 +56,8 @@ export async function uploadConditionPhoto(
   };
 }
 
-// Deletes a previously uploaded proof from Cloudinary.
-// Called when a landlord rejects and the tenant re-uploads (optional cleanup).
+// Deletes a previously uploaded payment/deposit proof from Cloudinary.
+// Called when the tenant replaces a proof (e.g. after a rejection).
 export async function deletePaymentProof(publicId: string): Promise<void> {
   await cloudinary.uploader.destroy(publicId);
 }
@@ -73,7 +65,6 @@ export async function deletePaymentProof(publicId: string): Promise<void> {
 export async function deleteConditionPhoto(publicId: string): Promise<void> {
   await cloudinary.uploader.destroy(publicId, { resource_type: 'image' });
 }
-
 
 // Uploads a signed agreement proof. Uses auto resource_type because the tenant
 // may provide either a PDF scan or phone-captured image of the signed hard copy.
@@ -95,12 +86,6 @@ export async function uploadAgreementSignatureProof(
     url: result.secure_url,
     publicId: result.public_id,
   };
-}
-
-export async function deleteAgreementSignatureProof(
-  publicId: string,
-): Promise<void> {
-  await cloudinary.uploader.destroy(publicId, { resource_type: 'auto' });
 }
 
 // Uploads a property listing photo to Cloudinary.

@@ -11,6 +11,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { syncRoomAvailability } from '@/lib/roomAvailability';
 import { createNotification } from '@/lib/notifications';
 import { logAudit, getIp } from '@/lib/audit';
 
@@ -63,13 +64,12 @@ export async function DELETE(
     reason: 'WITHDRAWN',
   });
 
-  await prisma.$transaction([
-    prisma.tenancy.delete({ where: { id } }),
-    prisma.room.update({
-      where: { id: tenancy.roomId },
-      data: { isAvailable: true },
-    }),
-  ]);
+  // Recompute availability rather than forcing it to true: if this was a
+  // renewal offer, the original tenancy may still be ACTIVE on the same room.
+  await prisma.$transaction(async (tx) => {
+    await tx.tenancy.delete({ where: { id } });
+    await syncRoomAvailability(tx, tenancy.roomId);
+  });
 
   // Notify landlord (non-blocking)
   createNotification(

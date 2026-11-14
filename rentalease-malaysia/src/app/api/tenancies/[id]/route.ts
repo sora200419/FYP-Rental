@@ -120,13 +120,17 @@ export async function PATCH(
   }
 
   // Allow edits when agreement is in DRAFT or NEGOTIATING status.
-  // Block only when the agreement is FINALIZED or SIGNED (BUG-06).
+  // Block once it is FINALIZED or signed in any form (BUG-06) — after the
+  // tenant's digital signature the terms must match the signed text.
   const existingAgreement = await prisma.agreement.findUnique({
     where: { tenancyId },
     select: { id: true, status: true },
   });
 
-  if (existingAgreement && ['FINALIZED', 'SIGNED'].includes(existingAgreement.status)) {
+  if (
+    existingAgreement &&
+    ['FINALIZED', 'PENDING_SIGNATURE_PROOF', 'SIGNED'].includes(existingAgreement.status)
+  ) {
     return NextResponse.json(
       {
         error:

@@ -1,16 +1,35 @@
 // GET /api/cron/expire-tenancies
-// Transitions ACTIVE tenancies whose endDate has passed to EXPIRED,
-// and sends TENANCY_ENDING_SOON notifications 30 and 7 days before end.
+// Runs once a day (scheduled in vercel.json). It:
+//   1. moves ACTIVE tenancies whose endDate has passed to EXPIRED and frees
+//      their rooms, and
+//   2. sends TENANCY_ENDING_SOON notifications and emails 30 and 7 days before
+//      the end date.
 //
-// Protect with CRON_SECRET so only the scheduler (e.g. Vercel Cron) can call it:
-//   Authorization: Bearer <CRON_SECRET>
-//
-// Example vercel.json cron entry:
-//   { "path": "/api/cron/expire-tenancies", "schedule": "0 1 * * *" }
+// Protected with CRON_SECRET. Vercel Cron sends `Authorization: Bearer <CRON_SECRET>`
+// automatically when the CRON_SECRET environment variable is set.
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { createNotification } from '@/lib/notifications';
 import { sendTenancyEndingSoonEmail } from '@/lib/email';
+import { syncRoomAvailability } from '@/lib/roomAvailability';
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+const tenancyEndingSelect = {
+  id: true,
+  tenantId: true,
+  room: {
+    select: {
+      property: {
+        select: {
+          address: true,
+          landlord: { select: { id: true, name: true, email: true } },
+        },
+      },
+    },
+  },
+  tenant: { select: { name: true, email: true } },
+} as const;
 
 export async function GET(request: NextRequest) {
   const secret = process.env.CRON_SECRET;
@@ -24,117 +43,87 @@ export async function GET(request: NextRequest) {
 
   const now = new Date();
 
-  // 1. Expire tenancies whose endDate has passed
-  const expired = await prisma.tenancy.updateMany({
+  // 1. Expire tenancies whose endDate has passed, then recompute availability
+  //    for their rooms so the landlord can invite a new tenant.
+  const toExpire = await prisma.tenancy.findMany({
     where: { status: 'ACTIVE', endDate: { lt: now } },
-    data: { status: 'EXPIRED' },
+    select: { id: true, roomId: true },
   });
 
-  // 2. TENANCY_ENDING_SOON — notify 30 days before end (FEAT-10)
-  const in30Days = new Date(now);
-  in30Days.setDate(in30Days.getDate() + 30);
-  const in29Days = new Date(now);
-  in29Days.setDate(in29Days.getDate() + 29);
-
-  const tenancyEndingSelect = {
-    id: true,
-    tenantId: true,
-    room: {
-      select: {
-        property: {
-          select: {
-            landlordId: true,
-            address: true,
-          },
-        },
-      },
-    },
-    tenant: { select: { name: true, email: true } },
-  } as const;
-
-  const ending30 = await prisma.tenancy.findMany({
-    where: {
-      status: 'ACTIVE',
-      endDate: { gte: in29Days, lt: in30Days },
-    },
-    select: tenancyEndingSelect,
-  });
-
-  // 3. TENANCY_ENDING_SOON — notify 7 days before end (FEAT-10)
-  const in7Days = new Date(now);
-  in7Days.setDate(in7Days.getDate() + 7);
-  const in6Days = new Date(now);
-  in6Days.setDate(in6Days.getDate() + 6);
-
-  const ending7 = await prisma.tenancy.findMany({
-    where: {
-      status: 'ACTIVE',
-      endDate: { gte: in6Days, lt: in7Days },
-    },
-    select: tenancyEndingSelect,
-  });
-
-  const notifyPromises: Promise<unknown>[] = [];
-
-  for (const t of ending30) {
-    const landlordId = t.room.property.landlordId;
-    const address = t.room.property.address;
-    const landlordUser = await prisma.user.findUnique({
-      where: { id: landlordId },
-      select: { name: true, email: true },
+  if (toExpire.length > 0) {
+    await prisma.$transaction(async (tx) => {
+      await tx.tenancy.updateMany({
+        where: { id: { in: toExpire.map((t) => t.id) }, status: 'ACTIVE' },
+        data: { status: 'EXPIRED' },
+      });
+      for (const roomId of new Set(toExpire.map((t) => t.roomId))) {
+        await syncRoomAvailability(tx, roomId);
+      }
     });
-    notifyPromises.push(
-      createNotification(landlordId, 'TENANCY_ENDING_SOON', 'Tenancy ending in 30 days',
-        'A tenancy you manage is ending in 30 days. Consider offering a renewal.',
-        `/dashboard/landlord/tenancies/${t.id}/renew`),
-      createNotification(t.tenantId, 'TENANCY_ENDING_SOON', 'Your tenancy ends in 30 days',
-        'Your tenancy is ending in 30 days. Contact your landlord about renewal.',
-        '/dashboard/tenant/tenancy'),
-    );
-    if (landlordUser) {
-      notifyPromises.push(
-        sendTenancyEndingSoonEmail(landlordUser.email, landlordUser.name, address, 30,
-          `${process.env.NEXTAUTH_URL}/dashboard/landlord/tenancies/${t.id}/renew`),
-      );
-    }
-    notifyPromises.push(
-      sendTenancyEndingSoonEmail(t.tenant.email, t.tenant.name, address, 30,
-        `${process.env.NEXTAUTH_URL}/dashboard/tenant/tenancy`),
-    );
   }
 
-  for (const t of ending7) {
-    const landlordId = t.room.property.landlordId;
-    const address = t.room.property.address;
-    const landlordUser = await prisma.user.findUnique({
-      where: { id: landlordId },
-      select: { name: true, email: true },
+  // 2. Ending-soon reminders. The window is one day wide so each tenancy is
+  //    picked up exactly once per threshold by a daily run.
+  const baseUrl = process.env.NEXTAUTH_URL ?? '';
+  const notifyPromises: Promise<unknown>[] = [];
+  const notifiedCounts: Record<number, number> = {};
+
+  for (const daysLeft of [30, 7]) {
+    const windowStart = new Date(now.getTime() + (daysLeft - 1) * DAY_MS);
+    const windowEnd = new Date(now.getTime() + daysLeft * DAY_MS);
+
+    const ending = await prisma.tenancy.findMany({
+      where: { status: 'ACTIVE', endDate: { gte: windowStart, lt: windowEnd } },
+      select: tenancyEndingSelect,
     });
-    notifyPromises.push(
-      createNotification(landlordId, 'TENANCY_ENDING_SOON', 'Tenancy ending in 7 days',
-        'A tenancy you manage is ending in 7 days. Please prepare for move-out.',
-        `/dashboard/landlord/tenancies/${t.id}`),
-      createNotification(t.tenantId, 'TENANCY_ENDING_SOON', 'Your tenancy ends in 7 days',
-        'Your tenancy is ending in 7 days. Please prepare for move-out.',
-        '/dashboard/tenant/tenancy'),
-    );
-    if (landlordUser) {
+    notifiedCounts[daysLeft] = ending.length;
+
+    const landlordMessage =
+      daysLeft === 30
+        ? 'A tenancy you manage is ending in 30 days. Consider offering a renewal.'
+        : 'A tenancy you manage is ending in 7 days. Please prepare for move-out.';
+    const tenantMessage =
+      daysLeft === 30
+        ? 'Your tenancy is ending in 30 days. Contact your landlord about renewal.'
+        : 'Your tenancy is ending in 7 days. Please prepare for move-out.';
+
+    for (const t of ending) {
+      const { address, landlord } = t.room.property;
+      // Same in-app links as lib/endingSoonNotifications.ts, which de-duplicates
+      // by link — a different link here would produce duplicate notifications.
+      const landlordLink = `/dashboard/landlord/tenancies/${t.id}`;
+      const tenantLink = '/dashboard/tenant/tenancy';
+      const landlordEmailLink =
+        daysLeft === 30
+          ? `${baseUrl}/dashboard/landlord/tenancies/${t.id}/renew`
+          : `${baseUrl}${landlordLink}`;
+
       notifyPromises.push(
-        sendTenancyEndingSoonEmail(landlordUser.email, landlordUser.name, address, 7,
-          `${process.env.NEXTAUTH_URL}/dashboard/landlord/tenancies/${t.id}`),
+        createNotification(
+          landlord.id,
+          'TENANCY_ENDING_SOON',
+          `Tenancy ending in ${daysLeft} days`,
+          landlordMessage,
+          landlordLink,
+        ),
+        createNotification(
+          t.tenantId,
+          'TENANCY_ENDING_SOON',
+          `Your tenancy ends in ${daysLeft} days`,
+          tenantMessage,
+          tenantLink,
+        ),
+        sendTenancyEndingSoonEmail(landlord.email, landlord.name, address, daysLeft, landlordEmailLink),
+        sendTenancyEndingSoonEmail(t.tenant.email, t.tenant.name, address, daysLeft, `${baseUrl}${tenantLink}`),
       );
     }
-    notifyPromises.push(
-      sendTenancyEndingSoonEmail(t.tenant.email, t.tenant.name, address, 7,
-        `${process.env.NEXTAUTH_URL}/dashboard/tenant/tenancy`),
-    );
   }
 
   await Promise.allSettled(notifyPromises);
 
   return NextResponse.json({
-    expired: expired.count,
-    notified30Days: ending30.length,
-    notified7Days: ending7.length,
+    expired: toExpire.length,
+    notified30Days: notifiedCounts[30] ?? 0,
+    notified7Days: notifiedCounts[7] ?? 0,
   });
 }

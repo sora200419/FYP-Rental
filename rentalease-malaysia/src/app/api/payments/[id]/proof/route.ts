@@ -4,16 +4,10 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { createNotification } from '@/lib/notifications';
-import { v2 as cloudinary } from 'cloudinary';
+import { uploadProofDocument, deletePaymentProof } from '@/lib/cloudinary';
 
 const ALLOWED_MIME_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp', 'application/pdf']);
 const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024;
-
-cloudinary.config({
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-  api_key: process.env.CLOUDINARY_API_KEY,
-  api_secret: process.env.CLOUDINARY_API_SECRET,
-});
 
 export async function POST(
   request: Request,
@@ -57,19 +51,6 @@ export async function POST(
     );
   }
 
-  // Always delete any existing proofs before uploading a new one so there
-  // is never more than one proof per payment at any given time.
-  if (payment.proofs.length > 0) {
-    await Promise.allSettled(
-      payment.proofs.map((p) =>
-        cloudinary.uploader.destroy(p.publicId).catch(() => null),
-      ),
-    );
-    await prisma.paymentProof.deleteMany({
-      where: { paymentId },
-    });
-  }
-
   // Parse the multipart form data to get the image file
   const formData = await request.formData();
   const file = formData.get('file') as File | null;
@@ -92,23 +73,29 @@ export async function POST(
     );
   }
 
-  // Convert the File to a base64 data URI for Cloudinary upload
-  const arrayBuffer = await file.arrayBuffer();
-  const base64 = Buffer.from(arrayBuffer).toString('base64');
-  const dataUri = `data:${file.type};base64,${base64}`;
+  // Upload the new file first. Only once it has been validated and stored do
+  // we discard the previous proof, so a failed upload never leaves the tenant
+  // with no proof at all. There is at most one proof per payment.
+  const uploadResult = await uploadProofDocument(
+    Buffer.from(await file.arrayBuffer()),
+    file.type,
+    'rentalease/payment-proofs',
+  );
 
-  const uploadResult = await cloudinary.uploader.upload(dataUri, {
-    folder: 'rentalease/payment-proofs',
-    resource_type: 'auto',
-  });
+  if (payment.proofs.length > 0) {
+    await Promise.allSettled(
+      payment.proofs.map((p) => deletePaymentProof(p.publicId).catch(() => null)),
+    );
+  }
 
   // Create the proof record and update payment status in a transaction
   await prisma.$transaction([
+    prisma.paymentProof.deleteMany({ where: { paymentId } }),
     prisma.paymentProof.create({
       data: {
         paymentId,
-        imageUrl: uploadResult.secure_url,
-        publicId: uploadResult.public_id,
+        imageUrl: uploadResult.url,
+        publicId: uploadResult.publicId,
         uploadedById: session.user.id,
       },
     }),
@@ -130,5 +117,5 @@ export async function POST(
     `/dashboard/landlord/payments`,
   );
 
-  return NextResponse.json({ ok: true, imageUrl: uploadResult.secure_url });
+  return NextResponse.json({ ok: true, imageUrl: uploadResult.url });
 }
