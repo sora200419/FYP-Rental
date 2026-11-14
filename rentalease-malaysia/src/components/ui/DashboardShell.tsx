@@ -6,9 +6,11 @@ import Sidebar, { MobileSidebarDrawer, MenuToggleButton } from './Sidebar';
 import { NotificationBell } from './NotificationBell';
 import { NotificationDropdown } from './NotificationDropdown';
 import Link from 'next/link';
+import { useT } from '@/components/providers/LanguageProvider';
 
 export default function DashboardShell({ children }: { children: React.ReactNode }) {
   const { data: session } = useSession();
+  const { t } = useT();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [notificationOpen, setNotificationOpen] = useState(false);
   const [unreadCounts, setUnreadCounts] = useState({ messageCount: 0, notificationCount: 0 });
@@ -61,8 +63,8 @@ export default function DashboardShell({ children }: { children: React.ReactNode
               className="relative p-2 rounded-full bg-white/5 text-white/50 hover:bg-white/10 hover:text-white/80 transition-colors"
               aria-label={
                 unreadCounts.messageCount > 0
-                  ? `Messages (${unreadCounts.messageCount} unread)`
-                  : 'Messages'
+                  ? t('shell_messages_unread', { count: unreadCounts.messageCount })
+                  : t('shell_messages')
               }
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

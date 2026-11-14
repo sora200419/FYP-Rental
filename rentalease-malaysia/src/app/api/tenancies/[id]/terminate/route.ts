@@ -5,9 +5,11 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { syncRoomAvailability } from '@/lib/roomAvailability';
 import { createNotification } from '@/lib/notifications';
 import { z } from 'zod';
 import { validateImmediateTerminationDate } from '@/lib/tenancyLifecycle';
+import { tenantTenancyHref } from '@/lib/tenantLinks';
 
 const terminateSchema = z.object({
   reason: z.string().min(10, 'Please provide a reason (at least 10 characters)'),
@@ -52,16 +54,16 @@ export async function POST(
   if (validationError)
     return NextResponse.json({ error: validationError }, { status: 400 });
 
-  await prisma.$transaction([
-    prisma.tenancy.update({
+  await prisma.$transaction(async (tx) => {
+    await tx.tenancy.update({
       where: { id },
       data: {
         status: 'TERMINATED',
         terminatedAt: at,
         terminatedReason: parsed.data.reason,
       },
-    }),
-    prisma.rentPayment.updateMany({
+    });
+    await tx.rentPayment.updateMany({
       where: {
         tenancyId: id,
         status: 'PENDING',
@@ -72,12 +74,10 @@ export async function POST(
         notes:
           'Automatically waived because the tenancy was terminated before this rent due date.',
       },
-    }),
-    prisma.room.update({
-      where: { id: tenancy.roomId },
-      data: { isAvailable: true },
-    }),
-  ]);
+    });
+    // Only frees the room if nothing else (e.g. a pending renewal) holds it.
+    await syncRoomAvailability(tx, tenancy.roomId);
+  });
 
   // Notify the other party (non-blocking)
   const isLandlord = session.user.role === 'LANDLORD';
@@ -97,7 +97,7 @@ export async function POST(
     notifyTitle,
     notifyBody,
     isLandlord
-      ? `/dashboard/tenant/tenancy`
+      ? tenantTenancyHref(id)
       : `/dashboard/landlord/tenancies/${id}`,
   );
 

@@ -1,8 +1,10 @@
 // src/components/ui/DashboardBanners.tsx
 import Link from 'next/link';
+import { tc, type Language } from '@/lib/i18n';
 
 interface BannerData {
   role: 'LANDLORD' | 'TENANT';
+  lang: Language;
   pendingAgreementReviews?: number;
   rejectedPayments?: number;
   pendingChangesRequested?: number;
@@ -57,19 +59,20 @@ function BannerIcon({ color, className }: { color: BannerColor; className?: stri
 
 export function DashboardBanners(props: BannerData) {
   const banners: Banner[] = [];
+  const { lang } = props;
 
   if (props.role === 'TENANT') {
     if (props.pendingAgreementReviews && props.pendingAgreementReviews > 0) {
       banners.push({
-        text: `${props.pendingAgreementReviews} agreement${props.pendingAgreementReviews > 1 ? 's' : ''} awaiting your review`,
-        href: '/dashboard/tenant',
+        text: tc('banner_agreement_review', props.pendingAgreementReviews, lang),
+        href: '/dashboard/tenant/tenancy',
         color: 'blue',
       });
     }
     if (props.rejectedPayments && props.rejectedPayments > 0) {
       banners.push({
-        text: `${props.rejectedPayments} payment proof${props.rejectedPayments > 1 ? 's' : ''} rejected — please re-upload`,
-        href: '/dashboard/tenant',
+        text: tc('banner_rejected_payments', props.rejectedPayments, lang),
+        href: '/dashboard/tenant/payments',
         color: 'red',
       });
     }
@@ -78,15 +81,15 @@ export function DashboardBanners(props: BannerData) {
   if (props.role === 'LANDLORD') {
     if (props.pendingChangesRequested && props.pendingChangesRequested > 0) {
       banners.push({
-        text: `${props.pendingChangesRequested} agreement${props.pendingChangesRequested > 1 ? 's' : ''} with tenant-requested changes`,
-        href: '/dashboard/landlord',
+        text: tc('banner_changes_requested', props.pendingChangesRequested, lang),
+        href: '/dashboard/landlord/tenancies',
         color: 'amber',
       });
     }
     if (props.pendingPaymentVerifications && props.pendingPaymentVerifications > 0) {
       banners.push({
-        text: `${props.pendingPaymentVerifications} payment proof${props.pendingPaymentVerifications > 1 ? 's' : ''} awaiting verification`,
-        href: '/dashboard/landlord',
+        text: tc('banner_payment_verification', props.pendingPaymentVerifications, lang),
+        href: '/dashboard/landlord/payments',
         color: 'blue',
       });
     }
@@ -94,8 +97,8 @@ export function DashboardBanners(props: BannerData) {
 
   if (props.unacknowledgedConditionReports && props.unacknowledgedConditionReports > 0) {
     banners.push({
-      text: `${props.unacknowledgedConditionReports} condition report${props.unacknowledgedConditionReports > 1 ? 's' : ''} awaiting your acknowledgement`,
-      href: props.role === 'TENANT' ? '/dashboard/tenant' : '/dashboard/landlord',
+      text: tc('banner_condition_reports', props.unacknowledgedConditionReports, lang),
+      href: props.role === 'TENANT' ? '/dashboard/tenant/conditions' : '/dashboard/landlord/tenancies',
       color: 'amber',
     });
   }

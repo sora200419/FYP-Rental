@@ -45,10 +45,19 @@ export async function PATCH(
   if (!user.isVerified)
     return NextResponse.json({ error: 'User is not currently verified' }, { status: 400 });
 
-  await prisma.user.update({
-    where: { id },
-    data: { isVerified: false, kycRejectedReason: reason },
-  });
+  // Also move the KYC submission out of APPROVED: /api/kyc/submit refuses to
+  // accept a new submission while one is APPROVED, so without this the user
+  // could never re-verify after a revocation.
+  await prisma.$transaction([
+    prisma.user.update({
+      where: { id },
+      data: { isVerified: false, kycRejectedReason: reason },
+    }),
+    prisma.kycSubmission.updateMany({
+      where: { userId: id, status: 'APPROVED' },
+      data: { status: 'REJECTED', rejectedReason: reason },
+    }),
+  ]);
 
   await logAudit({
     actorId: session.user.id,

@@ -96,12 +96,22 @@ export async function POST(request: NextRequest) {
     // Authorization: verify landlord owns this tenancy
     const tenancy = await prisma.tenancy.findFirst({
       where: { id: data.tenancyId, room: { property: { landlordId: session.user.id } } },
-      select: { id: true, status: true },
+      select: { id: true, status: true, agreement: { select: { status: true } } },
     });
     if (!tenancy) return NextResponse.json({ error: 'Tenancy not found' }, { status: 404 });
     if (tenancy.status === 'EXPIRED' || tenancy.status === 'TERMINATED')
       return NextResponse.json(
         { error: 'Cannot modify preferences for a completed tenancy' },
+        { status: 409 },
+      );
+    // Wizard answers feed the agreement text and the rent schedule (rentDueDay),
+    // so they are frozen once the tenant has signed.
+    if (
+      tenancy.agreement?.status === 'SIGNED' ||
+      tenancy.agreement?.status === 'PENDING_SIGNATURE_PROOF'
+    )
+      return NextResponse.json(
+        { error: 'The agreement has been signed — its preferences can no longer be changed.' },
         { status: 409 },
       );
 

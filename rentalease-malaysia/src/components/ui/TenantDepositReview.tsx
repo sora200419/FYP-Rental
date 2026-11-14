@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   getLifecycleCompletionState,
@@ -52,6 +52,11 @@ const STATUS_STYLE: Record<RefundStatus, string> = {
 export default function TenantDepositReview({ refund: initialRefund }: Props) {
   const router = useRouter();
   const [refund, setRefund] = useState<Refund>(initialRefund);
+
+  // Pick up fresh server data after router.refresh().
+  useEffect(() => {
+    setRefund(initialRefund);
+  }, [initialRefund]);
   const [disputeNotes, setDisputeNotes] = useState<Record<string, string>>({});
   const [responding, setResponding] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -71,7 +76,8 @@ export default function TenantDepositReview({ refund: initialRefund }: Props) {
           disputeNote: action === 'DISPUTE' ? disputeNotes[deductionId] : undefined,
         }),
       });
-      if (!res.ok) throw new Error((await res.json()).error ?? 'Failed');
+      const data = await res.json().catch(() => null);
+      if (!res.ok) throw new Error(data?.error ?? 'Failed');
 
       const newStatus = action === 'ACCEPT' ? 'ACCEPTED' : 'DISPUTED';
       setRefund((prev) => ({
@@ -81,7 +87,13 @@ export default function TenantDepositReview({ refund: initialRefund }: Props) {
             ? { ...d, status: newStatus as DeductionStatus, tenantDisputeNote: disputeNotes[deductionId] ?? null }
             : d
         ),
-        status: 'IN_REVIEW',
+        // The server decides the overall status (IN_REVIEW, AGREED or
+        // DISPUTED) and amount; Decimal amounts arrive as strings.
+        status: (data?.refund?.status as RefundStatus | undefined) ?? 'IN_REVIEW',
+        refundAmount:
+          data?.refund?.refundAmount !== undefined
+            ? Number(data.refund.refundAmount)
+            : prev.refundAmount,
       }));
       router.refresh();
     } catch (err) {

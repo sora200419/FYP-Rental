@@ -3,13 +3,10 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { createNotification } from '@/lib/notifications';
-import { v2 as cloudinary } from 'cloudinary';
+import { uploadProofDocument, deletePaymentProof } from '@/lib/cloudinary';
+import { validateUpload } from '@/lib/uploadValidation';
+import { enforceLimit, uploadRateLimit } from '@/lib/ratelimit';
 
-cloudinary.config({
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-  api_key: process.env.CLOUDINARY_API_KEY,
-  api_secret: process.env.CLOUDINARY_API_SECRET,
-});
 
 export async function POST(
   request: Request,
@@ -46,37 +43,54 @@ export async function POST(
     );
   }
 
-  // Delete old proofs when re-uploading after rejection
-  if (tenancy.depositStatus === 'REJECTED' && tenancy.depositProofs.length > 0) {
-    await Promise.allSettled(
-      tenancy.depositProofs.map((p) =>
-        cloudinary.uploader.destroy(p.publicId).catch(() => null),
-      ),
+  // A deposit can only be paid on a tenancy the tenant has accepted. Without
+  // this check a tenant could upload proof while still INVITED, and landlord
+  // approval would move the tenancy to PENDING — skipping the invitation
+  // response and its identity-verification gate.
+  if (tenancy.status !== 'PENDING' && tenancy.status !== 'ACTIVE') {
+    return NextResponse.json(
+      { error: 'Deposit proof can only be uploaded for an accepted, ongoing tenancy.' },
+      { status: 409 },
     );
-    await prisma.depositProof.deleteMany({ where: { tenancyId } });
+  }
+
+  const rate = await enforceLimit(
+    uploadRateLimit,
+    session.user.id,
+    'Too many uploads. Please wait a while before uploading again.',
+  );
+  if (!rate.allowed) {
+    return NextResponse.json({ error: rate.message }, { status: 429 });
   }
 
   const formData = await request.formData();
-  const file = formData.get('file') as File | null;
-  if (!file) {
-    return NextResponse.json({ error: 'No file provided' }, { status: 400 });
+  const validation = await validateUpload(formData.get('file'), {
+    allowed: ['jpeg', 'png', 'webp', 'pdf'],
+  });
+  if (!validation.ok) {
+    return NextResponse.json({ error: validation.error }, { status: 400 });
+  }
+  const file = validation.file;
+
+  const uploadResult = await uploadProofDocument(
+    file.buffer,
+    file.mimeType,
+    'rentalease/deposit-proofs',
+  );
+
+  if (tenancy.depositProofs.length > 0) {
+    await Promise.allSettled(
+      tenancy.depositProofs.map((p) => deletePaymentProof(p.publicId).catch(() => null)),
+    );
   }
 
-  const arrayBuffer = await file.arrayBuffer();
-  const base64 = Buffer.from(arrayBuffer).toString('base64');
-  const dataUri = `data:${file.type};base64,${base64}`;
-
-  const uploadResult = await cloudinary.uploader.upload(dataUri, {
-    folder: 'rentalease/deposit-proofs',
-    resource_type: 'auto',
-  });
-
   await prisma.$transaction([
+    prisma.depositProof.deleteMany({ where: { tenancyId } }),
     prisma.depositProof.create({
       data: {
         tenancyId,
-        imageUrl: uploadResult.secure_url,
-        publicId: uploadResult.public_id,
+        imageUrl: uploadResult.url,
+        publicId: uploadResult.publicId,
         uploadedById: session.user.id,
       },
     }),
@@ -97,5 +111,5 @@ export async function POST(
     `/dashboard/landlord/tenancies/${tenancyId}`,
   );
 
-  return NextResponse.json({ ok: true, imageUrl: uploadResult.secure_url });
+  return NextResponse.json({ ok: true, imageUrl: uploadResult.url });
 }

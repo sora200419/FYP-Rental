@@ -27,6 +27,7 @@ export default async function WizardPage({
       },
       tenant: { select: { name: true } },
       agreementPreferences: true,
+      agreement: { select: { status: true } },
     },
   });
 
@@ -37,6 +38,13 @@ export default async function WizardPage({
     redirect(`/dashboard/landlord/tenancies/${id}`);
   }
   if (tenancy.status === 'EXPIRED' || tenancy.status === 'TERMINATED') {
+    redirect(`/dashboard/landlord/tenancies/${id}`);
+  }
+  // Once signed, "Complete & Generate" would overwrite the signed agreement.
+  if (
+    tenancy.agreement?.status === 'SIGNED' ||
+    tenancy.agreement?.status === 'PENDING_SIGNATURE_PROOF'
+  ) {
     redirect(`/dashboard/landlord/tenancies/${id}`);
   }
 

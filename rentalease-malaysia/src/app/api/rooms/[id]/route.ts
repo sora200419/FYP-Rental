@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
-import { logAudit, getIp } from '@/lib/audit';
+import { getIp } from '@/lib/audit';
 import { z } from 'zod';
 
 const roomSchema = z.object({
@@ -66,34 +66,40 @@ export async function DELETE(
 
   const room = await prisma.room.findFirst({
     where: { id, property: { landlordId: session.user.id } },
-    // BUG-07: Only count active/pending tenancies, not historical ended ones
-    include: {
-      tenancies: {
-        where: { status: { in: ['INVITED', 'PENDING', 'ACTIVE'] } },
-        select: { id: true },
-      },
-    },
+    include: { tenancies: { select: { status: true } } },
   });
 
   if (!room) return NextResponse.json({ error: 'Room not found' }, { status: 404 });
 
+  // Tenancies keep their room (onDelete: Restrict): a room that has ever had a
+  // tenancy is part of that tenancy's record and cannot be deleted.
+  const hasOpenTenancy = room.tenancies.some((t) =>
+    ['INVITED', 'PENDING', 'ACTIVE'].includes(t.status),
+  );
   if (room.tenancies.length > 0) {
     return NextResponse.json(
-      { error: 'Cannot delete a room with an active or pending tenancy.' },
+      {
+        error: hasOpenTenancy
+          ? 'Cannot delete a room with an active or pending tenancy.'
+          : 'This room has past tenancies on record, so it cannot be deleted.',
+      },
       { status: 409 },
     );
   }
 
-  await logAudit({
-    actorId: session.user.id,
-    action: 'ROOM_DELETED',
-    entityName: 'Room',
-    entityId: id,
-    previousData: room as object,
-    ipAddress: getIp(req),
-  });
-
-  await prisma.room.delete({ where: { id } });
+  await prisma.$transaction([
+    prisma.auditLog.create({
+      data: {
+        actorId: session.user.id,
+        action: 'ROOM_DELETED',
+        entityName: 'Room',
+        entityId: id,
+        previousData: JSON.parse(JSON.stringify(room)),
+        ipAddress: getIp(req),
+      },
+    }),
+    prisma.room.delete({ where: { id } }),
+  ]);
 
   return NextResponse.json({ message: 'Room deleted' });
 }

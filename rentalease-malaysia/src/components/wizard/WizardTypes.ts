@@ -102,3 +102,14 @@ export const DEFAULT_FORM: Omit<WizardFormData, 'tenancyId'> = {
   disputeResolution: 'PLATFORM_MESSAGING',
   utilityDepositHandling: 'NONE',
 };
+
+// The wizard has six steps, indexed 0–5 in the UI.
+export const WIZARD_LAST_STEP_INDEX = 5;
+
+// completedSteps is the highest 1-indexed step saved so far (0–6). Resuming at
+// that index opens the next unfinished step; a fully completed wizard (6) has
+// no step 7, so reopen it on the last step instead of a blank page.
+export function getInitialWizardStep(completedSteps: number | null | undefined): number {
+  const saved = Number.isFinite(completedSteps) ? Number(completedSteps) : 0;
+  return Math.min(Math.max(saved, 0), WIZARD_LAST_STEP_INDEX);
+}

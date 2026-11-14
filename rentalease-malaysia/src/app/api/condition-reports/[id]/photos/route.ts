@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { enforceLimit, uploadRateLimit } from '@/lib/ratelimit';
+import { validateUpload } from '@/lib/uploadValidation';
 import { uploadConditionPhoto } from '@/lib/cloudinary';
 import { isConditionReportLocked } from '@/lib/conditionReportWorkflow';
 
@@ -39,40 +41,43 @@ export async function POST(
       { status: 409 },
     );
 
+  const rate = await enforceLimit(
+    uploadRateLimit,
+    session.user.id,
+    'Too many uploads. Please wait a while before uploading again.',
+  );
+  if (!rate.allowed) {
+    return NextResponse.json({ error: rate.message }, { status: 429 });
+  }
+
   try {
     const formData = await request.formData();
-    const file = formData.get('file') as File | null;
-    const room = formData.get('room') as string | null;
-    const caption = formData.get('caption') as string | null;
+    const room = formData.get('room');
+    const caption = formData.get('caption');
 
-    if (!file)
-      return NextResponse.json({ error: 'No file provided' }, { status: 400 });
-    if (!room || room.trim().length === 0)
+    if (typeof room !== 'string' || room.trim().length === 0)
       return NextResponse.json(
         { error: 'Room/area label is required' },
         { status: 400 },
       );
-    if (!file.type.startsWith('image/'))
-      return NextResponse.json(
-        { error: 'Only image files are accepted (JPG, PNG, HEIC, etc.)' },
-        { status: 400 },
-      );
-    if (file.size > 10 * 1024 * 1024)
-      return NextResponse.json(
-        { error: 'File too large. Maximum size is 10MB.' },
-        { status: 400 },
-      );
 
-    const arrayBuffer = await file.arrayBuffer();
-    const buffer = Buffer.from(arrayBuffer);
-    const { url, publicId } = await uploadConditionPhoto(buffer, file.name);
+    const validation = await validateUpload(formData.get('file'), {
+      allowed: ['jpeg', 'png', 'webp', 'heic'],
+    });
+    if (!validation.ok)
+      return NextResponse.json({ error: validation.error }, { status: 400 });
+
+    const { url, publicId } = await uploadConditionPhoto(
+      validation.file.buffer,
+      validation.file.mimeType,
+    );
 
     const photo = await prisma.conditionPhoto.create({
       data: {
         imageUrl: url,
         publicId,
         room: room.trim(),
-        caption: caption?.trim() || null,
+        caption: typeof caption === 'string' && caption.trim() ? caption.trim() : null,
         reportId,
         uploadedById: session.user.id,
       },

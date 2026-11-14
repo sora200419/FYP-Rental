@@ -12,7 +12,7 @@ const schema = z.object({
 type FormData = z.infer<typeof schema>;
 
 export default function ForgotPasswordPage() {
-  const [resetLink, setResetLink] = useState<string | null>(null);
+  const [submitted, setSubmitted] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [serverError, setServerError] = useState<string | null>(null);
 
@@ -23,7 +23,6 @@ export default function ForgotPasswordPage() {
   const onSubmit = async (data: FormData) => {
     setIsLoading(true);
     setServerError(null);
-    setResetLink(null);
 
     try {
       const res = await fetch('/api/forgot-password', {
@@ -31,19 +30,15 @@ export default function ForgotPasswordPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: data.email }),
       });
-      const json = await res.json();
-
       if (!res.ok) {
-        setServerError(json.error || 'Something went wrong');
+        const json = await res.json().catch(() => null);
+        setServerError(json?.error || 'Something went wrong');
         return;
       }
 
-      if (json.token) {
-        setResetLink(`${window.location.origin}/reset-password?token=${json.token}`);
-      } else {
-        // Email not found — show generic message (no enumeration)
-        setResetLink('not-found');
-      }
+      // The API always answers the same way whether or not the email exists
+      // (no account enumeration); the reset link itself is sent by email.
+      setSubmitted(true);
     } catch {
       setServerError('Network error. Please try again.');
     } finally {
@@ -74,30 +69,13 @@ export default function ForgotPasswordPage() {
 
         <h2 className="text-2xl font-bold text-white mb-1">Reset password</h2>
         <p className="text-sm text-white/50 mb-8">
-          Enter your account email and we will generate a reset link.
+          Enter your account email and we will email you a reset link.
         </p>
 
-        {resetLink === 'not-found' ? (
+        {submitted ? (
           <div className="rounded-lg border border-[rgba(196,154,60,0.25)] bg-[rgba(196,154,60,0.08)] px-4 py-4 text-sm text-[#C49A3C]">
-            If that email is registered, a reset link has been generated. Check with your admin or try signing in.
-          </div>
-        ) : resetLink ? (
-          <div className="space-y-4">
-            <div className="rounded-lg border border-[rgba(74,222,128,0.25)] bg-[rgba(74,222,128,0.08)] px-4 py-4 text-sm text-[#4ade80]">
-              <p className="font-semibold mb-1">Reset link generated</p>
-              <p className="text-xs text-[#4ade80]/70 mb-3">
-                In production this would be sent to your email. Copy the link below to reset your password.
-              </p>
-              <div className="rounded-md border border-[rgba(74,222,128,0.2)] bg-white/5 px-3 py-2 break-all text-xs text-white/70 select-all">
-                {resetLink}
-              </div>
-            </div>
-            <a
-              href={resetLink}
-              className="block w-full text-center rounded-lg bg-gradient-to-br from-[#C49A3C] to-[#E8B84B] py-2.5 text-sm font-bold text-[#1C2740] transition-opacity hover:opacity-90"
-            >
-              Go to Reset Page
-            </a>
+            If that email is registered, we have sent a password reset link to it. The link expires
+            shortly, so please check your inbox (and spam folder) soon.
           </div>
         ) : (
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
@@ -130,7 +108,7 @@ export default function ForgotPasswordPage() {
               disabled={isLoading}
               className="w-full rounded-lg bg-gradient-to-br from-[#C49A3C] to-[#E8B84B] py-2.5 text-sm font-bold text-[#1C2740] transition-opacity disabled:opacity-50 hover:opacity-90"
             >
-              {isLoading ? 'Generating link…' : 'Send Reset Link'}
+              {isLoading ? 'Sending…' : 'Send Reset Link'}
             </button>
           </form>
         )}

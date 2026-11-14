@@ -104,7 +104,10 @@ export async function DELETE(
     );
   }
 
-  const fullUser = await prisma.user.findUnique({ where: { id } });
+  // Snapshot for the audit log — never include the password hash.
+  const userRecord = await prisma.user.findUnique({ where: { id } });
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const { password: _password, ...fullUser } = userRecord ?? { password: null };
 
   await prisma.user.update({
     where: { id },

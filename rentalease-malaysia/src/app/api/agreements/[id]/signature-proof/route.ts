@@ -5,15 +5,9 @@ import { prisma } from '@/lib/prisma';
 import { createNotification } from '@/lib/notifications';
 import { buildAgreementEvent } from '@/lib/agreements/history';
 import { uploadAgreementSignatureProof } from '@/lib/cloudinary';
+import { validateUpload } from '@/lib/uploadValidation';
+import { signatureProofFileHref } from '@/lib/privateFiles';
 
-const ALLOWED_MIME_TYPES = new Set([
-  'application/pdf',
-  'image/jpeg',
-  'image/png',
-  'image/heic',
-  'image/heif',
-]);
-const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024;
 
 export async function POST(
   request: Request,
@@ -78,31 +72,16 @@ export async function POST(
     return NextResponse.json({ error: 'Invalid form data' }, { status: 400 });
   }
 
-  const file = formData.get('file');
-  if (!(file instanceof File)) {
-    return NextResponse.json({ error: 'No file provided' }, { status: 400 });
+  const validation = await validateUpload(formData.get('file'), {
+    allowed: ['pdf', 'jpeg', 'png', 'heic'],
+  });
+  if (!validation.ok) {
+    return NextResponse.json({ error: validation.error }, { status: 400 });
   }
+  const file = validation.file;
 
-  if (!ALLOWED_MIME_TYPES.has(file.type)) {
-    return NextResponse.json(
-      { error: 'Only PDF, JPG, PNG, and HEIC files are accepted.' },
-      { status: 400 },
-    );
-  }
-
-  if (file.size <= 0 || file.size > MAX_FILE_SIZE_BYTES) {
-    return NextResponse.json(
-      { error: 'File must be between 1 byte and 10 MB.' },
-      { status: 400 },
-    );
-  }
-
-  const buffer = Buffer.from(await file.arrayBuffer());
-  const { url, publicId } = await uploadAgreementSignatureProof(
-    buffer,
-    file.name,
-    file.type,
-  );
+  // Stored as a private (authenticated) asset; see lib/cloudinary.ts.
+  const { url, publicId } = await uploadAgreementSignatureProof(file.buffer, file.mimeType);
 
   const createdProof = await prisma.$transaction(async (tx) => {
     const proof = await tx.agreementSignatureProof.create({
@@ -112,7 +91,7 @@ export async function POST(
         fileUrl: url,
         publicId,
         originalName: file.name,
-        mimeType: file.type,
+        mimeType: file.mimeType,
         fileSize: file.size,
         status: 'UNDER_REVIEW',
       },
@@ -143,7 +122,7 @@ export async function POST(
     ok: true,
     proof: {
       id: createdProof.id,
-      fileUrl: createdProof.fileUrl,
+      fileUrl: signatureProofFileHref(createdProof.id),
       originalName: createdProof.originalName,
       mimeType: createdProof.mimeType,
       fileSize: createdProof.fileSize,

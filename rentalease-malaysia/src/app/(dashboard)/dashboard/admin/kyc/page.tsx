@@ -2,7 +2,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { redirect } from 'next/navigation';
 import { prisma } from '@/lib/prisma';
-import Image from 'next/image';
+import { kycImageHref } from '@/lib/privateFiles';
 import { AdminNav } from '@/components/ui/AdminTabBar';
 import { PageHeader } from '@/components/ui/RedesignPrimitives';
 import AdminKycActions from './AdminKycActions';
@@ -49,13 +49,16 @@ export default async function AdminKycPage() {
 
                 <div className="mb-4 grid grid-cols-3 gap-3">
                   {[
-                    { url: sub.icFrontUrl, label: 'IC Front' },
-                    { url: sub.icBackUrl, label: 'IC Back' },
-                    { url: sub.selfieUrl, label: 'Selfie' },
-                  ].map(({ url, label }) => (
-                    <a key={label} href={url} target="_blank" rel="noreferrer" className="group block">
+                    { href: kycImageHref(sub.id, 'front'), label: 'IC Front' },
+                    { href: kycImageHref(sub.id, 'back'), label: 'IC Back' },
+                    { href: kycImageHref(sub.id, 'selfie'), label: 'Selfie' },
+                  ].map(({ href, label }) => (
+                    <a key={label} href={href} target="_blank" rel="noreferrer" className="group block">
                       <div className="relative aspect-[4/3] overflow-hidden rounded-lg border border-[rgba(196,154,60,0.15)] bg-[#0f172a]">
-                        <Image src={url} alt={label} fill className="object-cover group-hover:opacity-90 transition-opacity" sizes="200px" />
+                        {/* Private image served via a permission-checked redirect, so
+                            it bypasses the next/image optimizer (which has no session). */}
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={href} alt={label} className="h-full w-full object-cover group-hover:opacity-90 transition-opacity" />
                       </div>
                       <p className="mt-1 text-center text-xs text-white/40">{label}</p>
                     </a>

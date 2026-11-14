@@ -3,6 +3,7 @@
 // All transactional emails go through this module.
 // Never throws — a failed email must not fail the primary action.
 import { Resend } from 'resend';
+import { tenantTenancyHref } from './tenantLinks';
 
 // Lazy-initialised so the module loads safely at build time without the key present.
 let _resend: Resend | null = null;
@@ -123,6 +124,7 @@ export async function sendInvitationEmail(
   tenantName: string,
   propertyAddress: string,
   landlordName: string,
+  tenancyId: string,
 ) {
   await send(
     to,
@@ -131,7 +133,7 @@ export async function sendInvitationEmail(
       'Tenancy Invitation',
       p(`Hi ${h(tenantName)}, ${h(landlordName)} has invited you to a tenancy at <strong>${h(propertyAddress)}</strong>.`) +
       p('Log in to your dashboard to review the details and accept or decline.'),
-      { label: 'View Invitation', url: `${process.env.NEXTAUTH_URL}/dashboard/tenant/tenancy` },
+      { label: 'View Invitation', url: `${process.env.NEXTAUTH_URL}${tenantTenancyHref(tenancyId)}` },
     ),
   );
 }
@@ -140,7 +142,7 @@ export async function sendAgreementReadyEmail(
   to: string,
   tenantName: string,
   propertyAddress: string,
-  agreementId: string,
+  tenancyId: string,
 ) {
   await send(
     to,
@@ -149,7 +151,7 @@ export async function sendAgreementReadyEmail(
       'Agreement Ready for Review',
       p(`Hi ${h(tenantName)}, your landlord has finalised the tenancy agreement for <strong>${h(propertyAddress)}</strong>.`) +
       p('Please review and sign at your earliest convenience.'),
-      { label: 'Review Agreement', url: `${process.env.NEXTAUTH_URL}/dashboard/tenant/tenancy` },
+      { label: 'Review Agreement', url: `${process.env.NEXTAUTH_URL}${tenantTenancyHref(tenancyId)}` },
     ),
   );
 }
@@ -160,14 +162,20 @@ export async function sendAgreementSignedEmail(
   tenantName: string,
   propertyAddress: string,
   tenancyId: string,
+  tenancyIsActive: boolean,
 ) {
   await send(
     to,
-    `${h(tenantName)} signed the tenancy agreement`,
+    // Subject lines are plain text, not HTML — escaping here would show "&amp;".
+    `${tenantName} signed the tenancy agreement`,
     base(
       'Agreement Signed',
       p(`Hi ${h(landlordName)}, ${h(tenantName)} has signed the tenancy agreement for <strong>${h(propertyAddress)}</strong>.`) +
-      p('The tenancy is now active and rent payments have been scheduled.'),
+      p(
+        tenancyIsActive
+          ? 'The tenancy is now active and rent payments have been scheduled.'
+          : 'The tenancy will become active, and rent payments will be scheduled, once you confirm the security deposit.',
+      ),
       { label: 'View Tenancy', url: `${process.env.NEXTAUTH_URL}/dashboard/landlord/tenancies/${tenancyId}` },
     ),
   );
@@ -216,6 +224,7 @@ export async function sendDepositSettlementEmail(
   to: string,
   tenantName: string,
   propertyAddress: string,
+  tenancyId: string,
 ) {
   await send(
     to,
@@ -224,7 +233,7 @@ export async function sendDepositSettlementEmail(
       'Deposit Settlement Started',
       p(`Hi ${h(tenantName)}, your landlord has initiated the deposit settlement process for <strong>${h(propertyAddress)}</strong>.`) +
       p('Please review the proposed deductions and respond to each one.'),
-      { label: 'Review Settlement', url: `${process.env.NEXTAUTH_URL}/dashboard/tenant/tenancy` },
+      { label: 'Review Settlement', url: `${process.env.NEXTAUTH_URL}${tenantTenancyHref(tenancyId)}` },
     ),
   );
 }
@@ -233,6 +242,7 @@ export async function sendDepositRefundPaidEmail(
   to: string,
   tenantName: string,
   amount: string,
+  tenancyId: string,
 ) {
   await send(
     to,
@@ -241,7 +251,7 @@ export async function sendDepositRefundPaidEmail(
       'Deposit Refund Paid',
       p(`Hi ${h(tenantName)}, your landlord has transferred your deposit refund of <strong>RM ${h(amount)}</strong>.`) +
       p('Proof of payment has been uploaded to your tenancy page.'),
-      { label: 'View Tenancy', url: `${process.env.NEXTAUTH_URL}/dashboard/tenant/tenancy` },
+      { label: 'View Tenancy', url: `${process.env.NEXTAUTH_URL}${tenantTenancyHref(tenancyId)}` },
     ),
   );
 }

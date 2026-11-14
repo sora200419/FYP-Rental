@@ -1,7 +1,6 @@
 import type { Metadata } from 'next';
 import './globals.css';
 import AuthSessionProvider from '@/components/providers/SessionProvider';
-import { ensureAdminBootstrap } from '@/lib/admin/bootstrap';
 
 export const metadata: Metadata = {
   title: 'RentalEase Malaysia',
@@ -9,23 +8,13 @@ export const metadata: Metadata = {
     'AI-Assisted Digital Tenancy Agreement Platform for Malaysian Residential Rentals',
 };
 
-export default async function RootLayout({
+// The admin account is created at build time by scripts/bootstrap-admin.ts,
+// not here — the root layout runs on every request.
+export default function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const skipBootstrap =
-    process.env.PRISMA_GENERATE_NO_ENGINE === '1' ||
-    process.env.NEXT_PHASE === 'phase-production-build';
-
-  if (!skipBootstrap) {
-    try {
-      await ensureAdminBootstrap();
-    } catch (error) {
-      console.error('[admin-bootstrap] Automatic bootstrap failed:', error);
-    }
-  }
-
   return (
     <html lang="en">
       <body>

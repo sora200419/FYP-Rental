@@ -4,9 +4,11 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { syncRoomAvailability } from '@/lib/roomAvailability';
 import { createNotification } from '@/lib/notifications';
 import { sendDepositSettlementEmail } from '@/lib/email';
 import { z } from 'zod';
+import { tenantTenancyHref } from '@/lib/tenantLinks';
 
 // Note: the [id] segment here is the tenancyId. It shares the same dynamic
 // segment name as the /deductions and /mark-paid sub-routes (which use refundId)
@@ -74,7 +76,14 @@ export async function POST(
       select: { endDate: true },
     });
     if (tenancyFull && tenancyFull.endDate < new Date()) {
-      await prisma.tenancy.update({ where: { id: tenancyId }, data: { status: 'EXPIRED' } });
+      await prisma.$transaction(async (tx) => {
+        const expired = await tx.tenancy.update({
+          where: { id: tenancyId },
+          data: { status: 'EXPIRED' },
+          select: { roomId: true },
+        });
+        await syncRoomAvailability(tx, expired.roomId);
+      });
       effectiveStatus = 'EXPIRED';
     }
   }
@@ -122,7 +131,7 @@ export async function POST(
     'DEPOSIT_DEDUCTION_FILED',
     'Deposit settlement started',
     `Your landlord has initiated the deposit settlement. Review the proposed deductions and respond.`,
-    `/dashboard/tenant/tenancy`,
+    tenantTenancyHref(tenancyId),
   );
 
   // Send email (non-blocking)
@@ -139,6 +148,7 @@ export async function POST(
       tenantUser.email,
       tenantUser.name,
       tenancyForAddress.room.property.address,
+      tenancyId,
     ).catch(console.error);
   }
 

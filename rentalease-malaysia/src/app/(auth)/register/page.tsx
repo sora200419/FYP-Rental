@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
+import { passwordSchema, PASSWORD_MIN_LENGTH } from '@/lib/passwordPolicy';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { PasswordInput } from '@/components/ui/PasswordInput';
@@ -25,7 +26,7 @@ const registerSchema = z
   .object({
     name: z.string().min(2, 'Name must be at least 2 characters'),
     email: z.string().email('Invalid email address'),
-    password: z.string().min(8, 'Password must be at least 8 characters'),
+    password: passwordSchema,
     confirmPassword: z.string().min(1, 'Please confirm your password'),
     role: z.enum(['LANDLORD', 'TENANT']),
     phone: z.string().min(1, 'Phone number is required'),
@@ -183,7 +184,7 @@ export default function RegisterPage() {
           <PasswordInput
             registration={register('password')}
             label="Password"
-            placeholder="At least 8 characters"
+            placeholder={`At least ${PASSWORD_MIN_LENGTH} characters`}
             error={errors.password?.message}
           />
           <PasswordInput

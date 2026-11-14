@@ -1,16 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import { GEMINI_MODEL } from '@/lib/gemini';
+import { generateText, MAX_AGREEMENT_CHARS_FOR_MODEL } from '@/lib/ai';
 import { prisma } from '@/lib/prisma';
-import { GoogleGenerativeAI } from '@google/generative-ai';
-import { agreementAssistLimit } from '@/lib/ratelimit';
+import { agreementAssistLimit, enforceLimit } from '@/lib/ratelimit';
 import { z } from 'zod';
 
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
-
 const bodySchema = z.object({
-  currentContent: z.string().min(1),
+  // Same ceiling the other AI calls apply.
+  currentContent: z
+    .string()
+    .min(1)
+    .max(MAX_AGREEMENT_CHARS_FOR_MODEL, 'Agreement text is too long for AI assist'),
   instruction: z
     .string()
     .min(10, 'Please describe what you want changed (at least 10 characters)')
@@ -52,28 +53,25 @@ export async function POST(
     );
   }
 
-  if (agreement.status === 'SIGNED') {
+  if (agreement.status === 'SIGNED' || agreement.status === 'PENDING_SIGNATURE_PROOF') {
     return NextResponse.json(
       { error: 'This agreement has already been signed and cannot be edited.' },
       { status: 409 },
     );
   }
 
-  const { success } = await agreementAssistLimit.limit(
+  const { allowed, message } = await enforceLimit(
+    agreementAssistLimit,
     `${session.user.id}:${agreementId}`,
+    'Too many AI assist requests. Please wait before trying again.',
   );
-  if (!success) {
-    return NextResponse.json(
-      { error: 'Too many AI assist requests. Please wait before trying again.' },
-      { status: 429 },
-    );
+  if (!allowed) {
+    return NextResponse.json({ error: message }, { status: 429 });
   }
 
   try {
     const body = await request.json();
     const { currentContent, instruction } = bodySchema.parse(body);
-
-    const model = genAI.getGenerativeModel({ model: GEMINI_MODEL });
 
     const prompt = `You are editing a Malaysian residential tenancy agreement.
 The landlord may write the instruction in English or Bahasa Malaysia. Interpret
@@ -93,8 +91,7 @@ no preamble, and no markdown formatting - just the plain agreement text.
 CURRENT AGREEMENT:
 ${currentContent}`;
 
-    const result = await model.generateContent(prompt);
-    const suggestedContent = result.response.text().trim();
+    const suggestedContent = (await generateText(prompt)).trim();
 
     if (!suggestedContent || suggestedContent.length < 100) {
       return NextResponse.json(

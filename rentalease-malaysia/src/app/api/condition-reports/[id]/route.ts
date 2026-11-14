@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
-import { deletePaymentProof } from '@/lib/cloudinary';
+import { deleteConditionPhoto } from '@/lib/cloudinary';
 import { logAudit, getIp } from '@/lib/audit';
 
 export async function DELETE(
@@ -56,7 +56,7 @@ export async function DELETE(
     ipAddress: getIp(req),
   });
 
-  await Promise.allSettled(report.photos.map((p) => deletePaymentProof(p.publicId)));
+  await Promise.allSettled(report.photos.map((p) => deleteConditionPhoto(p.publicId)));
 
   await prisma.conditionReport.delete({ where: { id } });
 

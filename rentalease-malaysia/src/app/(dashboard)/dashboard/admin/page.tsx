@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { AttentionHero, PageHeader, StatCard } from '@/components/ui/RedesignPrimitives';
 import { getDashboardAttention } from '@/lib/uiRedesign';
 import { getAdminVerificationHref } from '@/lib/kyc-workflow';
+import { toLanguage } from '@/lib/i18n';
 
 export default async function AdminDashboard() {
   const session = await getServerSession(authOptions);
@@ -23,7 +24,7 @@ export default async function AdminDashboard() {
     role: 'ADMIN',
     pendingKyc: pendingKycCount,
     pendingProperties: unverifiedPropertiesCount,
-  });
+  }, toLanguage(session.user.language));
   const attentionHref = getAdminVerificationHref({ pendingKycSubmissions: pendingKycCount });
 
   return (

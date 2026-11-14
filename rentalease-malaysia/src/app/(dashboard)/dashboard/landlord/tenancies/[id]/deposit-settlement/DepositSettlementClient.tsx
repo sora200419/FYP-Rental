@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   canLandlordWithdrawDeduction,
@@ -66,6 +66,39 @@ const DEDUCTION_STYLE: Record<DeductionStatus, string> = {
   WITHDRAWN: 'text-white/30 line-through',
 };
 
+// API responses carry Prisma Decimal values, which JSON-serialise as strings.
+// Coerce them so totals are added as numbers, not concatenated as text.
+type RawDeduction = Omit<Deduction, 'amount'> & { amount: number | string };
+type RawRefund = Omit<Refund, 'originalAmount' | 'refundAmount' | 'deductions'> & {
+  originalAmount: number | string;
+  refundAmount: number | string;
+  deductions?: RawDeduction[];
+};
+
+function toDeduction(raw: RawDeduction): Deduction {
+  return { ...raw, amount: Number(raw.amount) };
+}
+
+function toRefund(raw: RawRefund, previous?: Refund | null): Refund {
+  return {
+    ...raw,
+    originalAmount: Number(raw.originalAmount),
+    refundAmount: Number(raw.refundAmount),
+    // Keep evidence photos resolved by the server page when the API omits them.
+    deductions: (raw.deductions ?? []).map((d) => ({
+      ...toDeduction(d),
+      evidencePhotos:
+        d.evidencePhotos ?? previous?.deductions.find((p) => p.id === d.id)?.evidencePhotos,
+    })),
+  };
+}
+
+interface DraftDeduction {
+  reason: string;
+  amount: number;
+  photoIds: string[];
+}
+
 export default function DepositSettlementClient({
   tenancyId,
   tenantName,
@@ -75,6 +108,16 @@ export default function DepositSettlementClient({
   const router = useRouter();
   const [refund, setRefund] = useState<Refund | null>(initialRefund);
   const [loading, setLoading] = useState(false);
+
+  // Pick up fresh server data after router.refresh().
+  useEffect(() => {
+    setRefund(initialRefund);
+  }, [initialRefund]);
+
+  // Deductions drafted before the settlement is submitted. Submitting with at
+  // least one deduction creates a PROPOSED refund for the tenant to review;
+  // submitting none refunds the full deposit (status AGREED).
+  const [draftDeductions, setDraftDeductions] = useState<DraftDeduction[]>([]);
   const [error, setError] = useState<string | null>(null);
 
   // New deduction form
@@ -90,7 +133,7 @@ export default function DepositSettlementClient({
   const formatRM = (n: number) =>
     `RM ${n.toLocaleString('en-MY', { minimumFractionDigits: 2 })}`;
 
-  // Create initial refund record
+  // Create the refund record together with any drafted deductions
   const createRefund = async () => {
     setLoading(true);
     setError(null);
@@ -98,17 +141,34 @@ export default function DepositSettlementClient({
       const res = await fetch(`/api/deposit-refund/${tenancyId}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ deductions: [] }),
+        body: JSON.stringify({ deductions: draftDeductions }),
       });
-      if (!res.ok) throw new Error((await res.json()).error ?? 'Failed');
-      const data = await res.json();
-      setRefund(data.refund);
+      const data = await res.json().catch(() => null);
+      if (!res.ok) throw new Error(data?.error ?? 'Failed to start settlement');
+      setRefund(toRefund(data.refund));
+      setDraftDeductions([]);
       router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error');
     } finally {
       setLoading(false);
     }
+  };
+
+  const addDraftDeduction = () => {
+    const amount = parseFloat(newAmount);
+    if (newReason.trim().length < 5 || !(amount > 0)) {
+      setError('Each deduction needs a reason (at least 5 characters) and an amount above zero.');
+      return;
+    }
+    setError(null);
+    setDraftDeductions((prev) => [
+      ...prev,
+      { reason: newReason.trim(), amount, photoIds: selectedPhotos },
+    ]);
+    setNewReason('');
+    setNewAmount('');
+    setSelectedPhotos([]);
   };
 
   // Add a deduction
@@ -126,19 +186,21 @@ export default function DepositSettlementClient({
           photoIds: selectedPhotos,
         }),
       });
-      if (!res.ok) throw new Error((await res.json()).error ?? 'Failed');
-      const data = await res.json();
+      const data = await res.json().catch(() => null);
+      if (!res.ok) throw new Error(data?.error ?? 'Failed');
       setRefund((prev) => {
         if (!prev) return prev;
-        const newTotal = [...prev.deductions, data.deduction]
+        const deductions = [...prev.deductions, toDeduction(data.deduction)];
+        const newTotal = deductions
           .filter((d) => d.status !== 'WITHDRAWN')
-          .reduce((s, d) => s + d.amount, 0);
+          .reduce((sum, d) => sum + d.amount, 0);
         return {
           ...prev,
-          deductions: [...prev.deductions, data.deduction],
+          deductions,
           refundAmount: Math.max(0, prev.originalAmount - newTotal),
         };
       });
+      router.refresh();
       setNewReason('');
       setNewAmount('');
       setSelectedPhotos([]);
@@ -159,8 +221,8 @@ export default function DepositSettlementClient({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action: 'WITHDRAW' }),
       });
-      if (!res.ok) throw new Error((await res.json()).error ?? 'Failed');
-      const data = await res.json();
+      const data = await res.json().catch(() => null);
+      if (!res.ok) throw new Error(data?.error ?? 'Failed');
       setRefund((prev) => {
         if (!prev) return prev;
         const updated = prev.deductions.map((d) =>
@@ -168,7 +230,7 @@ export default function DepositSettlementClient({
         );
         const newTotal = updated
           .filter((d) => d.status !== 'WITHDRAWN')
-          .reduce((s, d) => s + d.amount, 0);
+          .reduce((sum, d) => sum + d.amount, 0);
         return {
           ...prev,
           deductions: updated,
@@ -178,6 +240,7 @@ export default function DepositSettlementClient({
           status: data.refund?.status ?? prev.status,
         };
       });
+      router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error');
     }
@@ -196,7 +259,10 @@ export default function DepositSettlementClient({
         method: 'POST',
         body: formData,
       });
-      if (!res.ok) throw new Error((await res.json()).error ?? 'Upload failed');
+      if (!res.ok) {
+        const data = await res.json().catch(() => null);
+        throw new Error(data?.error ?? 'Upload failed');
+      }
       setRefund((prev) => prev ? { ...prev, status: 'PAID', paidAt: new Date().toISOString() } : prev);
       router.refresh();
     } catch (err) {
@@ -207,25 +273,131 @@ export default function DepositSettlementClient({
     }
   };
 
+  // Reason/amount inputs plus optional move-out photo evidence. Shared by the
+  // draft form (before submitting) and the live form (while under review).
+  const renderDeductionFields = (onAdd: () => void, busy: boolean, addLabel: string) => (
+    <div className="space-y-3">
+      <input
+        type="text"
+        value={newReason}
+        onChange={(e) => setNewReason(e.target.value)}
+        placeholder="Reason (e.g. damaged bedroom door, RM 350)"
+        className="w-full rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-sm text-white placeholder:text-white/20 focus:border-[rgba(196,154,60,0.5)] focus:outline-none focus:ring-0 transition-colors"
+      />
+      <div className="flex gap-2">
+        <input
+          type="number"
+          value={newAmount}
+          onChange={(e) => setNewAmount(e.target.value)}
+          placeholder="Amount (RM)"
+          min="0"
+          step="0.01"
+          className="flex-1 rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-sm text-white placeholder:text-white/20 focus:border-[rgba(196,154,60,0.5)] focus:outline-none focus:ring-0 transition-colors"
+        />
+        <button
+          onClick={onAdd}
+          disabled={busy || !newReason.trim() || !newAmount}
+          className="bg-gradient-to-br from-[#C49A3C] to-[#E8B84B] hover:opacity-90 disabled:opacity-50 text-[#1C2740] font-semibold px-4 py-2 rounded-lg text-sm"
+        >
+          {busy ? '…' : addLabel}
+        </button>
+      </div>
+
+      {/* Move-out photo references */}
+      {moveOutPhotos.length > 0 && (
+        <div>
+          <p className="text-xs text-white/40 mb-1.5">Attach move-out photos as evidence (optional)</p>
+          <div className="flex flex-wrap gap-2">
+            {moveOutPhotos.map((photo) => (
+              <label key={photo.id} className="cursor-pointer">
+                <input
+                  type="checkbox"
+                  className="sr-only"
+                  checked={selectedPhotos.includes(photo.id)}
+                  onChange={(e) =>
+                    setSelectedPhotos((prev) =>
+                      e.target.checked ? [...prev, photo.id] : prev.filter((id) => id !== photo.id)
+                    )
+                  }
+                />
+                <div className={`relative w-14 h-14 rounded-lg overflow-hidden border-2 transition-colors ${selectedPhotos.includes(photo.id) ? 'border-[#C49A3C]' : 'border-[rgba(196,154,60,0.15)]'}`}>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={photo.imageUrl} alt={photo.area} className="w-full h-full object-cover" />
+                  {selectedPhotos.includes(photo.id) && (
+                    <div className="absolute inset-0 bg-[#C49A3C]/20 flex items-center justify-center">
+                      <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                      </svg>
+                    </div>
+                  )}
+                </div>
+              </label>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+
   if (!refund) {
+    const draftTotal = draftDeductions.reduce((sum, d) => sum + d.amount, 0);
     return (
       <div className="space-y-5">
-        <div className="bg-[#1C2740] rounded-xl border border-[rgba(196,154,60,0.15)] p-6 text-center">
-          <svg className="w-10 h-10 text-white/30 mb-3 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
+        <div className="bg-[#1C2740] rounded-xl border border-[rgba(196,154,60,0.15)] p-6">
           <p className="font-semibold text-white">Start deposit settlement</p>
           <p className="text-sm text-white/40 mt-1 mb-5">
-            Create a deposit refund record. You can then add deductions for any damages or unpaid amounts, and {tenantName} will be notified to review.
+            Add any deductions for damages or unpaid amounts, then submit them to {tenantName} for review.
+            If there is nothing to deduct, refund the full deposit.
           </p>
-          {error && <p className="text-[#f87171] text-sm mb-3">{error}</p>}
-          <button
-            onClick={createRefund}
-            disabled={loading}
-            className="bg-gradient-to-br from-[#C49A3C] to-[#E8B84B] hover:opacity-90 disabled:opacity-50 text-[#1C2740] font-semibold px-6 py-2.5 rounded-lg text-sm"
-          >
-            {loading ? 'Creating…' : '→ Start Settlement'}
-          </button>
+
+          {draftDeductions.length > 0 && (
+            <div className="mb-4 space-y-2">
+              {draftDeductions.map((d, i) => (
+                <div key={i} className="flex items-start justify-between gap-4 border-b border-white/[0.06] py-2 last:border-0">
+                  <div className="min-w-0">
+                    <p className="text-sm text-white">{d.reason}</p>
+                    {d.photoIds.length > 0 && (
+                      <p className="text-xs text-white/40">{d.photoIds.length} evidence photo(s)</p>
+                    )}
+                  </div>
+                  <div className="flex shrink-0 items-center gap-3">
+                    <span className="text-sm font-semibold text-white">{formatRM(d.amount)}</span>
+                    <button
+                      onClick={() => setDraftDeductions((prev) => prev.filter((_, j) => j !== i))}
+                      className="text-xs text-[#f87171]/60 hover:text-[#f87171]"
+                    >
+                      Remove
+                    </button>
+                  </div>
+                </div>
+              ))}
+              <div className="flex justify-between pt-1 text-sm">
+                <span className="text-white/50">Total deductions</span>
+                <span className="font-semibold text-white">{formatRM(draftTotal)}</span>
+              </div>
+            </div>
+          )}
+
+          <div className="border-t border-[rgba(196,154,60,0.1)] pt-4">
+            <p className="text-xs font-semibold text-white/40 uppercase tracking-wider mb-3">Add Deduction</p>
+            {renderDeductionFields(addDraftDeduction, false, '+ Add')}
+          </div>
+
+          {error && <p className="text-[#f87171] text-sm mt-4">{error}</p>}
+
+          <div className="mt-6 flex justify-end">
+            <button
+              onClick={createRefund}
+              disabled={loading}
+              className="bg-gradient-to-br from-[#C49A3C] to-[#E8B84B] hover:opacity-90 disabled:opacity-50 text-[#1C2740] font-semibold px-6 py-2.5 rounded-lg text-sm"
+            >
+              {loading
+                ? 'Submitting…'
+                : draftDeductions.length > 0
+                  ? `Submit ${draftDeductions.length} deduction(s) to tenant`
+                  : 'Refund full deposit (no deductions)'}
+            </button>
+          </div>
         </div>
       </div>
     );
@@ -350,67 +522,7 @@ export default function DepositSettlementClient({
         {canAddDeductions && (
           <div className="border-t border-[rgba(196,154,60,0.1)] pt-4">
             <p className="text-xs font-semibold text-white/40 uppercase tracking-wider mb-3">Add Deduction</p>
-            <div className="space-y-3">
-              <input
-                type="text"
-                value={newReason}
-                onChange={(e) => setNewReason(e.target.value)}
-                placeholder="Reason (e.g. damaged bedroom door, RM 350)"
-                className="w-full rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-sm text-white placeholder:text-white/20 focus:border-[rgba(196,154,60,0.5)] focus:outline-none focus:ring-0 transition-colors"
-              />
-              <div className="flex gap-2">
-                <input
-                  type="number"
-                  value={newAmount}
-                  onChange={(e) => setNewAmount(e.target.value)}
-                  placeholder="Amount (RM)"
-                  min="0"
-                  step="0.01"
-                  className="flex-1 rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-sm text-white placeholder:text-white/20 focus:border-[rgba(196,154,60,0.5)] focus:outline-none focus:ring-0 transition-colors"
-                />
-                <button
-                  onClick={addDeduction}
-                  disabled={addingDeduction || !newReason.trim() || !newAmount}
-                  className="bg-gradient-to-br from-[#C49A3C] to-[#E8B84B] hover:opacity-90 disabled:opacity-50 text-[#1C2740] font-semibold px-4 py-2 rounded-lg text-sm"
-                >
-                  {addingDeduction ? '…' : '+ Add'}
-                </button>
-              </div>
-
-              {/* Move-out photo references */}
-              {moveOutPhotos.length > 0 && (
-                <div>
-                  <p className="text-xs text-white/40 mb-1.5">Attach move-out photos as evidence (optional)</p>
-                  <div className="flex flex-wrap gap-2">
-                    {moveOutPhotos.map((photo) => (
-                      <label key={photo.id} className="cursor-pointer">
-                        <input
-                          type="checkbox"
-                          className="sr-only"
-                          checked={selectedPhotos.includes(photo.id)}
-                          onChange={(e) =>
-                            setSelectedPhotos((prev) =>
-                              e.target.checked ? [...prev, photo.id] : prev.filter((id) => id !== photo.id)
-                            )
-                          }
-                        />
-                        <div className={`relative w-14 h-14 rounded-lg overflow-hidden border-2 transition-colors ${selectedPhotos.includes(photo.id) ? 'border-[#C49A3C]' : 'border-[rgba(196,154,60,0.15)]'}`}>
-                          {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img src={photo.imageUrl} alt={photo.area} className="w-full h-full object-cover" />
-                          {selectedPhotos.includes(photo.id) && (
-                            <div className="absolute inset-0 bg-[#C49A3C]/20 flex items-center justify-center">
-                              <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
-                              </svg>
-                            </div>
-                          )}
-                        </div>
-                      </label>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
+            {renderDeductionFields(addDeduction, addingDeduction, '+ Add')}
           </div>
         )}
       </div>

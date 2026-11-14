@@ -6,9 +6,11 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { syncRoomAvailability } from '@/lib/roomAvailability';
 import { createNotification } from '@/lib/notifications';
 import { z } from 'zod';
 import { validateRenewalPeriod } from '@/lib/tenancyLifecycle';
+import { tenantTenancyHref } from '@/lib/tenantLinks';
 
 const renewSchema = z.object({
   startDate: z.string().datetime(),
@@ -34,7 +36,19 @@ export async function POST(
       room: { property: { landlordId: session.user.id } },
       status: { in: ['ACTIVE', 'EXPIRED'] },
     },
-    select: { id: true, roomId: true, tenantId: true, endDate: true },
+    select: {
+      id: true,
+      roomId: true,
+      tenantId: true,
+      endDate: true,
+      leasePartyType: true,
+      companyName: true,
+      companyRegistrationNo: true,
+      authorizedSignatoryName: true,
+      authorizedSignatoryIC: true,
+      authorizedSignatoryRole: true,
+      authorizedSignatoryUserId: true,
+    },
   });
 
   if (!tenancy) return NextResponse.json({ error: 'Tenancy not found or not eligible for renewal' }, { status: 404 });
@@ -55,8 +69,24 @@ export async function POST(
   if (validationError)
     return NextResponse.json({ error: validationError }, { status: 400 });
 
-  const [renewal] = await prisma.$transaction([
-    prisma.tenancy.create({
+  // Only one open renewal per tenancy, and the room must not be held by any
+  // tenancy other than the one being renewed.
+  const conflicting = await prisma.tenancy.findFirst({
+    where: {
+      roomId: tenancy.roomId,
+      id: { not: tenancy.id },
+      status: { in: ['INVITED', 'PENDING', 'ACTIVE'] },
+    },
+    select: { id: true },
+  });
+  if (conflicting)
+    return NextResponse.json(
+      { error: 'This room already has a pending renewal or another open tenancy.' },
+      { status: 409 },
+    );
+
+  const renewal = await prisma.$transaction(async (tx) => {
+    const created = await tx.tenancy.create({
       data: {
         roomId: tenancy.roomId,
         tenantId: tenancy.tenantId,
@@ -66,14 +96,20 @@ export async function POST(
         depositAmount,
         status: 'INVITED',
         renewalOfTenancyId: tenancy.id,
+        // Carry the lease party over so a corporate lease renews as corporate.
+        leasePartyType: tenancy.leasePartyType,
+        companyName: tenancy.companyName,
+        companyRegistrationNo: tenancy.companyRegistrationNo,
+        authorizedSignatoryName: tenancy.authorizedSignatoryName,
+        authorizedSignatoryIC: tenancy.authorizedSignatoryIC,
+        authorizedSignatoryRole: tenancy.authorizedSignatoryRole,
+        authorizedSignatoryUserId: tenancy.authorizedSignatoryUserId,
       },
       select: { id: true },
-    }),
-    prisma.room.update({
-      where: { id: tenancy.roomId },
-      data: { isAvailable: false },
-    }),
-  ]);
+    });
+    await syncRoomAvailability(tx, tenancy.roomId);
+    return created;
+  });
 
   // Notify tenant of renewal invitation (non-blocking)
   createNotification(
@@ -81,7 +117,7 @@ export async function POST(
     'INVITATION_RECEIVED',
     'Tenancy renewal offer',
     'Your landlord has offered to renew your tenancy. Review the new terms and accept or decline.',
-    `/dashboard/tenant/tenancy`,
+    tenantTenancyHref(renewal.id),
   );
 
   return NextResponse.json({ tenancyId: renewal.id }, { status: 201 });

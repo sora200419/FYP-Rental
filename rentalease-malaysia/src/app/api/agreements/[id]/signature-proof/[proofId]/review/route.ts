@@ -7,6 +7,7 @@ import { buildAgreementEvent } from '@/lib/agreements/history';
 import { buildRentScheduleEntries } from '@/lib/payments';
 import { sendAgreementSignedEmail } from '@/lib/email';
 import { getTenancyStatusAfterAgreementSignatureApproval } from '@/lib/tenancyLifecycle';
+import { tenantTenancyHref } from '@/lib/tenantLinks';
 
 export async function PATCH(
   request: Request,
@@ -116,7 +117,7 @@ export async function PATCH(
       'AGREEMENT_SIGNATURE_PROOF_REJECTED',
       'Signed agreement copy rejected',
       `Your uploaded signed copy for ${agreement.tenancy.room.property.address} was rejected. Reason: ${trimmedReason}`,
-      '/dashboard/tenant/tenancy',
+      tenantTenancyHref(agreement.tenancyId),
     );
 
     return NextResponse.json({ ok: true, status: 'PENDING_SIGNATURE_PROOF' });
@@ -186,7 +187,7 @@ export async function PATCH(
     tenancyWillBeActive
       ? `Your signed agreement for ${agreement.tenancy.room.property.address} has been approved by the landlord. The tenancy is now active and move-in can start.`
       : `Your signed agreement for ${agreement.tenancy.room.property.address} has been approved by the landlord. Upload your deposit proof and wait for landlord confirmation before move-in condition photos.`,
-    '/dashboard/tenant/tenancy',
+    tenantTenancyHref(agreement.tenancyId),
   );
 
   sendAgreementSignedEmail(
@@ -195,6 +196,7 @@ export async function PATCH(
     agreement.tenancy.tenant.name,
     agreement.tenancy.room.property.address,
     agreement.tenancyId,
+    tenancyWillBeActive,
   ).catch(console.error);
 
   return NextResponse.json({ ok: true, status: 'SIGNED' });

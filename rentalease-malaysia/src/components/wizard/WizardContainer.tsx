@@ -3,7 +3,7 @@
 import { useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import type { AgreementPreferences } from '@prisma/client';
-import { type WizardFormData, DEFAULT_FORM } from './WizardTypes';
+import { type WizardFormData, DEFAULT_FORM, getInitialWizardStep } from './WizardTypes';
 import { Step1HouseRules } from './Step1HouseRules';
 import { Step2Utilities } from './Step2Utilities';
 import { Step3Financial } from './Step3Financial';
@@ -85,7 +85,7 @@ const STEP_TITLES = [
 
 export function WizardContainer({ tenancyId, roomMeta, existingPreferences }: WizardContainerProps) {
   const router = useRouter();
-  const [step, setStep] = useState(existingPreferences?.completedSteps ?? 0);
+  const [step, setStep] = useState(() => getInitialWizardStep(existingPreferences?.completedSteps));
   const currentStep = step + 1; // 1-indexed for display
 
   const [form, setForm] = useState<WizardFormData>(() =>

@@ -13,8 +13,11 @@ import LandlordAgreementSignatureProofReview from '@/components/ui/LandlordAgree
 import CorporateOccupantRosterManager from '@/components/ui/CorporateOccupantRosterManager';
 import PropertyCover from '@/components/ui/PropertyCover';
 import { PageHeader } from '@/components/ui/RedesignPrimitives';
-import { getPropertyCover, TENANCY_STEPS, getTenancyStep } from '@/lib/uiRedesign';
+import { getPropertyCover, getTenancyStepLabels, getTenancyStep } from '@/lib/uiRedesign';
 import { getDepositSettlementEntry } from '@/lib/depositSettlementWorkflow';
+import { getUnstartedTenancyCancellationBlocker } from '@/lib/tenancyLifecycle';
+import CancelTenancyButton from '@/components/ui/CancelTenancyButton';
+import { toLanguage } from '@/lib/i18n';
 
 const PILL_BASE = 'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium';
 
@@ -57,6 +60,7 @@ export default async function TenancyDetailPage({
 }) {
   const session = await getServerSession(authOptions);
   if (!session || session.user.role !== 'LANDLORD') redirect('/login');
+  const lang = toLanguage(session.user.language);
 
   const { id } = await params;
 
@@ -89,7 +93,6 @@ export default async function TenancyDetailPage({
             orderBy: { createdAt: 'desc' },
             select: {
               id: true,
-              fileUrl: true,
               originalName: true,
               mimeType: true,
               fileSize: true,
@@ -118,6 +121,11 @@ export default async function TenancyDetailPage({
         },
       },
       coTenants: { orderBy: { createdAt: 'asc' } },
+      renewalBy: {
+        where: { status: { in: ['INVITED', 'PENDING', 'ACTIVE'] } },
+        select: { id: true },
+        take: 1,
+      },
     },
   });
 
@@ -148,6 +156,16 @@ export default async function TenancyDetailPage({
     (new Date(tenancy.endDate).getTime() - now.getTime()) / (1000 * 60 * 60 * 24),
   );
   const isEndingSoon = tenancy.status === 'ACTIVE' && daysUntilEnd <= 30 && daysUntilEnd > 0;
+
+  const isUnstarted = tenancy.status === 'INVITED' || tenancy.status === 'PENDING';
+  const cancelBlocker = isUnstarted
+    ? getUnstartedTenancyCancellationBlocker({
+        tenancyStatus: tenancy.status,
+        depositStatus: tenancy.depositStatus,
+        agreementStatus: tenancy.agreement?.status,
+      })
+    : null;
+  const openRenewal = tenancy.renewalBy[0] ?? null;
 
   const hasMoveOutReport = tenancy.conditionReports.some((r) => r.type === 'MOVE_OUT');
   const acknowledgedMoveOut = tenancy.conditionReports.find(
@@ -189,7 +207,7 @@ export default async function TenancyDetailPage({
 
       {/* 5-step progress timeline */}
       <div className="mb-6 grid gap-2 sm:grid-cols-5">
-        {TENANCY_STEPS.map((step, index) => (
+        {getTenancyStepLabels(lang).map((step, index) => (
           <div
             key={step}
             className={`rounded-lg border px-3 py-2 text-center text-xs font-semibold ${
@@ -349,6 +367,22 @@ export default async function TenancyDetailPage({
                   {depositSettlementEntry.description}
                 </p>
               )}
+              {tenancy.status === 'EXPIRED' &&
+                (openRenewal ? (
+                  <Link
+                    href={`/dashboard/landlord/tenancies/${openRenewal.id}`}
+                    className="text-sm font-medium text-[#C49A3C] hover:underline mt-2 block"
+                  >
+                    View the renewal offer →
+                  </Link>
+                ) : (
+                  <Link
+                    href={`/dashboard/landlord/tenancies/${id}/renew`}
+                    className="text-sm font-medium text-[#C49A3C] hover:underline mt-2 block"
+                  >
+                    Offer the same tenant a renewal →
+                  </Link>
+                ))}
             </div>
           </div>
         )}
@@ -366,6 +400,19 @@ export default async function TenancyDetailPage({
                 An invitation has been sent to {tenancy.tenant.name}. You can generate an agreement once they accept.
               </p>
             </div>
+          </div>
+        )}
+
+        {/* Cancel an invitation / a tenancy that has not started */}
+        {isUnstarted && (
+          <div className="flex flex-col gap-2 rounded-lg border border-white/10 bg-white/[0.03] px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-xs text-white/50">
+              {cancelBlocker ??
+                'Changed your mind? You can cancel until the tenant pays the deposit or signs the agreement.'}
+            </p>
+            {!cancelBlocker && (
+              <CancelTenancyButton tenancyId={id} isInvitation={tenancy.status === 'INVITED'} />
+            )}
           </div>
         )}
 

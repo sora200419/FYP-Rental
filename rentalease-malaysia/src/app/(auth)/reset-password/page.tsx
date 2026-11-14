@@ -5,11 +5,12 @@ import Link from 'next/link';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
+import { passwordSchema, PASSWORD_MIN_LENGTH } from '@/lib/passwordPolicy';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { PasswordInput } from '@/components/ui/PasswordInput';
 
 const schema = z.object({
-  password: z.string().min(8, 'Password must be at least 8 characters'),
+  password: passwordSchema,
   confirm: z.string(),
 }).refine((d) => d.password === d.confirm, {
   message: 'Passwords do not match',
@@ -68,7 +69,7 @@ function ResetPasswordForm() {
       <PasswordInput
         registration={register('password')}
         label="New Password"
-        placeholder="Min. 8 characters"
+        placeholder={`Min. ${PASSWORD_MIN_LENGTH} characters`}
         error={errors.password?.message}
       />
       <PasswordInput

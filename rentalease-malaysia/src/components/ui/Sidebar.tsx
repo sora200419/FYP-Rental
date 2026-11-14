@@ -4,6 +4,8 @@ import { useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter, usePathname } from 'next/navigation';
 import { signOut, useSession } from 'next-auth/react';
+import { useT } from '@/components/providers/LanguageProvider';
+import type { MessageKey } from '@/lib/i18n';
 
 // ── Inline SVG icons ────────────────────────────────────────────────────────
 
@@ -82,30 +84,30 @@ function LogOutIcon({ className }: { className?: string }) {
 
 // ── Nav link definitions ────────────────────────────────────────────────────
 
-interface NavLink { href: string; label: string; Icon: React.FC<{ className?: string }> }
+interface NavLink { href: string; labelKey: MessageKey; Icon: React.FC<{ className?: string }> }
 
 const landlordLinks: NavLink[] = [
-  { href: '/dashboard/landlord',             label: 'Dashboard',   Icon: HomeIcon },
-  { href: '/dashboard/landlord/properties',  label: 'Properties',  Icon: BuildingIcon },
-  { href: '/dashboard/landlord/tenancies',   label: 'Tenancies',   Icon: UsersIcon },
-  { href: '/dashboard/landlord/payments',    label: 'Payments',    Icon: CreditCardIcon },
-  { href: '/dashboard/landlord/messages',    label: 'Messages',    Icon: MessageIcon },
+  { href: '/dashboard/landlord',             labelKey: 'nav_dashboard',   Icon: HomeIcon },
+  { href: '/dashboard/landlord/properties',  labelKey: 'nav_properties',  Icon: BuildingIcon },
+  { href: '/dashboard/landlord/tenancies',   labelKey: 'nav_tenancies',   Icon: UsersIcon },
+  { href: '/dashboard/landlord/payments',    labelKey: 'nav_payments',    Icon: CreditCardIcon },
+  { href: '/dashboard/landlord/messages',    labelKey: 'nav_messages',    Icon: MessageIcon },
 ];
 
 const tenantLinks: NavLink[] = [
-  { href: '/dashboard/tenant',              label: 'Dashboard',   Icon: HomeIcon },
-  { href: '/dashboard/tenant/tenancy',      label: 'My Tenancy',  Icon: FileTextIcon },
-  { href: '/dashboard/tenant/payments',     label: 'Payments',    Icon: CreditCardIcon },
-  { href: '/dashboard/tenant/conditions',   label: 'Conditions',  Icon: CheckSquareIcon },
-  { href: '/dashboard/tenant/messages',     label: 'Messages',    Icon: MessageIcon },
+  { href: '/dashboard/tenant',              labelKey: 'nav_dashboard',   Icon: HomeIcon },
+  { href: '/dashboard/tenant/tenancy',      labelKey: 'nav_my_tenancy',  Icon: FileTextIcon },
+  { href: '/dashboard/tenant/payments',     labelKey: 'nav_payments',    Icon: CreditCardIcon },
+  { href: '/dashboard/tenant/conditions',   labelKey: 'nav_conditions',  Icon: CheckSquareIcon },
+  { href: '/dashboard/tenant/messages',     labelKey: 'nav_messages',    Icon: MessageIcon },
 ];
 
 const adminLinks: NavLink[] = [
-  { href: '/dashboard/admin',            label: 'Dashboard',           Icon: HomeIcon },
-  { href: '/dashboard/admin/kyc',        label: 'KYC Verification',    Icon: ShieldIcon },
-  { href: '/dashboard/admin/properties', label: 'Property Verification', Icon: CheckSquareIcon },
-  { href: '/dashboard/admin/users',      label: 'Users',               Icon: UsersIcon },
-  { href: '/dashboard/admin/audit-log',  label: 'Audit Log',           Icon: FileTextIcon },
+  { href: '/dashboard/admin',            labelKey: 'nav_dashboard',           Icon: HomeIcon },
+  { href: '/dashboard/admin/kyc',        labelKey: 'nav_kyc',    Icon: ShieldIcon },
+  { href: '/dashboard/admin/properties', labelKey: 'nav_property_verification', Icon: CheckSquareIcon },
+  { href: '/dashboard/admin/users',      labelKey: 'nav_users',               Icon: UsersIcon },
+  { href: '/dashboard/admin/audit-log',  labelKey: 'nav_audit_log',           Icon: FileTextIcon },
 ];
 
 // ── Sidebar inner content (shared between desktop aside and mobile drawer) ──
@@ -118,6 +120,7 @@ export function SidebarContent({ onClose }: SidebarContentProps) {
   const { data: session } = useSession();
   const pathname = usePathname();
   const router = useRouter();
+  const { t } = useT();
 
   const role = session?.user?.role;
 
@@ -146,12 +149,12 @@ export function SidebarContent({ onClose }: SidebarContentProps) {
 
       {/* Section label */}
       <p className="px-5 pt-5 pb-1.5 text-[10px] font-semibold text-white/30 uppercase tracking-wider shrink-0">
-        Navigation
+        {t('nav_navigation')}
       </p>
 
       {/* Nav links */}
       <nav className="flex-1 px-3 pb-4 space-y-0.5 overflow-y-auto">
-        {navLinks.map(({ href, label, Icon }) => {
+        {navLinks.map(({ href, labelKey, Icon }) => {
           const active = isActive(href);
           return (
             <Link
@@ -165,7 +168,7 @@ export function SidebarContent({ onClose }: SidebarContentProps) {
               }`}
             >
               <Icon className={`w-4 h-4 shrink-0 ${active ? 'text-[#C49A3C]' : 'text-white/30'}`} />
-              {label}
+              {t(labelKey)}
             </Link>
           );
         })}
@@ -183,8 +186,8 @@ export function SidebarContent({ onClose }: SidebarContentProps) {
               <p className="text-sm font-medium text-white truncate leading-tight">
                 {session.user.name}
               </p>
-              <p className="text-xs text-white/40 capitalize truncate leading-tight">
-                {role?.toLowerCase()}
+              <p className="text-xs text-white/40 truncate leading-tight">
+                {role ? t(`role_${role}` as MessageKey) : ''}
               </p>
             </div>
           </div>
@@ -201,8 +204,8 @@ export function SidebarContent({ onClose }: SidebarContentProps) {
               <p className="text-sm font-medium text-white truncate leading-tight">
                 {session.user.name}
               </p>
-              <p className="text-xs text-white/40 capitalize truncate leading-tight">
-                {role?.toLowerCase()}
+              <p className="text-xs text-white/40 truncate leading-tight">
+                {role ? t(`role_${role}` as MessageKey) : ''}
               </p>
             </div>
           </Link>
@@ -214,7 +217,7 @@ export function SidebarContent({ onClose }: SidebarContentProps) {
           className="flex w-full items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-red-400 hover:bg-red-900/20 hover:text-red-300 transition-colors"
         >
           <LogOutIcon className="w-4 h-4 shrink-0" />
-          Sign out
+          {t('nav_sign_out')}
         </button>
       </div>
     </>
@@ -268,11 +271,12 @@ export function MobileSidebarDrawer({
 // ── Hamburger / menu toggle button (used in top header bar) ─────────────────
 
 export function MenuToggleButton({ onClick }: { onClick: () => void }) {
+  const { t } = useT();
   return (
     <button
       onClick={onClick}
       className="p-1.5 rounded-lg text-white/40 hover:bg-white/5 transition-colors lg:hidden"
-      aria-label="Open navigation menu"
+      aria-label={t('nav_open_menu')}
     >
       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}

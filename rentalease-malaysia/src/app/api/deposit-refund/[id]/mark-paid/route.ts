@@ -5,11 +5,11 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { uploadRefundProof } from '@/lib/cloudinary';
+import { validateUpload } from '@/lib/uploadValidation';
 import { createNotification } from '@/lib/notifications';
 import { sendDepositRefundPaidEmail } from '@/lib/email';
+import { tenantTenancyHref } from '@/lib/tenantLinks';
 
-const MAX_FILE_SIZE = 10 * 1024 * 1024;
-const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'];
 
 export async function POST(
   request: NextRequest,
@@ -31,6 +31,7 @@ export async function POST(
     select: {
       id: true,
       refundAmount: true,
+      tenancyId: true,
       tenancy: { select: { tenantId: true } },
     },
   });
@@ -40,17 +41,15 @@ export async function POST(
   let formData: FormData;
   try { formData = await request.formData(); } catch { return NextResponse.json({ error: 'Invalid form data' }, { status: 400 }); }
 
-  const file = formData.get('file') as File | null;
-  if (!file) return NextResponse.json({ error: 'No file provided' }, { status: 400 });
-  if (file.size > MAX_FILE_SIZE) return NextResponse.json({ error: 'File too large (max 10 MB)' }, { status: 400 });
-  if (!ALLOWED_TYPES.includes(file.type)) return NextResponse.json({ error: 'Invalid file type' }, { status: 400 });
-
-  const bytes = await file.arrayBuffer();
-  const buffer = Buffer.from(bytes);
+  const validation = await validateUpload(formData.get('file'), {
+    allowed: ['jpeg', 'png', 'webp', 'pdf'],
+  });
+  if (!validation.ok) return NextResponse.json({ error: validation.error }, { status: 400 });
+  const file = validation.file;
 
   let url: string, publicId: string;
   try {
-    ({ url, publicId } = await uploadRefundProof(buffer, file.name));
+    ({ url, publicId } = await uploadRefundProof(file.buffer, file.mimeType));
   } catch {
     return NextResponse.json({ error: 'File upload failed. Please try again.' }, { status: 500 });
   }
@@ -73,7 +72,7 @@ export async function POST(
     'DEPOSIT_REFUND_PAID',
     'Deposit refund paid',
     `Your landlord has transferred your deposit refund of RM ${amountStr}. Proof of payment has been uploaded.`,
-    `/dashboard/tenant/tenancy`,
+    tenantTenancyHref(refund.tenancyId),
   );
 
   // Send email to tenant (non-blocking)
@@ -82,7 +81,12 @@ export async function POST(
     select: { email: true, name: true },
   });
   if (tenantUser) {
-    sendDepositRefundPaidEmail(tenantUser.email, tenantUser.name ?? 'Tenant', amountStr).catch(console.error);
+    sendDepositRefundPaidEmail(
+      tenantUser.email,
+      tenantUser.name ?? 'Tenant',
+      amountStr,
+      refund.tenancyId,
+    ).catch(console.error);
   }
 
   return NextResponse.json({ message: 'Deposit refund marked as paid' });

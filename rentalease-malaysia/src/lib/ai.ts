@@ -1,21 +1,130 @@
-import { GoogleGenerativeAI } from '@google/generative-ai';
+// AI features (agreement generation, AI assist, analysis, term extraction and
+// Bahasa Malaysia translation) on Claude via the Anthropic SDK.
+import Anthropic from '@anthropic-ai/sdk';
+import { zodOutputFormat } from '@anthropic-ai/sdk/helpers/zod';
 import type { AgreementPreferences } from '@prisma/client';
 import { z } from 'zod';
 import { buildWizardPolicyBlock } from './wizardFormatters';
+import { redactIcNumbers, type IcRestoreMode } from './icRedaction';
 
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
-export const GEMINI_MODEL = 'gemini-2.5-flash';
+// Claude Haiku 5.5: fast and inexpensive, with 1M context and 128K output —
+// enough for a full tenancy agreement. Change here to use a larger model.
+export const AI_MODEL = 'claude-haiku-5-5';
 
-// Upper bound on the agreement text we send to Gemini. A typical Malaysian
+type Effort = 'low' | 'medium' | 'high';
+
+// Created on first use so that importing this module (e.g. during `next build`)
+// does not require ANTHROPIC_API_KEY to be set.
+let anthropic: Anthropic | null = null;
+function getClient(): Anthropic {
+  anthropic ??= new Anthropic();
+  return anthropic;
+}
+
+/** Thrown when Claude declines a request (stop_reason "refusal"). */
+export class AiRefusalError extends Error {}
+
+type JsonOutputFormat = Anthropic.Messages.JSONOutputFormat;
+
+type RestoreIcNumbers = (output: string, mode: IcRestoreMode) => string;
+
+// Malaysian IC numbers never leave the server: they are replaced by
+// placeholders before the request (see lib/icRedaction.ts), and this tells the
+// model how to treat them.
+const SYSTEM_PROMPT = `Malaysian IC/NRIC numbers in the input have been replaced by placeholders such as [[IC_1]]. Wherever one of those numbers belongs in your output, write its placeholder exactly as given. Never invent or alter identification numbers.`;
+
+// Runs one request and returns the response text plus a function that puts
+// the real IC numbers back. Always streams: agreement generation and AI assist
+// return long documents, and streaming avoids HTTP timeouts on large
+// max_tokens values.
+async function runClaude(options: {
+  prompt: string;
+  maxTokens: number;
+  effort: Effort;
+  format?: JsonOutputFormat;
+}): Promise<{ text: string; restore: RestoreIcNumbers }> {
+  const redacted = redactIcNumbers(options.prompt);
+  const stream = getClient().messages.stream({
+    model: AI_MODEL,
+    max_tokens: options.maxTokens,
+    system: SYSTEM_PROMPT,
+    messages: [{ role: 'user', content: redacted.text }],
+    output_config: {
+      effort: options.effort,
+      ...(options.format ? { format: options.format } : {}),
+    },
+  });
+  const message = await stream.finalMessage();
+
+  // Check why the model stopped before reading content: a refusal or a
+  // response cut off at max_tokens would otherwise surface as a parse error.
+  if (message.stop_reason === 'refusal') {
+    throw new AiRefusalError(
+      `Claude declined the request${message.stop_details?.category ? ` (${message.stop_details.category})` : ''}.`,
+    );
+  }
+  if (message.stop_reason === 'max_tokens') {
+    throw new Error('The AI response was cut off before it finished.');
+  }
+
+  // Responses can start with (empty) thinking blocks — read text blocks only.
+  const text = message.content
+    .filter((block): block is Anthropic.Messages.TextBlock => block.type === 'text')
+    .map((block) => block.text)
+    .join('');
+  return { text, restore: redacted.restore };
+}
+
+/**
+ * Free-text completion, e.g. the AI-assist rewrite of an agreement. IC numbers
+ * are restored in full, since the result replaces the agreement text.
+ */
+export async function generateText(
+  prompt: string,
+  options: { maxTokens?: number; effort?: Effort } = {},
+): Promise<string> {
+  const { text, restore } = await runClaude({
+    prompt,
+    maxTokens: options.maxTokens ?? 64000,
+    effort: options.effort ?? 'medium',
+  });
+  return restore(text, 'full');
+}
+
+// JSON output constrained to a Zod schema (structured outputs). The SDK's
+// auto-parser is removed from the format so that stop_reason is checked
+// before the text is parsed and validated.
+async function generateStructured<Schema extends z.ZodType>(
+  schema: Schema,
+  prompt: string,
+  options: { maxTokens: number; effort: Effort },
+): Promise<{ data: z.infer<Schema>; restore: RestoreIcNumbers }> {
+  const { parse, ...format } = zodOutputFormat(schema);
+  const { text, restore } = await runClaude({ prompt, format, ...options });
+  return { data: parse(text), restore };
+}
+
+type RedFlag = z.infer<typeof redFlagSchema>;
+
+// Red flags and summaries are shown to both parties: never with full IC numbers.
+function maskRedFlags(flags: RedFlag[], restore: RestoreIcNumbers): RedFlag[] {
+  return flags.map((flag) => ({
+    ...flag,
+    clause: restore(flag.clause, 'masked'),
+    issue: restore(flag.issue, 'masked'),
+    recommendation: restore(flag.recommendation, 'masked'),
+  }));
+}
+
+// Upper bound on the agreement text sent to the model. A typical Malaysian
 // residential tenancy agreement is 8-15 KB; 50 KB is generous headroom while
-// capping abuse / runaway prompts. Truncating client-side before sending also
-// avoids paying for tokens we don't intend to use.
-const MAX_AGREEMENT_CHARS_FOR_GEMINI = 50_000;
+// capping abuse / runaway prompts and the tokens we pay for.
+export const MAX_AGREEMENT_CHARS_FOR_MODEL = 50_000;
 
 function truncateForModel(content: string): string {
-  if (content.length <= MAX_AGREEMENT_CHARS_FOR_GEMINI) return content;
+  if (content.length <= MAX_AGREEMENT_CHARS_FOR_MODEL) return content;
   return (
-    content.slice(0, MAX_AGREEMENT_CHARS_FOR_GEMINI) +
+    content.slice(0, MAX_AGREEMENT_CHARS_FOR_MODEL) +
     '\n[... truncated to protect token budget ...]'
   );
 }
@@ -84,42 +193,6 @@ export interface AgreementAnalysis {
 export interface TranslatedOutputs {
   plainLanguageSummaryMs: string;
   redFlagsMs: string;
-}
-
-function cleanGeminiJson(text: string): string {
-  let s = text.trim();
-  // Strip markdown code fences that occasionally leak through even with responseMimeType
-  s = s.replace(/^```(?:json)?\r?\n?/, '').replace(/\r?\n?```\s*$/, '');
-  // Replace illegal JSON control characters (U+0000–U+001F except tab \x09,
-  // newline \x0A, carriage-return \x0D) with a space to prevent parse errors
-  s = s.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, ' ');
-  return s;
-}
-
-function normalizeStringContent(value: unknown): string {
-  if (typeof value === 'string') {
-    return value;
-  }
-
-  if (Array.isArray(value)) {
-    return value
-      .map((item) => normalizeStringContent(item))
-      .filter(Boolean)
-      .join('\n\n');
-  }
-
-  if (value && typeof value === 'object') {
-    return Object.entries(value as Record<string, unknown>)
-      .map(([key, item]) => {
-        const normalized = normalizeStringContent(item);
-        if (!normalized) return '';
-        return `${key.replace(/_/g, ' ')}: ${normalized}`;
-      })
-      .filter(Boolean)
-      .join('\n\n');
-  }
-
-  return '';
 }
 
 function formatRoomType(rt: string): string {
@@ -199,14 +272,6 @@ export async function generateTenancyAgreement(
   tenancy: TenancyForAgreement,
   preferences?: AgreementPreferences | null,
 ): Promise<GeneratedAgreement> {
-  const model = genAI.getGenerativeModel({
-    model: GEMINI_MODEL,
-    generationConfig: {
-      responseMimeType: 'application/json',
-      maxOutputTokens: 16384,
-    },
-  });
-
   const startDate = new Date(tenancy.startDate).toLocaleDateString('en-MY', {
     day: 'numeric',
     month: 'long',
@@ -349,7 +414,7 @@ ${individualIdentityBlock}
 ${corporateIdentityBlock}
 ${coTenantsBlock}
 ${corporateLeasePartyBlock}
-The rawContent must include a dedicated "Parties and Identity Details" section using the full identity details provided above. Do not mask IC/NRIC numbers in rawContent. Do not repeat full IC/NRIC numbers in plainLanguageSummary or redFlags unless legally necessary.
+The rawContent must include a dedicated "Parties and Identity Details" section using the identity details provided above, with each IC/NRIC placeholder written exactly where that party's number belongs. Do not repeat IC/NRIC numbers in plainLanguageSummary or redFlags.
 
 FINANCIAL TERMS
 - Tenancy Start Date: ${startDate}
@@ -397,30 +462,29 @@ For "plainLanguageSummary": For each numbered clause, write 2-3 sentences in pla
 For "redFlags": Analyse the agreement and identify clauses that could disadvantage either party or create legal ambiguity under Malaysian law. Pay particular attention to: deposit refund conditions, utility responsibility ambiguity, occupancy limit enforcement, and subletting prohibition scope. Return as a JSON array (can be empty []).
 `;
 
-  const geminiResponseSchema = z.object({
+  const agreementSchema = z.object({
     rawContent: z.string().min(200, 'Agreement content is too short'),
     plainLanguageSummary: z.string().min(50, 'Summary is too short'),
     redFlags: z.array(redFlagSchema),
   });
 
   try {
-    const result = await model.generateContent(prompt);
-    const text = result.response.text();
-    const raw = JSON.parse(cleanGeminiJson(text));
-    const normalizedRaw = {
-      ...raw,
-      rawContent: normalizeStringContent(raw.rawContent),
-      plainLanguageSummary: normalizeStringContent(raw.plainLanguageSummary),
-    };
-    const validated = geminiResponseSchema.parse(normalizedRaw);
+    // A full agreement plus summary and red flags is long; streaming with a
+    // generous max_tokens leaves room for both the thinking and the output.
+    const { data, restore } = await generateStructured(agreementSchema, prompt, {
+      maxTokens: 64000,
+      effort: 'medium',
+    });
 
+    // The agreement itself carries the parties' full IC numbers (put back
+    // here, on our server); the summary and red flags only ever show them masked.
     return {
-      rawContent: validated.rawContent,
-      plainLanguageSummary: validated.plainLanguageSummary,
-      redFlags: JSON.stringify(validated.redFlags),
+      rawContent: restore(data.rawContent, 'full'),
+      plainLanguageSummary: restore(data.plainLanguageSummary, 'masked'),
+      redFlags: JSON.stringify(maskRedFlags(data.redFlags, restore)),
     };
   } catch (error) {
-    console.error('Gemini generation error:', error);
+    console.error('AI agreement generation error:', error);
     throw new Error('Failed to generate agreement. Please try again.');
   }
 }
@@ -428,13 +492,6 @@ For "redFlags": Analyse the agreement and identify clauses that could disadvanta
 export async function analyzeAgreementContent(
   rawContent: string,
 ): Promise<AgreementAnalysis> {
-  const model = genAI.getGenerativeModel({
-    model: GEMINI_MODEL,
-    generationConfig: {
-      responseMimeType: 'application/json',
-    },
-  });
-
   const prompt = `
 You are a Malaysian legal document assistant specialising in residential tenancy agreements.
 
@@ -469,21 +526,17 @@ ${truncateForModel(rawContent)}
   });
 
   try {
-    const result = await model.generateContent(prompt);
-    const text = result.response.text();
-    const raw = JSON.parse(cleanGeminiJson(text));
-    const normalizedRaw = {
-      ...raw,
-      plainLanguageSummary: normalizeStringContent(raw.plainLanguageSummary),
-    };
-    const validated = analysisSchema.parse(normalizedRaw);
+    const { data, restore } = await generateStructured(analysisSchema, prompt, {
+      maxTokens: 16000,
+      effort: 'medium',
+    });
 
     return {
-      plainLanguageSummary: validated.plainLanguageSummary,
-      redFlags: JSON.stringify(validated.redFlags),
+      plainLanguageSummary: restore(data.plainLanguageSummary, 'masked'),
+      redFlags: JSON.stringify(maskRedFlags(data.redFlags, restore)),
     };
   } catch (error) {
-    console.error('Gemini agreement analysis error:', error);
+    console.error('AI agreement analysis error:', error);
     throw new Error('Failed to refresh AI analysis.');
   }
 }
@@ -492,11 +545,6 @@ export async function translateAgreementOutputs(
   plainLanguageSummary: string,
   redFlagsJson: string,
 ): Promise<TranslatedOutputs> {
-  const model = genAI.getGenerativeModel({
-    model: GEMINI_MODEL,
-    generationConfig: { responseMimeType: 'application/json' },
-  });
-
   const prompt = `
 You are a professional translator specialising in legal and property documents.
 Translate the following Malaysian residential tenancy agreement summaries from
@@ -526,21 +574,23 @@ Respond ONLY with a valid JSON object containing exactly these two keys:
 }
 `;
 
-  try {
-    const result = await model.generateContent(prompt);
-    const text = result.response.text();
-    const parsed = JSON.parse(cleanGeminiJson(text));
+  const translationSchema = z.object({
+    plainLanguageSummaryMs: z.string().min(1),
+    redFlagsMs: z.array(redFlagSchema),
+  });
 
-    if (!parsed.plainLanguageSummaryMs || !Array.isArray(parsed.redFlagsMs)) {
-      throw new Error('Translation response missing required fields');
-    }
+  try {
+    const { data, restore } = await generateStructured(translationSchema, prompt, {
+      maxTokens: 16000,
+      effort: 'medium',
+    });
 
     return {
-      plainLanguageSummaryMs: parsed.plainLanguageSummaryMs,
-      redFlagsMs: JSON.stringify(parsed.redFlagsMs),
+      plainLanguageSummaryMs: restore(data.plainLanguageSummaryMs, 'masked'),
+      redFlagsMs: JSON.stringify(maskRedFlags(data.redFlagsMs, restore)),
     };
   } catch (error) {
-    console.error('Gemini translation error:', error);
+    console.error('AI translation error:', error);
     throw new Error('Failed to translate agreement outputs.');
   }
 }
@@ -554,8 +604,7 @@ export interface ExtractedTerms {
 
 /**
  * Reads a tenancy agreement's raw text and extracts the four key operational
- * terms. Uses a small Gemini call (maxOutputTokens: 256) since the output is
- * just a tiny JSON object.
+ * terms. The output is a tiny JSON object, so this runs at low effort.
  *
  * Returns null for any field the model cannot determine with confidence.
  * The caller is responsible for falling back to current system values when null.
@@ -563,17 +612,6 @@ export interface ExtractedTerms {
 export async function extractAgreementTerms(
   rawContent: string,
 ): Promise<ExtractedTerms> {
-  // No maxOutputTokens: gemini-2.5-flash is a thinking model whose thinking tokens are
-  // concatenated with the output by getText(). A tight cap causes the thinking content
-  // to bleed into the JSON response, producing malformed output. Omitting the cap
-  // (consistent with all other Gemini calls in this file) lets the model complete cleanly.
-  const model = genAI.getGenerativeModel({
-    model: GEMINI_MODEL,
-    generationConfig: {
-      responseMimeType: 'application/json',
-    },
-  });
-
   const prompt = `You are a legal document parser for Malaysian tenancy agreements.
 Extract the following key terms from the agreement text below.
 Return a single JSON object with exactly these four keys:
@@ -583,7 +621,6 @@ Return a single JSON object with exactly these four keys:
   "depositAmount" — security deposit amount as a plain number (no RM symbol), or null
 
 Rules:
-- Return ONLY the JSON object. No explanation, no markdown fences.
 - Dates MUST be in YYYY-MM-DD format (e.g. "2026-06-01").
 - Amounts MUST be plain numbers (e.g. 1500.00, not "RM 1,500").
 - If you cannot determine a value with confidence, return null for that key.
@@ -591,23 +628,26 @@ Rules:
 Agreement text:
 ${truncateForModel(rawContent)}`;
 
-  const result = await model.generateContent(prompt);
-  const text = result.response.text();
+  const termsSchema = z.object({
+    startDate: z.string().nullable(),
+    endDate: z.string().nullable(),
+    monthlyRent: z.number().nullable(),
+    depositAmount: z.number().nullable(),
+  });
 
-  let parsed: Record<string, unknown> = {};
+  let parsed: Partial<z.infer<typeof termsSchema>> = {};
   try {
-    parsed = JSON.parse(cleanGeminiJson(text));
-  } catch (parseErr) {
-    // If Gemini returns malformed JSON (e.g. thinking-part bleed-through), log for
-    // diagnostics and fall through with an empty object — all fields return null and
-    // the UI shows "AI couldn't determine — verify" labels on each field.
-    console.warn(
-      '[extractAgreementTerms] JSON parse failed. Raw response:',
-      text,
-    );
-    console.warn('[extractAgreementTerms] Parse error:', parseErr);
+    ({ data: parsed } = await generateStructured(termsSchema, prompt, {
+      maxTokens: 4096,
+      effort: 'low',
+    }));
+  } catch (error) {
+    // Fall through with an empty object: every field returns null and the UI
+    // shows "AI couldn't determine — verify" labels for the landlord to fill in.
+    console.warn('[extractAgreementTerms] AI extraction failed:', error);
   }
 
+  // The schema guarantees types; these checks enforce the formats and ranges.
   return {
     startDate:
       typeof parsed.startDate === 'string' &&

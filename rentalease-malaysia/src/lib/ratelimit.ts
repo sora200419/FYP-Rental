@@ -30,11 +30,20 @@ export const agreementAssistLimit = new Ratelimit({
 });
 
 // AI term extraction: 10 requests per agreement per hour. Modelled on
-// agreementAssistLimit because both call Gemini on the same content.
+// agreementAssistLimit because both call the AI model on the same content.
 export const agreementExtractTermsLimit = new Ratelimit({
   redis,
   limiter: Ratelimit.slidingWindow(10, '1 h'),
   prefix: 'rl:agreement:extract-terms',
+  analytics: true,
+});
+
+// AI analysis refresh: 10 requests per agreement per hour. Each request makes
+// two AI calls (analysis + Bahasa Malaysia translation).
+export const agreementAnalysisLimit = new Ratelimit({
+  redis,
+  limiter: Ratelimit.slidingWindow(10, '1 h'),
+  prefix: 'rl:agreement:analysis',
   analytics: true,
 });
 
@@ -83,6 +92,24 @@ export const kycSubmitRateLimit = new Ratelimit({
   redis,
   limiter: Ratelimit.slidingWindow(3, '1 h'),
   prefix: 'rl:kyc:submit',
+  analytics: true,
+});
+
+// Tenant lookup by email: 20 lookups per landlord per hour. Each lookup reveals
+// whether an email belongs to a registered tenant, so cap enumeration.
+export const tenantLookupRateLimit = new Ratelimit({
+  redis,
+  limiter: Ratelimit.slidingWindow(20, '1 h'),
+  prefix: 'rl:tenant-lookup',
+  analytics: true,
+});
+
+// File uploads other than KYC (proofs, photos): 30 per user per hour. Caps
+// Cloudinary storage and bandwidth abuse from a single account.
+export const uploadRateLimit = new Ratelimit({
+  redis,
+  limiter: Ratelimit.slidingWindow(30, '1 h'),
+  prefix: 'rl:upload',
   analytics: true,
 });
 

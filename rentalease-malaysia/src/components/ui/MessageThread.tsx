@@ -63,11 +63,13 @@ export default function MessageThread({
     return () => clearInterval(interval);
   }, [fetchMessages]);
 
-  // Auto-scroll to bottom whenever messages change —
-  // this is the expected behaviour in any chat interface.
+  // Auto-scroll to the bottom when a new message arrives. Polling replaces the
+  // array every 10 s even when nothing changed, so key off the newest id
+  // rather than the array itself — otherwise the page jumps on every poll.
+  const lastMessageId = messages.length > 0 ? messages[messages.length - 1].id : null;
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
+    if (lastMessageId) bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [lastMessageId]);
 
   const handleSend = async () => {
     const content = newMessage.trim();

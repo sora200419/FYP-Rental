@@ -156,13 +156,21 @@ export default async function TenantPaymentsPage() {
                           : 'Pending'}
                   </span>
                 </div>
-                <DepositProofUploader
-                  tenancyId={tenancy.id}
-                  depositStatus={tenancy.depositStatus}
-                  depositRejectionReason={tenancy.depositRejectionReason}
-                  existingProofs={tenancy.depositProofs}
-                  depositAmount={formatRM(tenancy.depositAmount)}
-                />
+                {/* Deposit proof can only be submitted while the tenancy is
+                    ongoing — the API rejects uploads for ended tenancies. */}
+                {tenancy.status === 'PENDING' || tenancy.status === 'ACTIVE' ? (
+                  <DepositProofUploader
+                    tenancyId={tenancy.id}
+                    depositStatus={tenancy.depositStatus}
+                    depositRejectionReason={tenancy.depositRejectionReason}
+                    existingProofs={tenancy.depositProofs}
+                    depositAmount={formatRM(tenancy.depositAmount)}
+                  />
+                ) : (
+                  <p className="text-xs text-white/40">
+                    This tenancy has ended — deposit proof can no longer be uploaded.
+                  </p>
+                )}
               </div>
 
               {tenancy.rentPayments.length === 0 ? (

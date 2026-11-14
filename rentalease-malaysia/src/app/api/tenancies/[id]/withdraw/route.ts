@@ -2,17 +2,21 @@
 // Tenant withdraws from a PENDING tenancy (accepted the invite but has not yet
 // signed the agreement). The INVITED → DECLINE path is handled by /respond.
 //
+// Not allowed once the deposit has been submitted or the agreement signed
+// (getUnstartedTenancyCancellationBlocker).
+//
 // Effects:
-//   - Deletes the tenancy (cascades delete Agreement, RentPayment, Message,
-//     ConditionReport, CoTenant rows automatically)
-//   - Frees the room (isAvailable = true)
+//   - Deletes the tenancy (cascades to Agreement, Message, CoTenant, etc.)
+//   - Recomputes room availability
 //   - Notifies the landlord
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { deleteUnstartedTenancy } from '@/lib/tenancyCancellation';
+import { getUnstartedTenancyCancellationBlocker } from '@/lib/tenancyLifecycle';
 import { createNotification } from '@/lib/notifications';
-import { logAudit, getIp } from '@/lib/audit';
+import { getIp } from '@/lib/audit';
 
 export async function DELETE(
   request: NextRequest,
@@ -30,6 +34,9 @@ export async function DELETE(
     select: {
       id: true,
       roomId: true,
+      status: true,
+      depositStatus: true,
+      agreement: { select: { status: true } },
       room: {
         select: {
           propertyId: true,
@@ -49,30 +56,23 @@ export async function DELETE(
   const landlordId = tenancy.room.property.landlordId;
   const propertyAddress = `${tenancy.room.property.address}, ${tenancy.room.property.city}`;
 
-  await logAudit({
+  const blocker = getUnstartedTenancyCancellationBlocker({
+    tenancyStatus: tenancy.status,
+    depositStatus: tenancy.depositStatus,
+    agreementStatus: tenancy.agreement?.status,
+  });
+  if (blocker) return NextResponse.json({ error: blocker }, { status: 409 });
+
+  await deleteUnstartedTenancy({
+    tenancyId: id,
     actorId: session.user.id,
     action: 'TENANCY_WITHDRAWN',
-    entityName: 'Tenancy',
-    entityId: id,
-    previousData: {
-      propertyId: tenancy.room.propertyId,
-      roomId: tenancy.roomId,
-      landlordId,
-    },
-    ipAddress: getIp(request),
     reason: 'WITHDRAWN',
+    ipAddress: getIp(request),
   });
 
-  await prisma.$transaction([
-    prisma.tenancy.delete({ where: { id } }),
-    prisma.room.update({
-      where: { id: tenancy.roomId },
-      data: { isAvailable: true },
-    }),
-  ]);
-
-  // Notify landlord (non-blocking)
-  createNotification(
+  // Notify landlord
+  await createNotification(
     landlordId,
     'INVITATION_RESPONDED',
     'Tenant withdrew from tenancy',
