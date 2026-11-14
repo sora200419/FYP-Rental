@@ -8,7 +8,7 @@ import {
   buildAgreementRevision,
 } from '@/lib/agreements/history';
 import { generateTenancyAgreement, translateAgreementOutputs } from '@/lib/gemini';
-import { agreementGenerateLimit } from '@/lib/ratelimit';
+import { agreementGenerateLimit, enforceLimit } from '@/lib/ratelimit';
 import { z } from 'zod';
 
 const bodySchema = z.object({
@@ -28,14 +28,13 @@ export async function POST(request: NextRequest) {
     const { tenancyId } = bodySchema.parse(body);
 
     // Rate limit: 5 agreement generations per tenancy per hour (IMP-02)
-    const { success, remaining } = await agreementGenerateLimit.limit(
+    const { allowed, message } = await enforceLimit(
+      agreementGenerateLimit,
       `${session.user.id}:${tenancyId}`,
+      'Too many agreement generations for this tenancy. Please wait up to an hour before regenerating.',
     );
-    if (!success) {
-      return NextResponse.json(
-        { error: `Too many requests. You can generate ${remaining} more time(s). Please wait before regenerating.` },
-        { status: 429 },
-      );
+    if (!allowed) {
+      return NextResponse.json({ error: message }, { status: 429 });
     }
 
     // Authorization chain: Tenancy → Room → Property → landlordId
@@ -101,12 +100,30 @@ export async function POST(request: NextRequest) {
 
     const existingAgreement = await prisma.agreement.findUnique({
       where: { tenancyId },
-      select: { id: true, negotiationNotes: true, negotiationRound: true },
+      select: { id: true, status: true, negotiationNotes: true, negotiationRound: true },
     });
 
-    // BUG-15: Cap negotiation rounds to prevent unlimited regeneration
+    // Once the tenant has signed (digitally or with an approved hard copy) the
+    // agreement text is fixed: its contentHash, signature audit trail and
+    // blockchain anchor all refer to that exact text. Regenerating would reset
+    // it to DRAFT while leaving that evidence pointing at different content.
+    if (
+      existingAgreement &&
+      (existingAgreement.status === 'SIGNED' ||
+        existingAgreement.status === 'PENDING_SIGNATURE_PROOF')
+    ) {
+      return NextResponse.json(
+        { error: 'This agreement has already been signed and cannot be regenerated.' },
+        { status: 409 },
+      );
+    }
+
+    // BUG-15: Cap negotiation rounds to prevent unlimited regeneration.
+    // negotiationRound starts at 1 on first generation and is incremented only
+    // when the tenant requests changes (see agreements/[id]/respond), so
+    // round - 1 is the number of change-request rounds so far.
     const MAX_NEGOTIATION_ROUNDS = 5;
-    if (existingAgreement && existingAgreement.negotiationRound >= MAX_NEGOTIATION_ROUNDS) {
+    if (existingAgreement && existingAgreement.negotiationRound - 1 > MAX_NEGOTIATION_ROUNDS) {
       return NextResponse.json(
         { error: `Maximum negotiation rounds (${MAX_NEGOTIATION_ROUNDS}) reached. Please contact support if further changes are needed.` },
         { status: 409 },
@@ -185,8 +202,6 @@ export async function POST(request: NextRequest) {
       console.error('Bilingual translation failed (non-blocking):', translationError);
     }
 
-    const nextRound = (existingAgreement?.negotiationRound ?? 0) + 1;
-
     const currentRevisionCount = existingAgreement
       ? await prisma.agreementRevision.count({
           where: { agreementId: existingAgreement.id },
@@ -213,7 +228,6 @@ export async function POST(request: NextRequest) {
           redFlags: generated.redFlags,
           redFlagsMs,
           status: 'DRAFT',
-          negotiationRound: nextRound,
           updatedAt: new Date(),
         },
         select: {

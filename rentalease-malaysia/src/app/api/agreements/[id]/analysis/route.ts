@@ -6,6 +6,7 @@ import {
   analyzeAgreementContent,
   translateAgreementOutputs,
 } from '@/lib/gemini';
+import { agreementAnalysisLimit, enforceLimit } from '@/lib/ratelimit';
 
 export async function POST(
   _request: NextRequest,
@@ -47,11 +48,20 @@ export async function POST(
     );
   }
 
-  if (agreement.status === 'SIGNED') {
+  if (agreement.status === 'SIGNED' || agreement.status === 'PENDING_SIGNATURE_PROOF') {
     return NextResponse.json(
       { error: 'Signed agreements do not support analysis refresh.' },
       { status: 409 },
     );
+  }
+
+  const { allowed, message } = await enforceLimit(
+    agreementAnalysisLimit,
+    `${session.user.id}:${agreementId}`,
+    'Too many analysis requests. Please wait before trying again.',
+  );
+  if (!allowed) {
+    return NextResponse.json({ error: message }, { status: 429 });
   }
 
   try {

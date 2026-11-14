@@ -6,6 +6,12 @@ import { buildWizardPolicyBlock } from './wizardFormatters';
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
 export const GEMINI_MODEL = 'gemini-2.5-flash';
 
+// Shared model handle for routes that build their own prompt (e.g. AI assist),
+// so the API key and client are configured in exactly one place.
+export function getGeminiModel() {
+  return genAI.getGenerativeModel({ model: GEMINI_MODEL });
+}
+
 // Upper bound on the agreement text we send to Gemini. A typical Malaysian
 // residential tenancy agreement is 8-15 KB; 50 KB is generous headroom while
 // capping abuse / runaway prompts. Truncating client-side before sending also

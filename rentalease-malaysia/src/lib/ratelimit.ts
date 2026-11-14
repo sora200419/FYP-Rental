@@ -38,6 +38,15 @@ export const agreementExtractTermsLimit = new Ratelimit({
   analytics: true,
 });
 
+// AI analysis refresh: 10 requests per agreement per hour. Each request makes
+// two Gemini calls (analysis + Bahasa Malaysia translation).
+export const agreementAnalysisLimit = new Ratelimit({
+  redis,
+  limiter: Ratelimit.slidingWindow(10, '1 h'),
+  prefix: 'rl:agreement:analysis',
+  analytics: true,
+});
+
 // Login: 5 attempts per (email, IP) tuple per 15 minutes. Keying on both prevents
 // an attacker from locking out a victim by spamming their email from one IP.
 // Falls back to email-only if IP is unavailable (better something than nothing).

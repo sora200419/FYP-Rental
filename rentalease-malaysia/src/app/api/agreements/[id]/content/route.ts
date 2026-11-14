@@ -59,10 +59,11 @@ export async function PATCH(
       { status: 404 },
     );
 
-  // A SIGNED agreement is a legally acknowledged document — it cannot be
-  // altered. If changes are needed after signing, a new tenancy must be
-  // created. This mirrors real-world contract law.
-  if (agreement.status === 'SIGNED')
+  // A signed agreement is a legally acknowledged document — it cannot be
+  // altered. That includes PENDING_SIGNATURE_PROOF: the tenant has already
+  // signed digitally and the contentHash/blockchain anchor refer to this exact
+  // text. If changes are needed after signing, a new tenancy must be created.
+  if (agreement.status === 'SIGNED' || agreement.status === 'PENDING_SIGNATURE_PROOF')
     return NextResponse.json(
       {
         error:

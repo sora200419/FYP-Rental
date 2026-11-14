@@ -195,6 +195,7 @@ export async function PATCH(
     agreement.tenancy.tenant.name,
     agreement.tenancy.room.property.address,
     agreement.tenancyId,
+    tenancyWillBeActive,
   ).catch(console.error);
 
   return NextResponse.json({ ok: true, status: 'SIGNED' });

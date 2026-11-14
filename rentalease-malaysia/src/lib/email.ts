@@ -160,14 +160,20 @@ export async function sendAgreementSignedEmail(
   tenantName: string,
   propertyAddress: string,
   tenancyId: string,
+  tenancyIsActive: boolean,
 ) {
   await send(
     to,
-    `${h(tenantName)} signed the tenancy agreement`,
+    // Subject lines are plain text, not HTML — escaping here would show "&amp;".
+    `${tenantName} signed the tenancy agreement`,
     base(
       'Agreement Signed',
       p(`Hi ${h(landlordName)}, ${h(tenantName)} has signed the tenancy agreement for <strong>${h(propertyAddress)}</strong>.`) +
-      p('The tenancy is now active and rent payments have been scheduled.'),
+      p(
+        tenancyIsActive
+          ? 'The tenancy is now active and rent payments have been scheduled.'
+          : 'The tenancy will become active, and rent payments will be scheduled, once you confirm the security deposit.',
+      ),
       { label: 'View Tenancy', url: `${process.env.NEXTAUTH_URL}/dashboard/landlord/tenancies/${tenancyId}` },
     ),
   );
