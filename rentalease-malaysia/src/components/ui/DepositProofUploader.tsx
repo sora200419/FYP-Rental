@@ -31,8 +31,6 @@ export default function DepositProofUploader({
   const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const canUpload = depositStatus === 'PENDING' || depositStatus === 'REJECTED';
-
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selected = e.target.files?.[0];
     if (!selected) return;

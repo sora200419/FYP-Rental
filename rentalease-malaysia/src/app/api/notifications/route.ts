@@ -8,7 +8,7 @@ import { prisma } from '@/lib/prisma';
  * GET /api/notifications?limit=20&cursor=<id>
  *
  * Returns a paginated list of the authenticated user's notifications,
- * newest first. The dropdown in the TopNav calls this when opened.
+ * newest first. The notification dropdown calls this when opened.
  *
  * Why cursor pagination instead of offset pagination?
  * ---------------------------------------------------

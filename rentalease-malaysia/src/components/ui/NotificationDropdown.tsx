@@ -24,7 +24,7 @@ interface NotificationDropdownProps {
   open: boolean;
   onClose: () => void;
   /*
-   * Called after any mark-read action so the parent (TopNav) can refresh
+   * Called after any mark-read action so the parent (DashboardShell) can refresh
    * its unread count badge. The parent will typically trigger a new fetch
    * of /api/unread-counts in response.
    */
@@ -162,7 +162,7 @@ export function NotificationDropdown({
         ),
       );
       // Fire and forget the API call — the onCountChanged callback refreshes
-      // the badge in TopNav when it succeeds.
+      // the badge in DashboardShell when it succeeds.
       fetch(`/api/notifications/${n.id}/read`, { method: 'PATCH' })
         .then(() => onCountChanged())
         .catch((err) => console.error('Failed to mark read:', err));

@@ -13,7 +13,7 @@ interface NotificationBellProps {
  * ------------------------------------------------
  * The bell and the dropdown are visually attached but architecturally
  * independent. The bell only needs to know the unread count (which comes
- * from TopNav's polling state) and what to do when clicked. The dropdown
+ * from DashboardShell's polling state) and what to do when clicked. The dropdown
  * manages its own fetch state and only mounts when actually opened.
  *
  * Keeping them separate means the bell can re-render on every count
