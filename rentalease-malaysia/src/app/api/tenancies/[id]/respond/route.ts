@@ -4,9 +4,9 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { canLegallySignCorporateAgreement } from '@/lib/corporate-tenancy-access';
 import { prisma } from '@/lib/prisma';
-import { syncRoomAvailability } from '@/lib/roomAvailability';
+import { deleteUnstartedTenancy } from '@/lib/tenancyCancellation';
 import { createNotification } from '@/lib/notifications';
-import { logAudit, getIp } from '@/lib/audit';
+import { getIp } from '@/lib/audit';
 
 export async function PATCH(
   request: Request,
@@ -122,25 +122,12 @@ export async function PATCH(
 
   // DECLINE — delete the tenancy (it was never accepted; no financial records attached)
   // and free the room so the landlord can re-invite another tenant.
-  await logAudit({
+  await deleteUnstartedTenancy({
+    tenancyId: id,
     actorId: session.user.id,
     action: 'TENANCY_DECLINED',
-    entityName: 'Tenancy',
-    entityId: id,
-    previousData: {
-      propertyId: tenancy.room.propertyId,
-      roomId: tenancy.roomId,
-      landlordId,
-    },
-    ipAddress: getIp(request),
     reason: 'DECLINED',
-  });
-
-  // Recompute availability rather than forcing it to true: if this was a
-  // renewal offer, the original tenancy may still be ACTIVE on the same room.
-  await prisma.$transaction(async (tx) => {
-    await tx.tenancy.delete({ where: { id } });
-    await syncRoomAvailability(tx, tenancy.roomId);
+    ipAddress: getIp(request),
   });
 
   await createNotification(

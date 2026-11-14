@@ -4,16 +4,8 @@ import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
 import { createNotification } from '@/lib/notifications';
+import { propertySchema } from '@/lib/propertySchema';
 
-// Property-level fields only — bedrooms, bathrooms, rentAmount have moved to Room
-const propertySchema = z.object({
-  address: z.string().min(5, 'Please enter a full street address'),
-  city: z.string().min(2, 'City is required'),
-  state: z.string().min(1, 'Please select a state'),
-  postcode: z.string().regex(/^\d{5}$/, 'Postcode must be exactly 5 digits'),
-  type: z.string().min(1, 'Please select a property type'),
-  description: z.string().optional(),
-});
 
 export async function POST(request: NextRequest) {
   const session = await getServerSession(authOptions);

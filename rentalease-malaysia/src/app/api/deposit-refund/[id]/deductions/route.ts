@@ -5,6 +5,7 @@ import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { createNotification } from '@/lib/notifications';
 import { z } from 'zod';
+import { tenantTenancyHref } from '@/lib/tenantLinks';
 
 const deductionSchema = z.object({
   reason: z.string().min(5),
@@ -33,6 +34,7 @@ export async function POST(
       id: true,
       originalAmount: true,
       deductions: { select: { amount: true, status: true } },
+      tenancyId: true,
       tenancy: { select: { tenantId: true } },
     },
   });
@@ -74,7 +76,7 @@ export async function POST(
     'DEPOSIT_DEDUCTION_FILED',
     'New deposit deduction added',
     `Your landlord has added a deduction of RM ${parsed.data.amount.toFixed(2)}: ${parsed.data.reason}. Please review and respond.`,
-    `/dashboard/tenant/tenancy`,
+    tenantTenancyHref(refund.tenancyId),
   );
 
   return NextResponse.json({ deduction }, { status: 201 });

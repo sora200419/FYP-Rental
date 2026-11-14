@@ -1,5 +1,6 @@
 import { prisma } from '@/lib/prisma';
 import { createNotification } from '@/lib/notifications';
+import { tenantTenancyHref } from '@/lib/tenantLinks';
 
 const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
 const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
@@ -42,7 +43,7 @@ export async function triggerEndingSoonNotifications(
       );
       const address = tenancy.room.property.address;
       const landlordLink = `/dashboard/landlord/tenancies/${tenancy.id}`;
-      const tenantLink = `/dashboard/tenant/tenancy`;
+      const tenantLink = tenantTenancyHref(tenancy.id);
       const link = role === 'LANDLORD' ? landlordLink : tenantLink;
 
       // Skip if we already sent a TENANCY_ENDING_SOON for this specific link in the last 7 days

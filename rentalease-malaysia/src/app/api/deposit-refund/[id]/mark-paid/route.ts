@@ -8,6 +8,7 @@ import { uploadRefundProof } from '@/lib/cloudinary';
 import { validateUpload } from '@/lib/uploadValidation';
 import { createNotification } from '@/lib/notifications';
 import { sendDepositRefundPaidEmail } from '@/lib/email';
+import { tenantTenancyHref } from '@/lib/tenantLinks';
 
 
 export async function POST(
@@ -30,6 +31,7 @@ export async function POST(
     select: {
       id: true,
       refundAmount: true,
+      tenancyId: true,
       tenancy: { select: { tenantId: true } },
     },
   });
@@ -70,7 +72,7 @@ export async function POST(
     'DEPOSIT_REFUND_PAID',
     'Deposit refund paid',
     `Your landlord has transferred your deposit refund of RM ${amountStr}. Proof of payment has been uploaded.`,
-    `/dashboard/tenant/tenancy`,
+    tenantTenancyHref(refund.tenancyId),
   );
 
   // Send email to tenant (non-blocking)
@@ -79,7 +81,12 @@ export async function POST(
     select: { email: true, name: true },
   });
   if (tenantUser) {
-    sendDepositRefundPaidEmail(tenantUser.email, tenantUser.name ?? 'Tenant', amountStr).catch(console.error);
+    sendDepositRefundPaidEmail(
+      tenantUser.email,
+      tenantUser.name ?? 'Tenant',
+      amountStr,
+      refund.tenancyId,
+    ).catch(console.error);
   }
 
   return NextResponse.json({ message: 'Deposit refund marked as paid' });

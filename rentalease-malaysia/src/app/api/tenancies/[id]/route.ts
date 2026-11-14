@@ -5,6 +5,10 @@ import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
 import { createNotification } from '@/lib/notifications';
 import { sendInvitationEmail } from '@/lib/email';
+import { getIp } from '@/lib/audit';
+import { deleteUnstartedTenancy } from '@/lib/tenancyCancellation';
+import { getUnstartedTenancyCancellationBlocker } from '@/lib/tenancyLifecycle';
+import { tenantTenancyHref } from '@/lib/tenantLinks';
 
 const editSchema = z
   .object({
@@ -229,7 +233,7 @@ export async function PATCH(
         'INVITATION_RECEIVED',
         'Updated tenancy invitation',
         `You have received a tenancy invitation for ${tenancy.room.property.address}, ${tenancy.room.property.city}.`,
-        '/dashboard/tenant/tenancy',
+        tenantTenancyHref(tenancyId),
       );
 
       const landlordUser = await prisma.user.findUnique({
@@ -242,6 +246,7 @@ export async function PATCH(
         newRecipient.name ?? 'Tenant',
         `${tenancy.room.property.address}, ${tenancy.room.property.city}`,
         landlordUser?.name ?? 'Your landlord',
+        tenancyId,
       ).catch(console.error);
     }
 
@@ -267,4 +272,57 @@ export async function PATCH(
       { status: 500 },
     );
   }
+}
+
+// DELETE /api/tenancies/[id]
+// Landlord cancels an invitation, or a tenancy that has not started yet. Not
+// allowed once the tenant has submitted the deposit or signed the agreement
+// (getUnstartedTenancyCancellationBlocker); after that the tenancy has to
+// run its course.
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  const session = await getServerSession(authOptions);
+  if (!session) return NextResponse.json({ error: 'Unauthorised' }, { status: 401 });
+  if (session.user.role !== 'LANDLORD')
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+
+  const { id } = await params;
+  const tenancy = await prisma.tenancy.findFirst({
+    where: { id, room: { property: { landlordId: session.user.id } } },
+    select: {
+      status: true,
+      depositStatus: true,
+      tenantId: true,
+      agreement: { select: { status: true } },
+      room: { select: { label: true, property: { select: { address: true } } } },
+    },
+  });
+  if (!tenancy) return NextResponse.json({ error: 'Tenancy not found' }, { status: 404 });
+
+  const blocker = getUnstartedTenancyCancellationBlocker({
+    tenancyStatus: tenancy.status,
+    depositStatus: tenancy.depositStatus,
+    agreementStatus: tenancy.agreement?.status,
+  });
+  if (blocker) return NextResponse.json({ error: blocker }, { status: 409 });
+
+  await deleteUnstartedTenancy({
+    tenancyId: id,
+    actorId: session.user.id,
+    action: 'TENANCY_CANCELLED',
+    reason: 'CANCELLED_BY_LANDLORD',
+    ipAddress: getIp(request),
+  });
+
+  await createNotification(
+    tenancy.tenantId,
+    'INVITATION_RESPONDED',
+    tenancy.status === 'INVITED' ? 'Tenancy invitation cancelled' : 'Tenancy cancelled',
+    `The landlord cancelled the tenancy for ${tenancy.room.label} at ${tenancy.room.property.address}.`,
+    '/dashboard/tenant',
+  );
+
+  return NextResponse.json({ ok: true });
 }

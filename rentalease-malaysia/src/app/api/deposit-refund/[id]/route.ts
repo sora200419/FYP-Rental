@@ -8,6 +8,7 @@ import { syncRoomAvailability } from '@/lib/roomAvailability';
 import { createNotification } from '@/lib/notifications';
 import { sendDepositSettlementEmail } from '@/lib/email';
 import { z } from 'zod';
+import { tenantTenancyHref } from '@/lib/tenantLinks';
 
 // Note: the [id] segment here is the tenancyId. It shares the same dynamic
 // segment name as the /deductions and /mark-paid sub-routes (which use refundId)
@@ -130,7 +131,7 @@ export async function POST(
     'DEPOSIT_DEDUCTION_FILED',
     'Deposit settlement started',
     `Your landlord has initiated the deposit settlement. Review the proposed deductions and respond.`,
-    `/dashboard/tenant/tenancy`,
+    tenantTenancyHref(tenancyId),
   );
 
   // Send email (non-blocking)
@@ -147,6 +148,7 @@ export async function POST(
       tenantUser.email,
       tenantUser.name,
       tenancyForAddress.room.property.address,
+      tenancyId,
     ).catch(console.error);
   }
 

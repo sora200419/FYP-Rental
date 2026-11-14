@@ -9,6 +9,7 @@ import PropertyCover from '@/components/ui/PropertyCover';
 import { AttentionHero, PageHeader, SectionCard, StatCard } from '@/components/ui/RedesignPrimitives';
 import { triggerEndingSoonNotifications } from '@/lib/endingSoonNotifications';
 import { getDashboardAttention, getPropertyCover } from '@/lib/uiRedesign';
+import { tenantTenancyHref } from '@/lib/tenantLinks';
 
 export default async function TenantDashboard() {
   const session = await getServerSession(authOptions);
@@ -162,7 +163,7 @@ export default async function TenantDashboard() {
                     <span className="inline-flex items-center rounded-full bg-[rgba(250,204,21,0.12)] px-2.5 py-0.5 text-xs font-medium text-[#facc15] border border-[rgba(250,204,21,0.3)]">
                       {tenancy.status}
                     </span>
-                    <Link href="/dashboard/tenant/tenancy" className="text-xs text-[#C49A3C] hover:text-[#E8B84B]">
+                    <Link href={tenantTenancyHref(tenancy.id)} className="text-xs text-[#C49A3C] hover:text-[#E8B84B]">
                       View
                     </Link>
                   </div>
@@ -253,7 +254,7 @@ function ActiveTenancyCard({ tenancy }: { tenancy: ActiveTenancyType }) {
                 Landlord: {tenancy.room.property.landlord.name}
               </p>
             </div>
-            <Link href="/dashboard/tenant/tenancy" className="shrink-0 text-sm text-[#C49A3C] hover:text-[#E8B84B]">
+            <Link href={tenantTenancyHref(tenancy.id)} className="shrink-0 text-sm text-[#C49A3C] hover:text-[#E8B84B]">
               View details &rarr;
             </Link>
           </div>
@@ -265,7 +266,7 @@ function ActiveTenancyCard({ tenancy }: { tenancy: ActiveTenancyType }) {
                 {agreementStatus.replaceAll('_', ' ')}
               </span>
               {agreementStatus === 'FINALIZED' && (
-                <Link href="/dashboard/tenant/tenancy" className="text-xs font-medium text-[#C49A3C] hover:text-[#E8B84B]">
+                <Link href={tenantTenancyHref(tenancy.id)} className="text-xs font-medium text-[#C49A3C] hover:text-[#E8B84B]">
                   Review &amp; sign &rarr;
                 </Link>
               )}

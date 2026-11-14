@@ -152,19 +152,31 @@ export default async function PropertiesPage() {
                     <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold ${occupancyPill}`}>
                       {occupancyLabel}
                     </span>
-                    {!property.isVerified && (
-                      <span className="inline-flex items-center rounded-full bg-[rgba(251,191,36,0.08)] px-2.5 py-1 text-xs font-semibold text-[#facc15] ring-1 ring-[rgba(251,191,36,0.25)] ring-inset">
-                        Pending verification
+                    {property.rejectedReason ? (
+                      <span className="inline-flex items-center rounded-full bg-[rgba(248,113,113,0.12)] px-2.5 py-1 text-xs font-semibold text-[#f87171] ring-1 ring-[rgba(248,113,113,0.3)] ring-inset">
+                        Not approved
                       </span>
+                    ) : (
+                      !property.isVerified && (
+                        <span className="inline-flex items-center rounded-full bg-[rgba(251,191,36,0.08)] px-2.5 py-1 text-xs font-semibold text-[#facc15] ring-1 ring-[rgba(251,191,36,0.25)] ring-inset">
+                          Pending verification
+                        </span>
+                      )
                     )}
                   </div>
                 </div>
 
                 <div className="p-5">
-                  {!property.isVerified && (
-                    <div className="mb-3 rounded-lg border border-[rgba(251,191,36,0.25)] bg-[rgba(251,191,36,0.08)] px-3 py-2">
-                      <p className="text-xs font-medium text-[#facc15]">Pending admin verification</p>
+                  {property.rejectedReason ? (
+                    <div className="mb-3 rounded-lg border border-[rgba(248,113,113,0.25)] bg-[rgba(248,113,113,0.08)] px-3 py-2">
+                      <p className="text-xs font-medium text-[#f87171]">Not approved — open the property to update and resubmit</p>
                     </div>
+                  ) : (
+                    !property.isVerified && (
+                      <div className="mb-3 rounded-lg border border-[rgba(251,191,36,0.25)] bg-[rgba(251,191,36,0.08)] px-3 py-2">
+                        <p className="text-xs font-medium text-[#facc15]">Pending admin verification</p>
+                      </div>
+                    )
                   )}
 
                   <p className="text-sm font-semibold leading-snug text-white">{property.address}</p>

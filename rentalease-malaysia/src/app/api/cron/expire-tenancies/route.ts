@@ -2,7 +2,8 @@
 // Runs once a day (scheduled in vercel.json). It:
 //   1. moves ACTIVE tenancies whose endDate has passed to EXPIRED and frees
 //      their rooms, and
-//   2. sends TENANCY_ENDING_SOON notifications and emails 30 and 7 days before
+//   2. clears invitations with no response after INVITATION_EXPIRY_DAYS, and
+//   3. sends TENANCY_ENDING_SOON notifications and emails 30 and 7 days before
 //      the end date.
 //
 // Protected with CRON_SECRET. Vercel Cron sends `Authorization: Bearer <CRON_SECRET>`
@@ -12,6 +13,9 @@ import { prisma } from '@/lib/prisma';
 import { createNotification } from '@/lib/notifications';
 import { sendTenancyEndingSoonEmail } from '@/lib/email';
 import { syncRoomAvailability } from '@/lib/roomAvailability';
+import { deleteUnstartedTenancy } from '@/lib/tenancyCancellation';
+import { INVITATION_EXPIRY_DAYS } from '@/lib/tenancyLifecycle';
+import { tenantTenancyHref } from '@/lib/tenantLinks';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -62,7 +66,52 @@ export async function GET(request: NextRequest) {
     });
   }
 
-  // 2. Ending-soon reminders. The window is one day wide so each tenancy is
+  // 2. Invitations nobody answered. Recorded in the audit log under the
+  //    landlord (AuditLog needs a user), with the reason saying it was automatic.
+  const staleInvitations = await prisma.tenancy.findMany({
+    where: {
+      status: 'INVITED',
+      createdAt: { lt: new Date(now.getTime() - INVITATION_EXPIRY_DAYS * DAY_MS) },
+    },
+    select: {
+      id: true,
+      tenantId: true,
+      room: { select: { label: true, property: { select: { landlordId: true, address: true } } } },
+    },
+  });
+  let expiredInvitations = 0;
+  for (const invitation of staleInvitations) {
+    const { landlordId, address } = invitation.room.property;
+    try {
+      await deleteUnstartedTenancy({
+        tenancyId: invitation.id,
+        actorId: landlordId,
+        action: 'TENANCY_INVITATION_EXPIRED',
+        reason: `Automatically removed: no response within ${INVITATION_EXPIRY_DAYS} days`,
+      });
+      expiredInvitations += 1;
+      await Promise.allSettled([
+        createNotification(
+          landlordId,
+          'INVITATION_RESPONDED',
+          'Invitation expired',
+          `Your invitation for ${invitation.room.label} at ${address} received no response within ${INVITATION_EXPIRY_DAYS} days and was removed. The room is available again.`,
+          '/dashboard/landlord/tenancies',
+        ),
+        createNotification(
+          invitation.tenantId,
+          'INVITATION_RESPONDED',
+          'Invitation expired',
+          `The tenancy invitation for ${address} expired because it was not answered within ${INVITATION_EXPIRY_DAYS} days.`,
+          '/dashboard/tenant',
+        ),
+      ]);
+    } catch (error) {
+      console.error(`[cron] Could not expire invitation ${invitation.id}:`, error);
+    }
+  }
+
+  // 3. Ending-soon reminders. The window is one day wide so each tenancy is
   //    picked up exactly once per threshold by a daily run.
   const baseUrl = process.env.NEXTAUTH_URL ?? '';
   const notifyPromises: Promise<unknown>[] = [];
@@ -92,7 +141,7 @@ export async function GET(request: NextRequest) {
       // Same in-app links as lib/endingSoonNotifications.ts, which de-duplicates
       // by link — a different link here would produce duplicate notifications.
       const landlordLink = `/dashboard/landlord/tenancies/${t.id}`;
-      const tenantLink = '/dashboard/tenant/tenancy';
+      const tenantLink = tenantTenancyHref(t.id);
       const landlordEmailLink =
         daysLeft === 30
           ? `${baseUrl}/dashboard/landlord/tenancies/${t.id}/renew`
@@ -123,6 +172,7 @@ export async function GET(request: NextRequest) {
 
   return NextResponse.json({
     expired: toExpire.length,
+    expiredInvitations,
     notified30Days: notifiedCounts[30] ?? 0,
     notified7Days: notifiedCounts[7] ?? 0,
   });

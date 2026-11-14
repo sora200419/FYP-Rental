@@ -109,3 +109,35 @@ export function getRentPaymentStatusForTenancyLifecycle({
     ? 'WAIVED'
     : paymentStatus;
 }
+
+type UnstartedTenancyCancellationInput = {
+  tenancyStatus: string;
+  depositStatus?: string | null;
+  agreementStatus?: string | null;
+};
+
+/**
+ * Whether an invitation or a not-yet-active tenancy may be cancelled (by the
+ * landlord) or withdrawn (by the tenant). Returns the reason it may not, or
+ * null when it may. Once money has changed hands or the tenant has signed,
+ * the tenancy has to run its course instead of being deleted.
+ */
+export function getUnstartedTenancyCancellationBlocker({
+  tenancyStatus,
+  depositStatus,
+  agreementStatus,
+}: UnstartedTenancyCancellationInput): string | null {
+  if (tenancyStatus !== 'INVITED' && tenancyStatus !== 'PENDING') {
+    return 'Only invitations and tenancies that have not started can be cancelled.';
+  }
+  if (depositStatus === 'UNDER_REVIEW' || depositStatus === 'PAID') {
+    return 'The tenant has already submitted the security deposit, so this tenancy can no longer be cancelled.';
+  }
+  if (agreementStatus === 'PENDING_SIGNATURE_PROOF' || agreementStatus === 'SIGNED') {
+    return 'The tenant has already signed the agreement, so this tenancy can no longer be cancelled.';
+  }
+  return null;
+}
+
+// Invitations with no response are cleared after this many days.
+export const INVITATION_EXPIRY_DAYS = 30;

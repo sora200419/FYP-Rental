@@ -10,6 +10,7 @@ import {
 } from '@/lib/agreements/history';
 import { createNotification } from '@/lib/notifications';
 import { sendAgreementReadyEmail } from '@/lib/email';
+import { tenantTenancyHref } from '@/lib/tenantLinks';
 
 const confirmedTermsSchema = z
   .object({
@@ -191,7 +192,7 @@ export async function PATCH(
     'AGREEMENT_READY',
     'Your agreement is ready to review',
     `Your tenancy agreement for ${agreement.tenancy.room.property.address} has been finalized and is ready for your review and signature.`,
-    `/dashboard/tenant/tenancy`,
+    tenantTenancyHref(agreement.tenancyId),
   );
 
   // Send email (non-blocking) using the email we already loaded in the initial
@@ -200,7 +201,7 @@ export async function PATCH(
     agreement.tenancy.tenant.email,
     agreement.tenancy.tenant.name ?? 'Tenant',
     agreement.tenancy.room.property.address,
-    id,
+    agreement.tenancyId,
   ).catch((err) => console.error('[finalize] agreement-ready email failed:', err));
 
   return NextResponse.json({ ok: true, checklist });

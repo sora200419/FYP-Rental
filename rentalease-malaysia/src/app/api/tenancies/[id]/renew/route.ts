@@ -10,6 +10,7 @@ import { syncRoomAvailability } from '@/lib/roomAvailability';
 import { createNotification } from '@/lib/notifications';
 import { z } from 'zod';
 import { validateRenewalPeriod } from '@/lib/tenancyLifecycle';
+import { tenantTenancyHref } from '@/lib/tenantLinks';
 
 const renewSchema = z.object({
   startDate: z.string().datetime(),
@@ -116,7 +117,7 @@ export async function POST(
     'INVITATION_RECEIVED',
     'Tenancy renewal offer',
     'Your landlord has offered to renew your tenancy. Review the new terms and accept or decline.',
-    `/dashboard/tenant/tenancy`,
+    tenantTenancyHref(renewal.id),
   );
 
   return NextResponse.json({ tenancyId: renewal.id }, { status: 201 });

@@ -64,8 +64,37 @@ export default async function PropertyDetailPage({
         eyebrow="Property detail"
         title={property.address}
         description={`${property.city}, ${property.state} ${property.postcode}`}
-        action={<DeletePropertyButton propertyId={property.id} propertyAddress={property.address} />}
+        action={
+          <div className="flex items-center gap-2">
+            <Link
+              href={`/dashboard/landlord/properties/${property.id}/edit`}
+              className="rounded-lg border border-[rgba(196,154,60,0.3)] px-4 py-2 text-sm font-semibold text-[#C49A3C] transition-colors hover:bg-[rgba(196,154,60,0.08)]"
+            >
+              Edit
+            </Link>
+            <DeletePropertyButton propertyId={property.id} propertyAddress={property.address} />
+          </div>
+        }
       />
+
+      {property.rejectedReason ? (
+        <div className="mb-6 rounded-xl border border-[rgba(248,113,113,0.25)] bg-[rgba(248,113,113,0.08)] px-5 py-4 text-sm text-[#f87171]">
+          <p className="font-semibold">This listing was not approved</p>
+          <p className="mt-1 text-xs">Admin feedback: {property.rejectedReason}</p>
+          <Link
+            href={`/dashboard/landlord/properties/${property.id}/edit`}
+            className="mt-2 inline-block text-xs font-semibold underline"
+          >
+            Update the listing and resubmit →
+          </Link>
+        </div>
+      ) : (
+        !property.isVerified && (
+          <div className="mb-6 rounded-xl border border-[rgba(251,191,36,0.25)] bg-[rgba(251,191,36,0.08)] px-5 py-3 text-xs font-medium text-[#facc15]">
+            Waiting for admin verification. You can add rooms now; tenants can be invited once it is approved.
+          </div>
+        )
+      )}
 
       <div className="mb-6 overflow-hidden rounded-2xl border border-[rgba(196,154,60,0.15)] bg-[#1C2740]">
         <PropertyCover

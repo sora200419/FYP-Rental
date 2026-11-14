@@ -7,6 +7,7 @@ import { normalizeEmail } from '@/lib/emailAddress';
 import { createNotification } from '@/lib/notifications';
 import { sendInvitationEmail } from '@/lib/email';
 import { buildCorporateTenancyCreateInput } from '@/lib/corporate-tenancy';
+import { tenantTenancyHref } from '@/lib/tenantLinks';
 
 export async function GET() {
   const session = await getServerSession(authOptions);
@@ -345,7 +346,7 @@ export async function POST(request: Request) {
       'INVITATION_RECEIVED',
       'New tenancy invitation',
       `You have received a tenancy invitation for ${room.property.address}, ${room.property.city}.`,
-      '/dashboard/tenant/tenancy',
+      tenantTenancyHref(tenancy.id),
     );
   }
 
@@ -360,6 +361,7 @@ export async function POST(request: Request) {
       invitationName,
       `${room.property.address}, ${room.property.city}`,
       landlordUser?.name ?? 'Your landlord',
+      tenancy.id,
     ).catch(console.error);
   }
 

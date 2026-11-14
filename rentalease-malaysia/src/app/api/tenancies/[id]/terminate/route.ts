@@ -9,6 +9,7 @@ import { syncRoomAvailability } from '@/lib/roomAvailability';
 import { createNotification } from '@/lib/notifications';
 import { z } from 'zod';
 import { validateImmediateTerminationDate } from '@/lib/tenancyLifecycle';
+import { tenantTenancyHref } from '@/lib/tenantLinks';
 
 const terminateSchema = z.object({
   reason: z.string().min(10, 'Please provide a reason (at least 10 characters)'),
@@ -96,7 +97,7 @@ export async function POST(
     notifyTitle,
     notifyBody,
     isLandlord
-      ? `/dashboard/tenant/tenancy`
+      ? tenantTenancyHref(id)
       : `/dashboard/landlord/tenancies/${id}`,
   );
 

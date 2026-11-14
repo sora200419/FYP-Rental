@@ -5,6 +5,7 @@ import { prisma } from '@/lib/prisma';
 import { createNotification } from '@/lib/notifications';
 import { buildRentScheduleEntries } from '@/lib/payments';
 import { getTenancyStatusAfterDepositApproval } from '@/lib/tenancyLifecycle';
+import { tenantTenancyHref } from '@/lib/tenantLinks';
 
 export async function PATCH(
   request: Request,
@@ -96,7 +97,7 @@ export async function PATCH(
       tenancyWillBeActive
         ? `Your deposit payment for ${tenancy.room.property.address} has been confirmed by your landlord. The tenancy is now active and move-in condition photos can start.`
         : `Your deposit payment for ${tenancy.room.property.address} has been confirmed by your landlord.`,
-      `/dashboard/tenant/tenancy`,
+      tenantTenancyHref(tenancyId),
     );
   } else {
     if (!rejectionReason || rejectionReason.trim().length < 10) {
@@ -119,7 +120,7 @@ export async function PATCH(
       'DEPOSIT_PROOF_REJECTED',
       'Deposit proof rejected',
       `Your deposit proof for ${tenancy.room.property.address} was rejected. Reason: ${rejectionReason.trim()}`,
-      `/dashboard/tenant/tenancy`,
+      tenantTenancyHref(tenancyId),
     );
   }
 

@@ -12,6 +12,7 @@ import {
 import { createNotification } from '@/lib/notifications';
 import { sendSystemMessage } from '@/lib/messages';
 import { anchorHashToBlockchain } from '@/lib/blockchain';
+import { tenantTenancyHref } from '@/lib/tenantLinks';
 
 export async function PATCH(
   request: Request,
@@ -177,7 +178,7 @@ export async function PATCH(
       'AGREEMENT_SIGNED',
       'Upload your signed hard copy to finish the agreement',
       `Your digital signature for ${propertyAddress} was recorded. Upload the signed hard-copy PDF or image so the landlord can approve it before the tenancy starts.`,
-      '/dashboard/tenant/tenancy',
+      tenantTenancyHref(agreement.tenancyId),
     );
 
     anchorHashToBlockchain(contentHash)

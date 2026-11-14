@@ -19,9 +19,9 @@ export default function DeleteRoomButton({ roomId, roomLabel }: Props) {
     setError(null);
     try {
       const res = await fetch(`/api/rooms/${roomId}`, { method: 'DELETE' });
-      const data = await res.json();
+      const data = await res.json().catch(() => null);
       if (!res.ok) {
-        setError(data.error ?? 'Failed to delete room');
+        setError(data?.error ?? 'Failed to delete room');
         return;
       }
       router.refresh();
