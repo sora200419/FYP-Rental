@@ -30,8 +30,9 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
-# env files (can opt-in for committing if needed)
+# env files — never commit real values; .env.example documents the variable names
 .env*
+!.env.example
 
 # vercel
 .vercel
@@ -40,9 +41,6 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-/src/generated/prisma
-
+# local tooling artifacts
 .superpowers/
-
-# deployment artifacts
 deployment/
