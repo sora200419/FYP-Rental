@@ -4,6 +4,7 @@ import { prisma } from './prisma';
 import bcrypt from 'bcryptjs';
 import { loginRateLimit, enforceLimit } from './ratelimit';
 import { normalizeEmail } from './emailAddress';
+import { toLanguage } from './i18n';
 
 // Single generic message for both "no such user" and "wrong password". Returning
 // distinct messages would let attackers enumerate which emails are registered
@@ -126,13 +127,15 @@ export const authOptions: NextAuthOptions = {
         // attackers holding a stolen JWT after the user does a password reset.
         const dbUser = await prisma.user.findUnique({
           where: { id: token.id as string },
-          select: { isSuspended: true, passwordChangedAt: true, deletedAt: true },
+          select: { isSuspended: true, passwordChangedAt: true, deletedAt: true, language: true },
         });
         if (!dbUser || dbUser.deletedAt) {
           // User was deleted (hard or soft) out from under this session — invalidate.
           throw new Error('Session invalidated');
         }
         token.isSuspended = dbUser.isSuspended;
+        // Kept fresh like suspension, so a language change applies on the next request.
+        token.language = toLanguage(dbUser.language);
         // token.iat is in seconds since epoch; passwordChangedAt is a Date.
         if (
           dbUser.passwordChangedAt &&
@@ -144,7 +147,7 @@ export const authOptions: NextAuthOptions = {
       }
       // Allow updating name/language via session update() call
       if (trigger === 'update') {
-        if (updatedSession?.language) token.language = updatedSession.language;
+        if (updatedSession?.language) token.language = toLanguage(updatedSession.language);
         if (updatedSession?.name) token.name = updatedSession.name;
       }
       return token;

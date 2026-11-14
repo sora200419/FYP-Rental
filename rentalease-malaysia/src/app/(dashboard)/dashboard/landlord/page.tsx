@@ -9,6 +9,7 @@ import PropertyCover from '@/components/ui/PropertyCover';
 import { AttentionHero, PageHeader, SectionCard, StatCard } from '@/components/ui/RedesignPrimitives';
 import { triggerEndingSoonNotifications } from '@/lib/endingSoonNotifications';
 import { getDashboardAttention, getPropertyCover } from '@/lib/uiRedesign';
+import { toLanguage } from '@/lib/i18n';
 
 export default async function LandlordDashboard() {
   const session = await getServerSession(authOptions);
@@ -145,7 +146,7 @@ export default async function LandlordDashboard() {
     pendingPaymentVerifications,
     pendingAgreementReviews: pendingChangesRequested,
     unacknowledgedConditionReports,
-  });
+  }, toLanguage(session.user.language));
   const primaryHref =
     pendingPaymentVerifications > 0
       ? '/dashboard/landlord/payments'
@@ -188,6 +189,7 @@ export default async function LandlordDashboard() {
       />
 
       <DashboardBanners
+        lang={toLanguage(session.user.language)}
         role="LANDLORD"
         pendingChangesRequested={pendingChangesRequested}
         pendingPaymentVerifications={pendingPaymentVerifications}

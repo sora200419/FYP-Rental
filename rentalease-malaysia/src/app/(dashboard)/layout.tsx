@@ -4,6 +4,8 @@ import { redirect } from 'next/navigation';
 import { prisma } from '@/lib/prisma';
 import KycPendingBanner from '@/components/ui/KycPendingBanner';
 import DashboardShell from '@/components/ui/DashboardShell';
+import { LanguageProvider } from '@/components/providers/LanguageProvider';
+import { toLanguage } from '@/lib/i18n';
 
 export default async function DashboardLayout({
   children,
@@ -31,12 +33,23 @@ export default async function DashboardLayout({
     else if (sub?.status === 'REJECTED') { kycState = 'REJECTED'; rejectedReason = sub.rejectedReason ?? null; }
   }
 
+  const lang = toLanguage(session.user.language);
+
   return (
-    <DashboardShell>
-      {!isVerified && (
-        <KycPendingBanner role={session.user.role} kycState={kycState} rejectedReason={rejectedReason} />
-      )}
-      {children}
-    </DashboardShell>
+    <LanguageProvider lang={lang}>
+      <div lang={lang === 'ms' ? 'ms' : 'en'} className="contents">
+        <DashboardShell>
+          {!isVerified && (
+            <KycPendingBanner
+              role={session.user.role}
+              kycState={kycState}
+              rejectedReason={rejectedReason}
+              lang={lang}
+            />
+          )}
+          {children}
+        </DashboardShell>
+      </div>
+    </LanguageProvider>
   );
 }

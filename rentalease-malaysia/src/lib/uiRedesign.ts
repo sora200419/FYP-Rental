@@ -1,4 +1,17 @@
-export const TENANCY_STEPS = ['Invite', 'Agreement', 'Deposit', 'Condition', 'Active'];
+import { t, tc, type Language, type MessageKey } from './i18n';
+
+// Labels for the five-step tenancy timeline, in order (see getTenancyStep).
+export const TENANCY_STEP_KEYS = [
+  'step_invite',
+  'step_agreement',
+  'step_deposit',
+  'step_condition',
+  'step_active',
+] as const satisfies readonly MessageKey[];
+
+export function getTenancyStepLabels(lang: Language = 'en'): string[] {
+  return TENANCY_STEP_KEYS.map((key) => t(key, lang));
+}
 
 export function getTenancyStep(
   status: string,
@@ -61,101 +74,64 @@ export function getOccupancySummary({
   return { label: `${occupiedRooms}/${totalRooms} occupied`, tone: 'warning' };
 }
 
-export function getDashboardAttention(
-  input:
-    | {
-        role: 'LANDLORD';
-        pendingPaymentVerifications: number;
-        pendingAgreementReviews: number;
-        unacknowledgedConditionReports: number;
-      }
-    | {
-        role: 'TENANT';
-        pendingPaymentVerifications: number;
-        pendingAgreementReviews: number;
-        unacknowledgedConditionReports: number;
-      }
-    | {
-        role: 'ADMIN';
-        pendingKyc: number;
-        pendingProperties: number;
-      },
-) {
-  if (input.role === 'ADMIN') {
-    if (input.pendingKyc > 0) {
-      return {
-        title: `${input.pendingKyc} users need KYC verification`,
-        description: 'Review identity documents so verified users can continue their rental workflow.',
-        actionLabel: 'Open KYC queue',
-      };
+type AttentionInput =
+  | {
+      role: 'LANDLORD';
+      pendingPaymentVerifications: number;
+      pendingAgreementReviews: number;
+      unacknowledgedConditionReports: number;
     }
-    if (input.pendingProperties > 0) {
-      return {
-        title: `${input.pendingProperties} properties need verification`,
-        description: 'Review property evidence before landlords invite tenants.',
-        actionLabel: 'Open property queue',
-      };
+  | {
+      role: 'TENANT';
+      pendingPaymentVerifications: number;
+      pendingAgreementReviews: number;
+      unacknowledgedConditionReports: number;
     }
-    return {
-      title: 'Verification queues are clear',
-      description: 'No user or property reviews are waiting right now.',
-      actionLabel: 'View dashboard',
+  | {
+      role: 'ADMIN';
+      pendingKyc: number;
+      pendingProperties: number;
     };
+
+/** The single most important thing for this user to do next, in their language. */
+export function getDashboardAttention(input: AttentionInput, lang: Language = 'en') {
+  const entry = (
+    titleBase: Parameters<typeof tc>[0],
+    count: number,
+    prefix: string,
+  ) => ({
+    title: tc(titleBase, count, lang),
+    description: t(`${prefix}_desc` as MessageKey, lang),
+    actionLabel: t(`${prefix}_action` as MessageKey, lang),
+  });
+  const clear = (prefix: string) => ({
+    title: t(`${prefix}_title` as MessageKey, lang),
+    description: t(`${prefix}_desc` as MessageKey, lang),
+    actionLabel: t(`${prefix}_action` as MessageKey, lang),
+  });
+
+  if (input.role === 'ADMIN') {
+    if (input.pendingKyc > 0) return entry('attn_admin_kyc_title', input.pendingKyc, 'attn_admin_kyc');
+    if (input.pendingProperties > 0)
+      return entry('attn_admin_props_title', input.pendingProperties, 'attn_admin_props');
+    return clear('attn_admin_clear');
   }
 
   if (input.role === 'LANDLORD') {
-    if (input.pendingPaymentVerifications > 0) {
-      return {
-        title: `${input.pendingPaymentVerifications} payment proofs need review`,
-        description: 'Confirm or reject submitted payment evidence to keep rent records current.',
-        actionLabel: 'Review payments',
-      };
-    }
-    if (input.pendingAgreementReviews > 0) {
-      return {
-        title: `${input.pendingAgreementReviews} agreements need attention`,
-        description: 'Review requested changes before sending the next agreement version.',
-        actionLabel: 'Review agreements',
-      };
-    }
-    if (input.unacknowledgedConditionReports > 0) {
-      return {
-        title: `${input.unacknowledgedConditionReports} condition reports need review`,
-        description: 'Check tenant-submitted condition reports and keep the tenancy record complete.',
-        actionLabel: 'Review reports',
-      };
-    }
-    return {
-      title: 'Portfolio is up to date',
-      description: 'No urgent landlord actions are waiting right now.',
-      actionLabel: 'View properties',
-    };
+    if (input.pendingPaymentVerifications > 0)
+      return entry('attn_landlord_payments_title', input.pendingPaymentVerifications, 'attn_landlord_payments');
+    if (input.pendingAgreementReviews > 0)
+      return entry('attn_landlord_agreements_title', input.pendingAgreementReviews, 'attn_landlord_agreements');
+    if (input.unacknowledgedConditionReports > 0)
+      return entry('attn_landlord_reports_title', input.unacknowledgedConditionReports, 'attn_landlord_reports');
+    return clear('attn_landlord_clear');
   }
 
-  if (input.pendingAgreementReviews > 0) {
-    return {
-      title: `${input.pendingAgreementReviews} agreement needs your review`,
-      description: 'Review the latest agreement terms before signing or requesting changes.',
-      actionLabel: 'Review agreement',
-    };
-  }
-  if (input.pendingPaymentVerifications > 0) {
-    return {
-      title: `${input.pendingPaymentVerifications} payment item needs follow-up`,
-      description: 'Check payment proof status and fix rejected uploads if needed.',
-      actionLabel: 'View payments',
-    };
-  }
-  if (input.unacknowledgedConditionReports > 0) {
-    return {
-      title: `${input.unacknowledgedConditionReports} condition report needs acknowledgement`,
-      description: 'Review property condition evidence and acknowledge the report.',
-      actionLabel: 'Review condition report',
-    };
-  }
-  return {
-    title: 'Your tenancy is up to date',
-    description: 'No urgent tenant actions are waiting right now.',
-    actionLabel: 'View tenancy',
-  };
+  if (input.pendingAgreementReviews > 0)
+    return entry('attn_tenant_agreement_title', input.pendingAgreementReviews, 'attn_tenant_agreement');
+  if (input.pendingPaymentVerifications > 0)
+    return entry('attn_tenant_payment_title', input.pendingPaymentVerifications, 'attn_tenant_payment');
+  if (input.unacknowledgedConditionReports > 0)
+    return entry('attn_tenant_report_title', input.unacknowledgedConditionReports, 'attn_tenant_report');
+  return clear('attn_tenant_clear');
 }

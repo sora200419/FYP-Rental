@@ -1,6 +1,9 @@
 // src/components/ui/NotificationDropdown.tsx
 'use client';
 
+import { useT } from '@/components/providers/LanguageProvider';
+import { localeFor, t, type Language } from '@/lib/i18n';
+
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import type { NotificationType } from '@prisma/client';
@@ -46,16 +49,16 @@ function NotificationIcon() {
  * absolute date. This is lighter-weight than importing a library like
  * date-fns just for one helper.
  */
-function formatRelativeTime(iso: string): string {
+function formatRelativeTime(iso: string, lang: Language): string {
   const diff = Date.now() - new Date(iso).getTime();
   const mins = Math.floor(diff / 60000);
-  if (mins < 1) return 'just now';
-  if (mins < 60) return `${mins}m ago`;
+  if (mins < 1) return t('time_just_now', lang);
+  if (mins < 60) return t('time_minutes_ago', lang, { n: mins });
   const hours = Math.floor(mins / 60);
-  if (hours < 24) return `${hours}h ago`;
+  if (hours < 24) return t('time_hours_ago', lang, { n: hours });
   const days = Math.floor(hours / 24);
-  if (days < 7) return `${days}d ago`;
-  return new Date(iso).toLocaleDateString();
+  if (days < 7) return t('time_days_ago', lang, { n: days });
+  return new Date(iso).toLocaleDateString(localeFor(lang), { timeZone: 'Asia/Kuala_Lumpur' });
 }
 
 export function NotificationDropdown({
@@ -63,6 +66,7 @@ export function NotificationDropdown({
   onClose,
   onCountChanged,
 }: NotificationDropdownProps) {
+  const { lang } = useT();
   const [items, setItems] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -245,21 +249,21 @@ export function NotificationDropdown({
       >
         {/* Header with title and actions */}
         <div className="flex items-center justify-between px-4 py-3 border-b border-[rgba(196,154,60,0.1)] flex-shrink-0">
-          <h3 className="font-semibold text-white">Notifications</h3>
+          <h3 className="font-semibold text-white">{t('notifications_title', lang)}</h3>
           <div className="flex items-center gap-3">
             {hasUnread && (
               <button
                 onClick={handleMarkAllRead}
                 className="text-xs text-[#C49A3C] hover:opacity-90 font-medium"
               >
-                Mark all read
+                {t('notifications_mark_all', lang)}
               </button>
             )}
             {/* Close button only on mobile — desktop has outside-click */}
             <button
               onClick={onClose}
               className="sm:hidden text-white/40 hover:text-white/60 text-lg leading-none"
-              aria-label="Close"
+              aria-label={t('notifications_close', lang)}
             >
               ✕
             </button>
@@ -270,18 +274,15 @@ export function NotificationDropdown({
         <div className="flex-1 overflow-y-auto">
           {loading && items.length === 0 && (
             <div className="p-8 text-center text-sm text-white/40">
-              Loading…
+              {t('notifications_loading', lang)}
             </div>
           )}
 
           {!loading && items.length === 0 && (
             <div className="p-8 text-center text-sm text-white/40">
-              No notifications yet.
+              {t('notifications_empty', lang)}
               <br />
-              <span className="text-xs">
-                You&apos;ll see updates about invitations, agreements, and
-                payments here.
-              </span>
+              <span className="text-xs">{t('notifications_empty_desc', lang)}</span>
             </div>
           )}
 
@@ -319,7 +320,7 @@ export function NotificationDropdown({
                     {n.body}
                   </p>
                   <p className="text-[11px] text-white/40 mt-1">
-                    {formatRelativeTime(n.createdAt)}
+                    {formatRelativeTime(n.createdAt, lang)}
                   </p>
                 </div>
               </div>

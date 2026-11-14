@@ -3,6 +3,7 @@ import { authOptions } from '@/lib/auth';
 import { redirect } from 'next/navigation';
 import { prisma } from '@/lib/prisma';
 import ProfileForm from '@/components/ui/ProfileForm';
+import LanguageSwitcher from '@/components/ui/LanguageSwitcher';
 
 export default async function ProfilePage() {
   const session = await getServerSession(authOptions);
@@ -113,6 +114,11 @@ export default async function ProfilePage() {
             </div>
           </div>
         </div>
+      </div>
+
+      {/* Display language */}
+      <div className="mb-6 bg-[#1C2740] rounded-xl border border-[rgba(196,154,60,0.15)] p-6">
+        <LanguageSwitcher />
       </div>
 
       {/* Profile edit form */}

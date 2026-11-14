@@ -13,10 +13,11 @@ import LandlordAgreementSignatureProofReview from '@/components/ui/LandlordAgree
 import CorporateOccupantRosterManager from '@/components/ui/CorporateOccupantRosterManager';
 import PropertyCover from '@/components/ui/PropertyCover';
 import { PageHeader } from '@/components/ui/RedesignPrimitives';
-import { getPropertyCover, TENANCY_STEPS, getTenancyStep } from '@/lib/uiRedesign';
+import { getPropertyCover, getTenancyStepLabels, getTenancyStep } from '@/lib/uiRedesign';
 import { getDepositSettlementEntry } from '@/lib/depositSettlementWorkflow';
 import { getUnstartedTenancyCancellationBlocker } from '@/lib/tenancyLifecycle';
 import CancelTenancyButton from '@/components/ui/CancelTenancyButton';
+import { toLanguage } from '@/lib/i18n';
 
 const PILL_BASE = 'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium';
 
@@ -59,6 +60,7 @@ export default async function TenancyDetailPage({
 }) {
   const session = await getServerSession(authOptions);
   if (!session || session.user.role !== 'LANDLORD') redirect('/login');
+  const lang = toLanguage(session.user.language);
 
   const { id } = await params;
 
@@ -205,7 +207,7 @@ export default async function TenancyDetailPage({
 
       {/* 5-step progress timeline */}
       <div className="mb-6 grid gap-2 sm:grid-cols-5">
-        {TENANCY_STEPS.map((step, index) => (
+        {getTenancyStepLabels(lang).map((step, index) => (
           <div
             key={step}
             className={`rounded-lg border px-3 py-2 text-center text-xs font-semibold ${

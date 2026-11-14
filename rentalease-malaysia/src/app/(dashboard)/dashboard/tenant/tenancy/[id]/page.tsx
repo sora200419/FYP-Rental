@@ -15,18 +15,12 @@ import CorporateSignatoryInvitationCard from '@/components/ui/CorporateSignatory
 import Link from 'next/link';
 import PropertyCover from '@/components/ui/PropertyCover';
 import { PageHeader } from '@/components/ui/RedesignPrimitives';
-import { getPropertyCover, TENANCY_STEPS, getTenancyStep } from '@/lib/uiRedesign';
+import { getPropertyCover, getTenancyStepLabels, getTenancyStep } from '@/lib/uiRedesign';
 import { attachEvidencePhotosToDeductions } from '@/lib/depositSettlementWorkflow';
 import { tenantMessagesHref } from '@/lib/tenantLinks';
+import { t, toLanguage, type MessageKey } from '@/lib/i18n';
 
 
-const STATUS_HEADLINE: Record<string, { headline: string; description: string }> = {
-  INVITED:    { headline: 'Invitation received', description: 'Review and accept or decline your tenancy invitation.' },
-  PENDING:    { headline: 'Agreement in progress', description: 'Wait for the landlord to prepare your tenancy agreement.' },
-  ACTIVE:     { headline: 'Tenancy active', description: 'Your tenancy is running. Monitor payments and reports.' },
-  EXPIRED:    { headline: 'Tenancy ended', description: 'This tenancy has expired.' },
-  TERMINATED: { headline: 'Tenancy terminated', description: 'This tenancy was terminated early.' },
-};
 
 export default async function TenantTenancyPage({
   params,
@@ -35,6 +29,7 @@ export default async function TenantTenancyPage({
 }) {
   const session = await getServerSession(authOptions);
   if (!session || session.user.role !== 'TENANT') redirect('/login');
+  const lang = toLanguage(session.user.language);
 
   const { id } = await params;
   const tenancy = await prisma.tenancy.findFirst({
@@ -129,7 +124,12 @@ export default async function TenantTenancyPage({
 
   const cover = getPropertyCover(property.photos ?? []);
   const activeStep = getTenancyStep(tenancy.status, tenancy.agreement?.status, tenancy.depositStatus);
-  const statusInfo = STATUS_HEADLINE[tenancy.status] ?? { headline: tenancy.status, description: '' };
+  const statusInfo = ['INVITED', 'PENDING', 'ACTIVE', 'EXPIRED', 'TERMINATED'].includes(tenancy.status)
+    ? {
+        headline: t(`tenancy_headline_${tenancy.status}` as MessageKey, lang),
+        description: t(`tenancy_headline_desc_${tenancy.status}` as MessageKey, lang),
+      }
+    : { headline: tenancy.status, description: '' };
   const deductionEvidencePhotos = tenancy.conditionReports.flatMap((report) =>
     report.photos.map((photo) => ({
       id: photo.id,
@@ -141,7 +141,7 @@ export default async function TenantTenancyPage({
   return (
     <div className="max-w-4xl">
       <PageHeader
-        eyebrow="My tenancy"
+        eyebrow={t('my_tenancy_eyebrow', lang)}
         title={property.address}
         description={`${property.city} · ${tenancy.room.label}`}
         action={
@@ -149,14 +149,14 @@ export default async function TenantTenancyPage({
             href="/dashboard/tenant/tenancy"
             className="text-sm font-medium text-[#C49A3C] hover:text-[#E8B84B]"
           >
-            All my tenancies
+            {t('all_my_tenancies', lang)}
           </Link>
         }
       />
 
       {/* 5-step progress timeline */}
       <div className="mb-6 grid gap-2 sm:grid-cols-5">
-        {TENANCY_STEPS.map((step, index) => (
+        {getTenancyStepLabels(lang).map((step, index) => (
           <div
             key={step}
             className={`rounded-lg border px-3 py-2 text-center text-xs font-semibold ${
