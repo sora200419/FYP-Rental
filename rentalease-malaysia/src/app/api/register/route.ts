@@ -3,6 +3,7 @@ import bcrypt from 'bcryptjs';
 import { prisma } from '@/lib/prisma';
 import { sendWelcomeEmail } from '@/lib/email';
 import { z } from 'zod';
+import { passwordSchema } from '@/lib/passwordPolicy';
 import { registerRateLimit, enforceLimit } from '@/lib/ratelimit';
 import { getIp } from '@/lib/audit';
 
@@ -25,7 +26,7 @@ const fieldsSchema = z.object({
   // Stored lower-cased: login and password reset look accounts up by the
   // normalised address, so a mixed-case registration could never sign in.
   email: z.string().trim().toLowerCase().pipe(z.email('Invalid email address')),
-  password: z.string().min(8, 'Password must be at least 8 characters'),
+  password: passwordSchema,
   role: z.enum(['LANDLORD', 'TENANT']),
   phone: z.string().optional().default(''),
   icNumber: z

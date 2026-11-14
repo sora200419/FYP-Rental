@@ -4,24 +4,16 @@ import bcrypt from 'bcryptjs';
 import { z } from 'zod';
 import { resetPasswordRateLimit, enforceLimit } from '@/lib/ratelimit';
 import { getIp } from '@/lib/audit';
-import crypto from 'crypto';
+import { passwordSchema } from '@/lib/passwordPolicy';
+import { hashResetToken } from '@/lib/resetToken';
 
 const bodySchema = z.object({
   token: z
     .string()
     .min(32, 'Invalid reset link')
     .max(256, 'Invalid reset link'),
-  // 12-char minimum aligns with current NIST guidance (SP 800-63B). The previous
-  // 8-char floor was below the modern recommended baseline.
-  password: z
-    .string()
-    .min(12, 'Password must be at least 12 characters')
-    .max(128, 'Password must be 128 characters or fewer'),
+  password: passwordSchema,
 });
-
-function hashResetToken(rawToken: string): string {
-  return crypto.createHash('sha256').update(rawToken).digest('hex');
-}
 
 export async function POST(req: Request) {
   // Defense-in-depth rate limit. Tokens are 2^256 random, so brute-forcing the
@@ -63,20 +55,34 @@ export async function POST(req: Request) {
   const hashed = await bcrypt.hash(password, 12);
   const now = new Date();
 
-  // Atomic: update password + mark token used + bump passwordChangedAt.
-  // The bumped timestamp is what makes existing JWT sessions invalid (see
-  // jwt() callback in lib/auth.ts) — without this, an attacker who stole a
-  // session before the reset would still have a valid token.
-  await prisma.$transaction([
-    prisma.user.update({
+  // Claim the token and change the password in one transaction. The claim is
+  // conditional on usedAt still being null, so two concurrent requests with
+  // the same link cannot both succeed. Bumping passwordChangedAt invalidates
+  // every JWT issued before the reset (see the jwt() callback in lib/auth.ts).
+  const claimed = await prisma.$transaction(async (tx) => {
+    const claim = await tx.passwordResetToken.updateMany({
+      where: { id: record.id, usedAt: null, expiresAt: { gt: now } },
+      data: { usedAt: now },
+    });
+    if (claim.count !== 1) return false;
+
+    await tx.user.update({
       where: { id: record.userId },
       data: { password: hashed, passwordChangedAt: now },
-    }),
-    prisma.passwordResetToken.update({
-      where: { id: record.id },
-      data: { usedAt: now },
-    }),
-  ]);
+    });
+    // Any other outstanding links for this account are now pointless.
+    await tx.passwordResetToken.deleteMany({
+      where: { userId: record.userId, usedAt: null },
+    });
+    return true;
+  });
+
+  if (!claimed) {
+    return NextResponse.json(
+      { error: 'This reset link is invalid or has expired' },
+      { status: 400 },
+    );
+  }
 
   return NextResponse.json({ success: true });
 }

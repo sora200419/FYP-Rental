@@ -2,11 +2,11 @@ import { NextResponse, NextRequest } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { enforceLimit, uploadRateLimit } from '@/lib/ratelimit';
+import { validateUpload } from '@/lib/uploadValidation';
 import { uploadPropertyPhoto, deletePropertyPhoto } from '@/lib/cloudinary';
 import { logAudit, getIp } from '@/lib/audit';
 
-const MAX_FILE_SIZE = 10 * 1024 * 1024;
-const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 
 export async function GET(
   _request: Request,
@@ -53,6 +53,15 @@ export async function POST(
     return NextResponse.json({ error: 'Property not found' }, { status: 404 });
   }
 
+  const rate = await enforceLimit(
+    uploadRateLimit,
+    session.user.id,
+    'Too many uploads. Please wait a while before uploading again.',
+  );
+  if (!rate.allowed) {
+    return NextResponse.json({ error: rate.message }, { status: 429 });
+  }
+
   let formData: FormData;
   try {
     formData = await request.formData();
@@ -60,28 +69,18 @@ export async function POST(
     return NextResponse.json({ error: 'Invalid form data' }, { status: 400 });
   }
 
-  const file = formData.get('file') as File | null;
-  const caption = formData.get('caption') as string | null;
-
-  if (!file) {
-    return NextResponse.json({ error: 'No file provided' }, { status: 400 });
+  const caption = formData.get('caption');
+  const validation = await validateUpload(formData.get('file'), {
+    allowed: ['jpeg', 'png', 'webp'],
+  });
+  if (!validation.ok) {
+    return NextResponse.json({ error: validation.error }, { status: 400 });
   }
-  if (file.size > MAX_FILE_SIZE) {
-    return NextResponse.json({ error: 'File too large (max 10 MB)' }, { status: 400 });
-  }
-  if (!ALLOWED_TYPES.includes(file.type)) {
-    return NextResponse.json(
-      { error: 'Only JPEG, PNG, and WebP images are allowed' },
-      { status: 400 },
-    );
-  }
-
-  const bytes = await file.arrayBuffer();
-  const buffer = Buffer.from(bytes);
+  const file = validation.file;
 
   let url: string, publicId: string;
   try {
-    ({ url, publicId } = await uploadPropertyPhoto(buffer, file.name));
+    ({ url, publicId } = await uploadPropertyPhoto(file.buffer, file.mimeType));
   } catch {
     return NextResponse.json(
       { error: 'Upload failed. Please try again.' },
@@ -93,7 +92,7 @@ export async function POST(
     data: {
       imageUrl: url,
       publicId,
-      caption: caption?.trim() || null,
+      caption: typeof caption === 'string' && caption.trim() ? caption.trim() : null,
       propertyId: id,
       uploadedById: session.user.id,
     },

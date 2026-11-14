@@ -1,5 +1,14 @@
 import bcrypt from 'bcryptjs';
 import { prisma } from '@/lib/prisma';
+import { PASSWORD_MIN_LENGTH } from '@/lib/passwordPolicy';
+
+// Creates the platform admin account from ADMIN_EMAIL / ADMIN_PASSWORD /
+// ADMIN_NAME. Run by scripts/bootstrap-admin.ts during `npm run build` (and on
+// demand with `npm run admin:bootstrap`) — never on page requests.
+//
+// It only ever CREATES the account. If a non-admin account already uses
+// ADMIN_EMAIL it is left alone: promoting it would hand admin rights to
+// whoever registered that address first, with their own password.
 
 export type AdminBootstrapEnv = {
   ADMIN_EMAIL?: string;
@@ -17,24 +26,10 @@ export type ExistingUser = {
 
 export type AdminBootstrapDecision =
   | { status: 'missing-env' }
-  | {
-      status: 'create';
-      email: string;
-      password: string;
-      name: string;
-    }
-  | {
-      status: 'promote';
-      userId: string;
-      email: string;
-      name: string;
-    }
-  | {
-      status: 'noop';
-      userId: string;
-      email: string;
-      name: string;
-    };
+  | { status: 'weak-password' }
+  | { status: 'create'; email: string; password: string; name: string }
+  | { status: 'conflict'; email: string }
+  | { status: 'noop'; email: string };
 
 export function buildAdminBootstrapDecision(input: {
   env: AdminBootstrapEnv;
@@ -45,35 +40,24 @@ export function buildAdminBootstrapDecision(input: {
   const name = input.env.ADMIN_NAME?.trim() || 'RentalEase Admin';
 
   if (!email || !password) {
-    return { status: 'missing-env' as const };
+    return { status: 'missing-env' };
   }
 
   if (!input.existingUser) {
-    return { status: 'create' as const, email, password, name };
+    if (password.length < PASSWORD_MIN_LENGTH) {
+      return { status: 'weak-password' };
+    }
+    return { status: 'create', email, password, name };
   }
 
   if (input.existingUser.role !== 'ADMIN') {
-    return {
-      status: 'promote' as const,
-      userId: input.existingUser.id,
-      email,
-      name,
-    };
+    return { status: 'conflict', email };
   }
 
-  return {
-    status: 'noop' as const,
-    userId: input.existingUser.id,
-    email,
-    name,
-  };
+  return { status: 'noop', email };
 }
 
-export type AdminBootstrapResult =
-  | { ok: false; action: 'missing-env' }
-  | { ok: true; action: 'created' | 'promoted' | 'noop'; email: string };
-
-export async function ensureAdminBootstrap(): Promise<AdminBootstrapResult> {
+export async function ensureAdminBootstrap(): Promise<AdminBootstrapDecision['status']> {
   const email = process.env.ADMIN_EMAIL?.trim().toLowerCase() ?? '';
   const existingUser = email
     ? await prisma.user.findUnique({
@@ -91,39 +75,20 @@ export async function ensureAdminBootstrap(): Promise<AdminBootstrapResult> {
     existingUser,
   });
 
-  if (decision.status === 'missing-env') {
-    return { ok: false, action: 'missing-env' };
-  }
-
-  if (decision.status === 'noop') {
-    return { ok: true, action: 'noop', email: decision.email };
-  }
-
-  if (decision.status === 'promote') {
-    await prisma.user.update({
-      where: { id: decision.userId },
-      data: {
-        role: 'ADMIN',
+  if (decision.status === 'create') {
+    const passwordHash = await bcrypt.hash(decision.password, 12);
+    await prisma.user.upsert({
+      where: { email: decision.email },
+      create: {
         name: decision.name,
+        email: decision.email,
+        password: passwordHash,
+        role: 'ADMIN',
         isVerified: true,
       },
+      update: {},
     });
-
-    return { ok: true, action: 'promoted', email: decision.email };
   }
 
-  const passwordHash = await bcrypt.hash(decision.password, 12);
-  await prisma.user.upsert({
-    where: { email: decision.email },
-    create: {
-      name: decision.name,
-      email: decision.email,
-      password: passwordHash,
-      role: 'ADMIN',
-      isVerified: true,
-    },
-    update: {},
-  });
-
-  return { ok: true, action: 'created', email: decision.email };
+  return decision.status;
 }

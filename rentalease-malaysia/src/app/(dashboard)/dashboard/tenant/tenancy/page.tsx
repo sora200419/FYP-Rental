@@ -454,7 +454,6 @@ export default async function TenantTenancyPage() {
               signerLabel={signerLabel}
               proofs={tenancy.agreement.signatureProofs.map((proof) => ({
                 id: proof.id,
-                fileUrl: proof.fileUrl,
                 originalName: proof.originalName,
                 mimeType: proof.mimeType,
                 fileSize: proof.fileSize,

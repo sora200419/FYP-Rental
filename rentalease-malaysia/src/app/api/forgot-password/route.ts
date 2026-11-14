@@ -3,23 +3,11 @@ import { prisma } from '@/lib/prisma';
 import { sendPasswordResetEmail } from '@/lib/email';
 import { forgotPasswordRateLimit, enforceLimit } from '@/lib/ratelimit';
 import crypto from 'crypto';
-
-/**
- * Hash a raw token to its storage form.
- *
- * We only ever PERSIST the SHA-256 of the token sent in the user's email.
- * If the database leaks, an attacker has the hashes but cannot recover the
- * raw tokens needed to actually reset a password — they'd have to pre-image
- * SHA-256, which is computationally infeasible.
- *
- * This mirrors how OAuth, Stripe, GitHub, etc. store API keys and reset tokens.
- */
-function hashResetToken(rawToken: string): string {
-  return crypto.createHash('sha256').update(rawToken).digest('hex');
-}
+import { hashResetToken } from '@/lib/resetToken';
 
 export async function POST(req: Request) {
-  const { email } = await req.json();
+  const body = await req.json().catch(() => null);
+  const email = body?.email;
 
   if (!email || typeof email !== 'string') {
     return NextResponse.json({ error: 'Email is required' }, { status: 400 });
@@ -42,8 +30,9 @@ export async function POST(req: Request) {
 
   const user = await prisma.user.findUnique({ where: { email: normalisedEmail } });
 
-  // Always return success to prevent email enumeration
-  if (!user) {
+  // Always return success to prevent email enumeration. Removed and suspended
+  // accounts get no link either (they could not sign in with it).
+  if (!user || user.deletedAt || user.isSuspended) {
     return NextResponse.json({ success: true });
   }
 

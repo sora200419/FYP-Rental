@@ -89,7 +89,6 @@ export default async function TenancyDetailPage({
             orderBy: { createdAt: 'desc' },
             select: {
               id: true,
-              fileUrl: true,
               originalName: true,
               mimeType: true,
               fileSize: true,

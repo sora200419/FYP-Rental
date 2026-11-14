@@ -95,6 +95,24 @@ export const kycSubmitRateLimit = new Ratelimit({
   analytics: true,
 });
 
+// Tenant lookup by email: 20 lookups per landlord per hour. Each lookup reveals
+// whether an email belongs to a registered tenant, so cap enumeration.
+export const tenantLookupRateLimit = new Ratelimit({
+  redis,
+  limiter: Ratelimit.slidingWindow(20, '1 h'),
+  prefix: 'rl:tenant-lookup',
+  analytics: true,
+});
+
+// File uploads other than KYC (proofs, photos): 30 per user per hour. Caps
+// Cloudinary storage and bandwidth abuse from a single account.
+export const uploadRateLimit = new Ratelimit({
+  redis,
+  limiter: Ratelimit.slidingWindow(30, '1 h'),
+  prefix: 'rl:upload',
+  analytics: true,
+});
+
 /**
  * Helper: try to enforce a rate limit and return whether the request should
  * proceed. Swallows Redis outages (logs them) and returns true so we don't

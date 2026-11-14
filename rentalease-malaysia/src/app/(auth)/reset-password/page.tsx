@@ -5,15 +5,12 @@ import Link from 'next/link';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
+import { passwordSchema, PASSWORD_MIN_LENGTH } from '@/lib/passwordPolicy';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { PasswordInput } from '@/components/ui/PasswordInput';
 
 const schema = z.object({
-  // Must match the server rule in /api/reset-password (12–128 characters).
-  password: z
-    .string()
-    .min(12, 'Password must be at least 12 characters')
-    .max(128, 'Password must be 128 characters or fewer'),
+  password: passwordSchema,
   confirm: z.string(),
 }).refine((d) => d.password === d.confirm, {
   message: 'Passwords do not match',
@@ -72,7 +69,7 @@ function ResetPasswordForm() {
       <PasswordInput
         registration={register('password')}
         label="New Password"
-        placeholder="Min. 12 characters"
+        placeholder={`Min. ${PASSWORD_MIN_LENGTH} characters`}
         error={errors.password?.message}
       />
       <PasswordInput

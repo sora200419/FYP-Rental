@@ -5,6 +5,7 @@ import { zodOutputFormat } from '@anthropic-ai/sdk/helpers/zod';
 import type { AgreementPreferences } from '@prisma/client';
 import { z } from 'zod';
 import { buildWizardPolicyBlock } from './wizardFormatters';
+import { redactIcNumbers, type IcRestoreMode } from './icRedaction';
 
 // Claude Haiku 5.5: fast and inexpensive, with 1M context and 128K output —
 // enough for a full tenancy agreement. Change here to use a larger model.
@@ -25,19 +26,29 @@ export class AiRefusalError extends Error {}
 
 type JsonOutputFormat = Anthropic.Messages.JSONOutputFormat;
 
-// Runs one request and returns the response text. Always streams: agreement
-// generation and AI assist return long documents, and streaming avoids HTTP
-// timeouts on large max_tokens values.
+type RestoreIcNumbers = (output: string, mode: IcRestoreMode) => string;
+
+// Malaysian IC numbers never leave the server: they are replaced by
+// placeholders before the request (see lib/icRedaction.ts), and this tells the
+// model how to treat them.
+const SYSTEM_PROMPT = `Malaysian IC/NRIC numbers in the input have been replaced by placeholders such as [[IC_1]]. Wherever one of those numbers belongs in your output, write its placeholder exactly as given. Never invent or alter identification numbers.`;
+
+// Runs one request and returns the response text plus a function that puts
+// the real IC numbers back. Always streams: agreement generation and AI assist
+// return long documents, and streaming avoids HTTP timeouts on large
+// max_tokens values.
 async function runClaude(options: {
   prompt: string;
   maxTokens: number;
   effort: Effort;
   format?: JsonOutputFormat;
-}): Promise<string> {
+}): Promise<{ text: string; restore: RestoreIcNumbers }> {
+  const redacted = redactIcNumbers(options.prompt);
   const stream = getClient().messages.stream({
     model: AI_MODEL,
     max_tokens: options.maxTokens,
-    messages: [{ role: 'user', content: options.prompt }],
+    system: SYSTEM_PROMPT,
+    messages: [{ role: 'user', content: redacted.text }],
     output_config: {
       effort: options.effort,
       ...(options.format ? { format: options.format } : {}),
@@ -57,22 +68,27 @@ async function runClaude(options: {
   }
 
   // Responses can start with (empty) thinking blocks — read text blocks only.
-  return message.content
+  const text = message.content
     .filter((block): block is Anthropic.Messages.TextBlock => block.type === 'text')
     .map((block) => block.text)
     .join('');
+  return { text, restore: redacted.restore };
 }
 
-/** Free-text completion, e.g. the AI-assist rewrite of an agreement. */
+/**
+ * Free-text completion, e.g. the AI-assist rewrite of an agreement. IC numbers
+ * are restored in full, since the result replaces the agreement text.
+ */
 export async function generateText(
   prompt: string,
   options: { maxTokens?: number; effort?: Effort } = {},
 ): Promise<string> {
-  return runClaude({
+  const { text, restore } = await runClaude({
     prompt,
     maxTokens: options.maxTokens ?? 64000,
     effort: options.effort ?? 'medium',
   });
+  return restore(text, 'full');
 }
 
 // JSON output constrained to a Zod schema (structured outputs). The SDK's
@@ -82,10 +98,22 @@ async function generateStructured<Schema extends z.ZodType>(
   schema: Schema,
   prompt: string,
   options: { maxTokens: number; effort: Effort },
-): Promise<z.infer<Schema>> {
+): Promise<{ data: z.infer<Schema>; restore: RestoreIcNumbers }> {
   const { parse, ...format } = zodOutputFormat(schema);
-  const text = await runClaude({ prompt, format, ...options });
-  return parse(text);
+  const { text, restore } = await runClaude({ prompt, format, ...options });
+  return { data: parse(text), restore };
+}
+
+type RedFlag = z.infer<typeof redFlagSchema>;
+
+// Red flags and summaries are shown to both parties: never with full IC numbers.
+function maskRedFlags(flags: RedFlag[], restore: RestoreIcNumbers): RedFlag[] {
+  return flags.map((flag) => ({
+    ...flag,
+    clause: restore(flag.clause, 'masked'),
+    issue: restore(flag.issue, 'masked'),
+    recommendation: restore(flag.recommendation, 'masked'),
+  }));
 }
 
 // Upper bound on the agreement text sent to the model. A typical Malaysian
@@ -386,7 +414,7 @@ ${individualIdentityBlock}
 ${corporateIdentityBlock}
 ${coTenantsBlock}
 ${corporateLeasePartyBlock}
-The rawContent must include a dedicated "Parties and Identity Details" section using the full identity details provided above. Do not mask IC/NRIC numbers in rawContent. Do not repeat full IC/NRIC numbers in plainLanguageSummary or redFlags unless legally necessary.
+The rawContent must include a dedicated "Parties and Identity Details" section using the identity details provided above, with each IC/NRIC placeholder written exactly where that party's number belongs. Do not repeat IC/NRIC numbers in plainLanguageSummary or redFlags.
 
 FINANCIAL TERMS
 - Tenancy Start Date: ${startDate}
@@ -443,15 +471,17 @@ For "redFlags": Analyse the agreement and identify clauses that could disadvanta
   try {
     // A full agreement plus summary and red flags is long; streaming with a
     // generous max_tokens leaves room for both the thinking and the output.
-    const result = await generateStructured(agreementSchema, prompt, {
+    const { data, restore } = await generateStructured(agreementSchema, prompt, {
       maxTokens: 64000,
       effort: 'medium',
     });
 
+    // The agreement itself carries the parties' full IC numbers (put back
+    // here, on our server); the summary and red flags only ever show them masked.
     return {
-      rawContent: result.rawContent,
-      plainLanguageSummary: result.plainLanguageSummary,
-      redFlags: JSON.stringify(result.redFlags),
+      rawContent: restore(data.rawContent, 'full'),
+      plainLanguageSummary: restore(data.plainLanguageSummary, 'masked'),
+      redFlags: JSON.stringify(maskRedFlags(data.redFlags, restore)),
     };
   } catch (error) {
     console.error('AI agreement generation error:', error);
@@ -496,14 +526,14 @@ ${truncateForModel(rawContent)}
   });
 
   try {
-    const result = await generateStructured(analysisSchema, prompt, {
+    const { data, restore } = await generateStructured(analysisSchema, prompt, {
       maxTokens: 16000,
       effort: 'medium',
     });
 
     return {
-      plainLanguageSummary: result.plainLanguageSummary,
-      redFlags: JSON.stringify(result.redFlags),
+      plainLanguageSummary: restore(data.plainLanguageSummary, 'masked'),
+      redFlags: JSON.stringify(maskRedFlags(data.redFlags, restore)),
     };
   } catch (error) {
     console.error('AI agreement analysis error:', error);
@@ -550,14 +580,14 @@ Respond ONLY with a valid JSON object containing exactly these two keys:
   });
 
   try {
-    const result = await generateStructured(translationSchema, prompt, {
+    const { data, restore } = await generateStructured(translationSchema, prompt, {
       maxTokens: 16000,
       effort: 'medium',
     });
 
     return {
-      plainLanguageSummaryMs: result.plainLanguageSummaryMs,
-      redFlagsMs: JSON.stringify(result.redFlagsMs),
+      plainLanguageSummaryMs: restore(data.plainLanguageSummaryMs, 'masked'),
+      redFlagsMs: JSON.stringify(maskRedFlags(data.redFlagsMs, restore)),
     };
   } catch (error) {
     console.error('AI translation error:', error);
@@ -607,10 +637,10 @@ ${truncateForModel(rawContent)}`;
 
   let parsed: Partial<z.infer<typeof termsSchema>> = {};
   try {
-    parsed = await generateStructured(termsSchema, prompt, {
+    ({ data: parsed } = await generateStructured(termsSchema, prompt, {
       maxTokens: 4096,
       effort: 'low',
-    });
+    }));
   } catch (error) {
     // Fall through with an empty object: every field returns null and the UI
     // shows "AI couldn't determine — verify" labels for the landlord to fill in.

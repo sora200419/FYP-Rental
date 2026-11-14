@@ -2,10 +2,10 @@
 
 import { useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { signatureProofFileHref } from '@/lib/privateFiles';
 
 interface SignatureProofSummary {
   id: string;
-  fileUrl: string;
   originalName: string;
   mimeType: string;
   fileSize: number;
@@ -185,7 +185,7 @@ export default function TenantAgreementSignatureProofUploader({
               )}
             </div>
             <a
-              href={latestProof.fileUrl}
+              href={signatureProofFileHref(latestProof.id)}
               target="_blank"
               rel="noopener noreferrer"
               className="shrink-0 rounded-lg border border-white/10 bg-[#1C2740] px-3 py-2 text-xs font-semibold text-white/70 hover:bg-white/5 transition-colors"
