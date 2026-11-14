@@ -19,7 +19,7 @@ If your provider gives you a pooled connection string (pgBouncer), use the direc
 |---|---|---|
 | PostgreSQL | `DATABASE_URL` | Migrations live in `prisma/migrations` |
 | NextAuth | `NEXTAUTH_SECRET`, `NEXTAUTH_URL` | `NEXTAUTH_URL` must be the public URL; email links are built from it |
-| Google AI Studio | `GEMINI_API_KEY` | Model `gemini-2.5-flash` |
+| Anthropic | `ANTHROPIC_API_KEY` | Model `claude-haiku-5-5` (set in `src/lib/ai.ts`). Create the key in the Claude Console and set a monthly spend limit |
 | Cloudinary | `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET` | `next.config.ts` limits `next/image` to `res.cloudinary.com/<cloud name>/**` |
 | Upstash Redis | `UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN` | Rate limiting |
 | Resend | `RESEND_API_KEY`, `EMAIL_FROM` | Verify the sender domain. Resend's default test sender only delivers to your own address |

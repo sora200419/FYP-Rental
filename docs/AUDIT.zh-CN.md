@@ -95,6 +95,10 @@
 - `lib/payments.ts` 中未使用的 `generateRentSchedule`，以及函数体为空的 `ensureNextPaymentPending`。
 - `lib/cloudinary.ts` 中未使用的 `uploadPaymentProof` 和 `deleteAgreementSignatureProof`。
 
+### AI 服务商
+
+用 Anthropic SDK 上的 Claude Haiku 5.5 替换了 Google Gemini（`@google/generative-ai` 已被 Google 弃用）。JSON 结果现在通过结构化输出由 Zod 模式约束，不再依赖提示词加清洗代码；拒绝回答或输出被截断会在解析前被识别。详见 `docs/ARCHITECTURE.md` 的 AI usage 一节。环境变量改为 `ANTHROPIC_API_KEY`。
+
 ### 测试
 
 新增 `tests/unit/audit-fixes.test.ts`，覆盖邮箱规范化、序数词后缀、向导续填以及租金计划。目前共 41 个测试。
@@ -109,8 +113,8 @@
    - 位置：`src/lib/cloudinary.ts`。
    - 问题：KYC 图片（身份证正反面、自拍）以及包含身份证号的签署扫描件，都以普通公开方式上传到 Cloudinary。拿到网址的人都能查看。
    - 建议：改为 `type: 'authenticated'` 上传，并通过带权限校验的接口返回有时效的签名链接。
-2. **完整身份证号发送给 Gemini。**
-   - 位置：`src/lib/gemini.ts`，协议提示词。
+2. **完整身份证号发送给 AI 服务商。**
+   - 位置：`src/lib/ai.ts`，协议提示词（发送给 Anthropic）。
    - 问题：涉及 PDPA（个人资料保护法）。
    - 建议：发送占位符，生成后在服务端替换回真实身份证号。
 3. **上传信任浏览器的 MIME 类型。**
@@ -189,9 +193,8 @@
    - `/api/admin/users/[id]/revoke`
    - 多个资源的 GET 处理函数
    - `terminate` 中的租客分支
-3. **已弃用的 Gemini SDK。** `@google/generative-ai` 已被 `@google/genai` 取代。
-4. **构建脚本中的迁移。** `npm run build` 中的 `prisma migrate deploy` 也会在预览构建时执行（见 [`DEPLOYMENT.md`](DEPLOYMENT.md)）。
-5. **未使用的辅助导出。** `blockchain.ts` 导出的 `verifyHashOnChain` 没有被调用（它很适合做"链上验证"按钮）。`conditionReports.ts` 导出了一个未使用的常量。
+3. **构建脚本中的迁移。** `npm run build` 中的 `prisma migrate deploy` 也会在预览构建时执行（见 [`DEPLOYMENT.md`](DEPLOYMENT.md)）。
+4. **未使用的辅助导出。** `blockchain.ts` 导出的 `verifyHashOnChain` 没有被调用（它很适合做"链上验证"按钮）。`conditionReports.ts` 导出了一个未使用的常量。
 
 ### 🟡 一致性与重构
 

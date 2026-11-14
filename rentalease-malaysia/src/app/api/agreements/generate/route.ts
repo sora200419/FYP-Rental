@@ -7,7 +7,7 @@ import {
   buildAgreementEvent,
   buildAgreementRevision,
 } from '@/lib/agreements/history';
-import { generateTenancyAgreement, translateAgreementOutputs } from '@/lib/gemini';
+import { generateTenancyAgreement, translateAgreementOutputs } from '@/lib/ai';
 import { agreementGenerateLimit, enforceLimit } from '@/lib/ratelimit';
 import { z } from 'zod';
 
@@ -165,7 +165,7 @@ export async function POST(request: NextRequest) {
         postcode: tenancy.room.property.postcode,
         type: tenancy.room.property.type,
       },
-      // Phase 13: pass all rich room fields so Gemini generates accurate clauses
+      // Phase 13: pass all rich room fields so the AI generates accurate clauses
       room: {
         label: tenancy.room.label,
         bathrooms: tenancy.room.bathrooms,

@@ -95,6 +95,10 @@ Severity:
 - `lib/payments.ts`: the unused `generateRentSchedule`, and `ensureNextPaymentPending`, whose body did nothing.
 - `lib/cloudinary.ts`: the unused `uploadPaymentProof` and `deleteAgreementSignatureProof`.
 
+### AI provider
+
+Replaced Google Gemini (`@google/generative-ai`, which Google had deprecated) with Claude Haiku 5.5 through the Anthropic SDK. JSON results now use schema-constrained structured outputs instead of prompt-only JSON plus clean-up code, and refusals or truncated responses are detected before parsing. See `docs/ARCHITECTURE.md` → AI usage. The environment variable is now `ANTHROPIC_API_KEY`.
+
 ### Tests
 
 Added `tests/unit/audit-fixes.test.ts`, covering email normalisation, ordinal suffixes, wizard resume, and the rent schedule. There are now 41 tests in total.
@@ -109,8 +113,8 @@ Added `tests/unit/audit-fixes.test.ts`, covering email normalisation, ordinal su
    - Where: `src/lib/cloudinary.ts`.
    - Problem: KYC images (IC front and back, selfie) and signed-agreement scans, which contain IC numbers, are standard public Cloudinary uploads. Anyone with the URL can view them.
    - Fix: upload them as `type: 'authenticated'` and serve signed, short-lived URLs from an endpoint that checks permissions.
-2. **Full IC numbers are sent to Gemini.**
-   - Where: `src/lib/gemini.ts`, the agreement prompt.
+2. **Full IC numbers are sent to the AI provider.**
+   - Where: `src/lib/ai.ts`, the agreement prompt (sent to Anthropic).
    - Problem: this is a PDPA concern.
    - Fix: send a placeholder, then substitute the real IC on the server after generation.
 3. **Uploads trust the browser's MIME type.**
@@ -189,9 +193,8 @@ Added `tests/unit/audit-fixes.test.ts`, covering email normalisation, ordinal su
    - `/api/admin/users/[id]/revoke`
    - the GET handlers of several resources
    - the tenant branch of `terminate`
-3. **Deprecated Gemini SDK.** `@google/generative-ai` is deprecated in favour of `@google/genai`.
-4. **Migrations in the build script.** `prisma migrate deploy` inside `npm run build` also runs on preview builds (see [`DEPLOYMENT.md`](DEPLOYMENT.md)).
-5. **Unused helper exports.** `blockchain.ts` exports `verifyHashOnChain`, which nothing calls (it would make a nice "verify on chain" button). `conditionReports.ts` exports an unused constant.
+3. **Migrations in the build script.** `prisma migrate deploy` inside `npm run build` also runs on preview builds (see [`DEPLOYMENT.md`](DEPLOYMENT.md)).
+4. **Unused helper exports.** `blockchain.ts` exports `verifyHashOnChain`, which nothing calls (it would make a nice "verify on chain" button). `conditionReports.ts` exports an unused constant.
 
 ### 🟡 Consistency and refactoring
 

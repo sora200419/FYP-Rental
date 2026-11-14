@@ -2,19 +2,19 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
-import { extractAgreementTerms } from '@/lib/gemini';
+import { extractAgreementTerms } from '@/lib/ai';
 import { agreementExtractTermsLimit, enforceLimit } from '@/lib/ratelimit';
 
 /**
  * POST /api/agreements/[id]/extract-terms
  *
- * Read-only: calls Gemini to extract { startDate, endDate, monthlyRent,
+ * Read-only: calls Claude to extract { startDate, endDate, monthlyRent,
  * depositAmount } from the agreement's rawContent. Does NOT write anything.
  *
  * Returns ExtractedTerms — any field can be null if the model couldn't
  * determine it. The caller should fall back to current system values for nulls.
  *
- * Rate limit: 10 calls per agreement per hour. Each call costs a Gemini API
+ * Rate limit: 10 calls per agreement per hour. Each call costs an AI API
  * request, so without this an authenticated landlord could trivially drain
  * the AI budget by spamming the button. Mirrors agreementAssistLimit.
  */

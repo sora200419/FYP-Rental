@@ -14,7 +14,7 @@ RentalEase is a single Next.js 16 App Router application:
 Browser ──► src/proxy.ts (session + role routing)
         ──► (dashboard) server pages ──► Prisma ──► PostgreSQL
         ──► api/* route handlers ──► Prisma
-                                 ├─► Gemini       (src/lib/gemini.ts)
+                                 ├─► Claude       (src/lib/ai.ts)
                                  ├─► Cloudinary   (src/lib/cloudinary.ts)
                                  ├─► Resend       (src/lib/email.ts)
                                  ├─► Upstash      (src/lib/ratelimit.ts)
@@ -111,17 +111,22 @@ Pure rules live in `src/lib/conditionReportWorkflow.ts`. `SUBMITTED` and `LOCKED
 - **Landlord.** Can withdraw a deduction, which may turn a `DISPUTED` refund into `AGREED`.
 - **Payment.** `AGREED → PAID` when the landlord uploads proof of transfer.
 
-## AI usage (`src/lib/gemini.ts`)
+## AI usage (`src/lib/ai.ts`)
 
-| Function | Used by | Purpose |
-|---|---|---|
-| `generateTenancyAgreement` | `api/agreements/generate` | Full agreement plus summary and red flags, built from the tenancy, parties and wizard policy block (`buildWizardPolicyBlock`) |
-| `translateAgreementOutputs` | generate, analysis | Bahasa Malaysia summary and red flags |
-| `analyzeAgreementContent` | `api/agreements/[id]/analysis` | Re-analyse edited text |
-| `extractAgreementTerms` | `api/agreements/[id]/extract-terms` | Pull rent, deposit and dates out of the final text for confirmation |
-| `getGeminiModel` | `api/agreements/[id]/assist` | Apply one free-text instruction to the agreement |
+All AI calls go to Claude Haiku 5.5 (`claude-haiku-5-5`) through the Anthropic SDK. Requests stream (long agreements would otherwise risk HTTP timeouts) and use adaptive thinking with an explicit `effort`.
 
-Every Gemini endpoint is rate limited per user and agreement (`src/lib/ratelimit.ts`). If Redis is unavailable, the limits fail open.
+| Function | Used by | Output | Effort |
+|---|---|---|---|
+| `generateTenancyAgreement` | `api/agreements/generate` | Full agreement plus summary and red flags, built from the tenancy, parties and wizard policy block (`buildWizardPolicyBlock`) | medium |
+| `translateAgreementOutputs` | generate, analysis | Bahasa Malaysia summary and red flags | medium |
+| `analyzeAgreementContent` | `api/agreements/[id]/analysis` | Re-analysis of edited text | medium |
+| `extractAgreementTerms` | `api/agreements/[id]/extract-terms` | Rent, deposit and dates pulled from the final text for confirmation | low |
+| `generateText` | `api/agreements/[id]/assist` | The agreement with one free-text instruction applied | medium |
+
+- **Structured outputs.** Every JSON result is constrained by a Zod schema (`zodOutputFormat` → `output_config.format`) and validated with the same schema after the response arrives.
+- **Stop reasons.** The response's `stop_reason` is checked before anything is parsed. A refusal raises `AiRefusalError`; a response cut off at `max_tokens` raises an error rather than saving a truncated agreement.
+- **Changing the model.** Edit `AI_MODEL` in `src/lib/ai.ts`. If Haiku's agreements are not good enough, `claude-sonnet-5-5` is the next step up.
+- **Rate limits.** Every AI endpoint is rate limited per user and agreement (`src/lib/ratelimit.ts`). If Redis is unavailable, the limits fail open.
 
 ## Background work
 

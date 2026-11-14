@@ -5,7 +5,7 @@ import { prisma } from '@/lib/prisma';
 import {
   analyzeAgreementContent,
   translateAgreementOutputs,
-} from '@/lib/gemini';
+} from '@/lib/ai';
 import { agreementAnalysisLimit, enforceLimit } from '@/lib/ratelimit';
 
 export async function POST(

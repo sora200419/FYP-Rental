@@ -1,14 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import { getGeminiModel } from '@/lib/gemini';
+import { generateText, MAX_AGREEMENT_CHARS_FOR_MODEL } from '@/lib/ai';
 import { prisma } from '@/lib/prisma';
 import { agreementAssistLimit, enforceLimit } from '@/lib/ratelimit';
 import { z } from 'zod';
 
 const bodySchema = z.object({
-  // Same ceiling the other Gemini calls apply (MAX_AGREEMENT_CHARS_FOR_GEMINI).
-  currentContent: z.string().min(1).max(50_000, 'Agreement text is too long for AI assist'),
+  // Same ceiling the other AI calls apply.
+  currentContent: z
+    .string()
+    .min(1)
+    .max(MAX_AGREEMENT_CHARS_FOR_MODEL, 'Agreement text is too long for AI assist'),
   instruction: z
     .string()
     .min(10, 'Please describe what you want changed (at least 10 characters)')
@@ -70,8 +73,6 @@ export async function POST(
     const body = await request.json();
     const { currentContent, instruction } = bodySchema.parse(body);
 
-    const model = getGeminiModel();
-
     const prompt = `You are editing a Malaysian residential tenancy agreement.
 The landlord may write the instruction in English or Bahasa Malaysia. Interpret
 the instruction correctly and apply it to the agreement below.
@@ -90,8 +91,7 @@ no preamble, and no markdown formatting - just the plain agreement text.
 CURRENT AGREEMENT:
 ${currentContent}`;
 
-    const result = await model.generateContent(prompt);
-    const suggestedContent = result.response.text().trim();
+    const suggestedContent = (await generateText(prompt)).trim();
 
     if (!suggestedContent || suggestedContent.length < 100) {
       return NextResponse.json(

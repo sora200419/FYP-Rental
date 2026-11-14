@@ -1,6 +1,6 @@
 // src/lib/wizardFormatters.ts
 // Converts wizard enum values to human-readable English strings. The result
-// (buildWizardPolicyBlock) is injected into the Gemini agreement prompt.
+// (buildWizardPolicyBlock) is injected into the AI agreement-generation prompt.
 
 import type { AgreementPreferences } from '@prisma/client';
 
@@ -192,7 +192,7 @@ export function formatUtilityDeposit(handling: string): string {
   return map[handling] ?? handling;
 }
 
-// ── Build the full policy block for Gemini injection ──────────────────────────
+// ── Build the full policy block for the AI prompt ──────────────────────────
 export function buildWizardPolicyBlock(prefs: AgreementPreferences): string {
   const latePenaltyAmount = prefs.latePenaltyAmount ? Number(prefs.latePenaltyAmount) : null;
   const rentIncreasePercent = prefs.rentIncreasePercent ? Number(prefs.rentIncreasePercent) : null;

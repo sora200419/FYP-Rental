@@ -11,7 +11,7 @@ const FEATURES = [
       </svg>
     ),
     title: 'AI-Generated Agreements',
-    description: 'Structured tenancy contracts drafted in minutes by Gemini AI — in English and Bahasa Malaysia.',
+    description: 'Structured tenancy contracts drafted in minutes by Claude AI — in English and Bahasa Malaysia.',
   },
   {
     icon: (

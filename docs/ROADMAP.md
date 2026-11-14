@@ -34,7 +34,7 @@ Suggested improvements, ordered by value for an FYP demo and for real-world feas
 
 ## 4. Feasibility and scale notes
 
-- **Gemini cost and latency.** Generation is the slowest path. Keep the per-tenancy rate limits, cache analysis results by `contentHash`, and show progress in the UI. On Vercel, keep generation within the function time limit or move it to a background job.
+- **AI cost and latency.** Generation is the slowest path. Claude Haiku 5.5 is the low-cost choice; if agreement quality needs more, move only `generateTenancyAgreement` to Claude Sonnet 5.5 and keep Haiku for the rest. Keep the per-tenancy rate limits, cache analysis results by `contentHash`, and show progress in the UI. On Vercel, keep generation within the function time limit or move it to a background job.
 - **Blockchain.** Sepolia is a free testnet. That is right for a proof-of-concept, but it is not a legal record. Present it as tamper evidence, and keep the database `contentHash` as the source of truth.
 - **Legal.** Generated agreements are drafts. A short disclaimer on the signing screen, plus a recommendation to have it reviewed by a lawyer, makes the project more credible.
 - **Data protection (PDPA 2010).** Keep KYC documents private, mask IC numbers in the UI, and document retention: how long KYC images and deleted users' data are kept.

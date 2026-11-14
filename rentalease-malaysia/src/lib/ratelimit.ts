@@ -30,7 +30,7 @@ export const agreementAssistLimit = new Ratelimit({
 });
 
 // AI term extraction: 10 requests per agreement per hour. Modelled on
-// agreementAssistLimit because both call Gemini on the same content.
+// agreementAssistLimit because both call the AI model on the same content.
 export const agreementExtractTermsLimit = new Ratelimit({
   redis,
   limiter: Ratelimit.slidingWindow(10, '1 h'),
@@ -39,7 +39,7 @@ export const agreementExtractTermsLimit = new Ratelimit({
 });
 
 // AI analysis refresh: 10 requests per agreement per hour. Each request makes
-// two Gemini calls (analysis + Bahasa Malaysia translation).
+// two AI calls (analysis + Bahasa Malaysia translation).
 export const agreementAnalysisLimit = new Ratelimit({
   redis,
   limiter: Ratelimit.slidingWindow(10, '1 h'),

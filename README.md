@@ -2,7 +2,7 @@
 
 AI-assisted digital tenancy platform for Malaysian residential rentals. Built as a Final Year Project.
 
-Landlords list properties and rooms, invite tenants, and generate a tenancy agreement with Google Gemini from a six-step policy wizard. Tenants review a plain-language summary and red flags, in English or Bahasa Malaysia, before signing. After signing, the platform tracks:
+Landlords list properties and rooms, invite tenants, and generate a tenancy agreement with Claude (Anthropic) from a six-step policy wizard. Tenants review a plain-language summary and red flags, in English or Bahasa Malaysia, before signing. After signing, the platform tracks:
 
 - the deposit and monthly rent, with uploaded payment proofs;
 - move-in and move-out condition reports, with photo evidence;
@@ -17,7 +17,7 @@ Signed agreements are hashed (SHA-256), and the hash can optionally be anchored 
 | Accounts and KYC | Registration with Malaysian IC validation. Identity verification uses IC front, IC back and a selfie, reviewed by an admin. Password reset by email. Accounts can be suspended or soft-deleted. |
 | Properties and rooms | One property can hold several rentable rooms, each with its own rent, furnishing and bathroom type. Admins verify property ownership. Photo galleries. |
 | Tenancies | Invitation flow (INVITED → PENDING → ACTIVE → EXPIRED / TERMINATED), for individual and corporate (company) tenants. Supports co-tenants, renewal and early termination. |
-| AI agreement | Six-step policy wizard, then Gemini generates the agreement. Landlords can edit it with AI assist. Tenants get a plain-language summary and red flags in English and Bahasa Malaysia, and can request changes. Confirmed terms are extracted from the agreement and synced to the tenancy when it is finalised. |
+| AI agreement | Six-step policy wizard, then Claude generates the agreement. Landlords can edit it with AI assist. Tenants get a plain-language summary and red flags in English and Bahasa Malaysia, and can request changes. Confirmed terms are extracted from the agreement and synced to the tenancy when it is finalised. |
 | Signing | The tenant signs digitally, then uploads a signed hard copy for the landlord to approve. The content hash, timestamp and IP are recorded. Optional on-chain anchoring. PDF export. |
 | Payments | Deposit and monthly rent, each paid by uploading proof (image or PDF) for the landlord to approve or reject. The rent schedule is generated automatically when the tenancy becomes active. |
 | Condition reports | Move-in, move-out and inspection reports with a photo evidence checklist. The other party can accept, request a correction, add counter-evidence, or dispute. Move-in and move-out reports can be compared side by side. |
@@ -33,7 +33,7 @@ Signed agreements are hashed (SHA-256), and the hash can optionally be anchored 
 | Styling | Tailwind CSS 4 |
 | Database | PostgreSQL with Prisma 5 |
 | Auth | NextAuth 4 (credentials provider, JWT sessions) with role-based routing in `src/proxy.ts` |
-| AI | Google Gemini (`@google/generative-ai`, model `gemini-2.5-flash`) |
+| AI | Anthropic Claude (`@anthropic-ai/sdk`, model `claude-haiku-5-5`) with structured JSON outputs |
 | Files | Cloudinary |
 | Email | Resend |
 | Rate limiting | Upstash Redis |
@@ -64,7 +64,7 @@ Signed agreements are hashed (SHA-256), and the hash can optionally be anchored 
 
 ## Getting started
 
-Prerequisites: Node.js 20.9 or later, a PostgreSQL database, and accounts for Gemini, Cloudinary, Upstash and Resend. See [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md) for where each key comes from.
+Prerequisites: Node.js 20.9 or later, a PostgreSQL database, and accounts for Anthropic, Cloudinary, Upstash and Resend. See [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md) for where each key comes from.
 
 ```bash
 cd rentalease-malaysia
