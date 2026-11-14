@@ -14,7 +14,8 @@ Signed agreements are hashed (SHA-256), and the hash can optionally be anchored 
 
 | Area | What it does |
 |---|---|
-| Accounts and KYC | Registration with Malaysian IC validation. Identity verification uses IC front, IC back and a selfie, reviewed by an admin. Password reset by email. Accounts can be suspended or soft-deleted. |
+| Accounts and KYC | Registration with Malaysian IC validation. Identity verification uses IC front, IC back and a selfie, reviewed by an admin; identity files are stored privately and opened through short-lived signed links. Password reset by email. Accounts can be suspended or soft-deleted. |
+| Languages | English and Bahasa Malaysia, switchable from the profile page (dashboards, navigation, statuses and tenant tenancy pages so far). |
 | Properties and rooms | One property can hold several rentable rooms, each with its own rent, furnishing and bathroom type. Admins verify property ownership. Photo galleries. |
 | Tenancies | Invitation flow (INVITED → PENDING → ACTIVE → EXPIRED / TERMINATED), for individual and corporate (company) tenants. Supports co-tenants, renewal and early termination. |
 | AI agreement | Six-step policy wizard, then Claude generates the agreement. Landlords can edit it with AI assist. Tenants get a plain-language summary and red flags in English and Bahasa Malaysia, and can request changes. Confirmed terms are extracted from the agreement and synced to the tenancy when it is finalised. |
@@ -84,11 +85,17 @@ Fill in `.env`, then create the database schema:
 npx prisma migrate deploy
 ```
 
+Create the admin account from `ADMIN_EMAIL` / `ADMIN_PASSWORD`:
+
+```bash
+npm run admin:bootstrap
+```
+
 ```bash
 npm run dev
 ```
 
-Open http://localhost:3000. The admin account from `ADMIN_EMAIL` / `ADMIN_PASSWORD` is created on the first page load.
+Open http://localhost:3000.
 
 ## Scripts
 
@@ -97,12 +104,13 @@ Run these from `rentalease-malaysia/`.
 | Command | Purpose |
 |---|---|
 | `npm run dev` | Development server |
-| `npm run build` | `prisma generate`, then `prisma migrate deploy`, then `next build` |
+| `npm run build` | `prisma generate`, `prisma migrate deploy`, admin bootstrap, then `next build` |
 | `npm start` | Serve the production build |
 | `npm run lint` | ESLint (Next.js rules and type-aware checks) |
 | `npm run typecheck` | `tsc --noEmit` |
 | `npm test` | Vitest unit tests |
 | `npm run test:watch` | Vitest in watch mode |
+| `npm run admin:bootstrap` | Create the admin account from `ADMIN_EMAIL` / `ADMIN_PASSWORD` (also runs during `build`) |
 
 ## Documentation
 

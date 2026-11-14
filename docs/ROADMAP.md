@@ -1,6 +1,6 @@
 # Roadmap
 
-Suggested improvements, ordered by value for an FYP demo and for real-world feasibility. See [`AUDIT.md`](AUDIT.md) for the specific open issues each item addresses.
+Suggested improvements, ordered by value for an FYP demo and for real-world feasibility. See [`AUDIT.md`](AUDIT.md) for the specific open issues each item addresses. Items marked ✅ are done; see AUDIT.md → Round 2.
 
 ## 1. Make it dependable (first)
 
@@ -9,8 +9,8 @@ Suggested improvements, ordered by value for an FYP demo and for real-world feas
 | **CI on every push.** A GitHub Actions workflow running `npm ci`, `typecheck`, `lint` and `test`. | Catches regressions like the broken test script and the Windows-only lockfile before they reach a build. |
 | **Seed script with demo accounts.** `prisma/seed.ts` creating an admin, a landlord with one verified property and two rooms, and tenants at each lifecycle stage. | One-command demo setup. Examiners can see every flow without clicking through registration and KYC. |
 | **Route-level tests for the money and signing paths:** finalize, sign, approve signature proof, approve deposit, deposit settlement and cron. Use a throwaway Postgres (Docker or a Neon branch). | These are the flows where a bug costs money or legal standing. Today only the pure helpers are tested. |
-| **Private storage for identity documents.** Authenticated Cloudinary uploads served through a permission-checked endpoint. | The largest privacy gap (PDPA 2010). |
-| **Move admin bootstrap into a script.** | Removes a database query from every page request and makes pages cacheable again. |
+| ✅ **Private storage for identity documents.** Authenticated Cloudinary uploads served through a permission-checked endpoint. | Next: apply the same to payment/deposit proofs and condition photos. |
+| ✅ **Move admin bootstrap into a script.** | Done: runs during `npm run build`. |
 
 ## 2. Make the framework easier to extend
 
@@ -23,10 +23,10 @@ Suggested improvements, ordered by value for an FYP demo and for real-world feas
 
 ## 3. Product features that strengthen the project
 
-- **Bahasa Malaysia UI.** `src/lib/i18n.ts` already holds a complete English and Malay dictionary, and `User.language` is stored. Wire it in with a language switch in the profile. This is a visible, low-risk feature.
-- **Multi-tenancy tenant view.** `/dashboard/tenant/tenancy/[id]` plus a list, so a renewal offer doesn't hide the live tenancy.
-- **Landlord-side cancellation** of INVITED and PENDING tenancies, and automatic expiry of stale PENDING ones.
-- **Property editing**, including a resubmission flow after an admin rejection.
+- ✅ **Bahasa Malaysia UI** — language switch in the profile; shell, dashboards, statuses and tenant tenancy pages translated. Next: the agreement, payment, condition-report and deposit-settlement pages (keys go in `src/lib/i18n.ts`).
+- ✅ **Multi-tenancy tenant view** — `/dashboard/tenant/tenancy` list plus `/dashboard/tenant/tenancy/[id]`.
+- ✅ **Landlord-side cancellation** of invitations and not-yet-started tenancies, and expiry of unanswered invitations after 30 days. Next: expiry of stale PENDING tenancies.
+- ✅ **Property editing**, including resubmission after an admin rejection.
 - **"Verify on chain" button.** `verifyHashOnChain` already exists in `src/lib/blockchain.ts`. Show tenants and landlords that the stored hash matches the Sepolia transaction.
 - **Rent reminders and overdue notices**, sent by the existing daily cron.
 - **Pagination and filters** on landlord payments, admin users, admin properties and the audit log.
@@ -34,6 +34,7 @@ Suggested improvements, ordered by value for an FYP demo and for real-world feas
 
 ## 4. Feasibility and scale notes
 
+- **Privacy with the AI provider.** IC numbers are redacted before every Claude request (`src/lib/icRedaction.ts`). Names, contact details and addresses are still sent; say so in the privacy notice.
 - **AI cost and latency.** Generation is the slowest path. Claude Haiku 5.5 is the low-cost choice; if agreement quality needs more, move only `generateTenancyAgreement` to Claude Sonnet 5.5 and keep Haiku for the rest. Keep the per-tenancy rate limits, cache analysis results by `contentHash`, and show progress in the UI. On Vercel, keep generation within the function time limit or move it to a background job.
 - **Blockchain.** Sepolia is a free testnet. That is right for a proof-of-concept, but it is not a legal record. Present it as tamper evidence, and keep the database `contentHash` as the source of truth.
 - **Legal.** Generated agreements are drafts. A short disclaimer on the signing screen, plus a recommendation to have it reviewed by a lawyer, makes the project more credible.

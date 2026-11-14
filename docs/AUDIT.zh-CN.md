@@ -99,9 +99,35 @@
 
 用 Anthropic SDK 上的 Claude Haiku 5.5 替换了 Google Gemini（`@google/generative-ai` 已被 Google 弃用）。JSON 结果现在通过结构化输出由 Zod 模式约束，不再依赖提示词加清洗代码；拒绝回答或输出被截断会在解析前被识别。详见 `docs/ARCHITECTURE.md` 的 AI usage 一节。环境变量改为 `ANTHROPIC_API_KEY`。
 
+### 第二轮：安全、流程缺口与语言
+
+在第一次审计之后，按路线图完成。
+
+- **身份文件私有化。** KYC 图片和签署协议扫描件改为 Cloudinary 的 `authenticated` 私有资源。
+  - 只能通过 `/api/files/kyc/...` 和 `/api/files/signature-proofs/...` 访问。这两个接口先检查请求者身份，再跳转到 5 分钟后失效的签名链接。
+  - 之前上传的文件在运行一次 `scripts/make-private-assets.ts` 之前仍是公开的。
+- **身份证号不再发给 AI。** 每次调用 Claude 前，马来西亚身份证号会被替换成占位符（`src/lib/icRedaction.ts`），返回后在服务器端还原：协议正文中是完整号码，摘要和风险提示中是遮盖后的号码。
+- **按文件内容校验上传。** 所有上传接口都根据文件开头的字节判断真实类型（`src/lib/uploadValidation.ts`），并使用随机文件名。KYC 以外的上传加了限流。
+- **重置密码。** 令牌以原子方式占用，其他未使用的重置链接会被作废。
+- **统一密码规则。** 注册和重置都是 12–128 位（`src/lib/passwordPolicy.ts`）。
+- **租客查询。** 加了限流，且不再暴露已删除或已停用的账号。
+- **管理员引导。** 改为在构建时运行（`npm run admin:bootstrap`），不再每次页面请求都执行。不会提升碰巧使用 `ADMIN_EMAIL` 的已有账号，也会拒绝过弱的管理员密码。
+- **一个租客多份租约。** 有多份租约的租客会在 `/dashboard/tenant/tenancy` 看到列表，每份租约有独立页面。通知、邮件和提醒都指向具体租约，消息页可在不同租约的对话之间切换。
+- **取消租约。** 房东可以取消邀请或尚未开始的租约。租客撤回遵循相同规则：押金已提交或租客已签署后不能取消。超过 30 天无人回应的邀请由每日定时任务自动删除。
+- **编辑房产。** 被驳回的房源保存后会自动重新提交审核。已认证的房源只有改动地址时才需要重新审核。存在进行中租约时地址被锁定，房东现在也能看到管理员的驳回理由。
+- **小修复：**
+  - 过期租约可直接进入续约页面；
+  - 删除有历史租约的房间会给出明确提示，而不是 500；
+  - 仪表盘提示条链接到需要处理的页面。
+- **马来语界面。** 个人资料页新增语言切换。目前已翻译：
+  - 导航外壳、通知和提示条；
+  - 仪表盘和所有状态标签；
+  - 租客租约页和消息页。
+  - 词典有类型约束，漏掉马来语翻译会导致构建失败。
+
 ### 测试
 
-新增 `tests/unit/audit-fixes.test.ts`，覆盖邮箱规范化、序数词后缀、向导续填以及租金计划。目前共 41 个测试。
+新增 `tests/unit/audit-fixes.test.ts`、`security.test.ts`、`flow-gaps.test.ts` 和 `i18n.test.ts`。目前共 70 个测试。
 
 ---
 
@@ -109,53 +135,27 @@
 
 ### 🔴 安全与隐私
 
-1. **身份证件是公开链接。**
-   - 位置：`src/lib/cloudinary.ts`。
-   - 问题：KYC 图片（身份证正反面、自拍）以及包含身份证号的签署扫描件，都以普通公开方式上传到 Cloudinary。拿到网址的人都能查看。
-   - 建议：改为 `type: 'authenticated'` 上传，并通过带权限校验的接口返回有时效的签名链接。
-2. **完整身份证号发送给 AI 服务商。**
-   - 位置：`src/lib/ai.ts`，协议提示词（发送给 Anthropic）。
-   - 问题：涉及 PDPA（个人资料保护法）。
-   - 建议：发送占位符，生成后在服务端替换回真实身份证号。
-3. **上传信任浏览器的 MIME 类型。**
-   - 位置：所有上传路由。
-   - 建议：上传前检查文件魔数（例如使用 `file-type` 包）。
-4. **管理员引导每次请求都执行，且可以提权账号。**
-   - 位置：`src/app/layout.tsx`。
-   - 问题：根布局每次页面请求都会执行 `ensureAdminBootstrap()`，增加一次数据库查询，并使所有页面变为动态渲染。它还会把任何使用 `ADMIN_EMAIL` 的已有账号提升为管理员。
-   - 建议：改为一次性脚本（如 `npm run admin:bootstrap`）或种子数据。
-5. **停用状态只由 `proxy.ts` 强制执行。**
-   - 问题：路由处理函数自身不检查 `isSuspended`。
-   - 缓解：JWT 回调现在每次请求都会重新读取该字段，但统一的 `requireActiveUser()` 辅助函数会更稳妥。
-6. **重置密码令牌可被并发使用两次。**
-   - 位置：`api/reset-password`。
-   - 建议：用 `updateMany({ where: { token, usedAt: null } })` 原子地占用令牌，并检查返回的计数。
-7. **租客查询可被枚举。**
-   - 位置：`api/tenants/lookup`。
-   - 问题：任何房东都能枚举租客账号；没有限流，也没有过滤已软删除的用户。
-8. **提交的压缩包里有泄露的密钥。** 提交的源码压缩包包含一个带真实凭据的 `.env`（数据库、NextAuth、Gemini、Cloudinary、Sepolia 私钥、Resend、Upstash、管理员密码）。**请轮换所有这些密钥。**
-9. **注册密码规则较弱。** 注册接受 8 位密码，重置却要求 12 位。需要统一策略。
+1. **轮换泄露的密钥。** 提交的源码压缩包包含带真实凭据的 `.env`（数据库、NextAuth、Gemini、Cloudinary、Sepolia 私钥、Resend、Upstash、管理员密码）。请全部轮换，步骤见 [`DEPLOYMENT.md`](DEPLOYMENT.md)。
+2. **其他个人文件仍是公开链接。**
+   - 付款、押金和退款凭证（银行单据）以及房屋状况照片，只从检查归属的页面链接，但拿到网址的人都能打开。
+   - 可以沿用 KYC 图片的私有文件机制（`getAssetAccessUrl` 加一个 `/api/files/...` 接口）。
+3. **注册会暴露已有账号。** "邮箱已注册"和"身份证号已注册"返回不同的错误，可被用来探测哪些邮箱或身份证号有账号。
+4. **停用状态依赖代理层和会话。** 路由处理函数自身不检查 `isSuspended`。JWT 每次请求都会重新读取，但统一的 `requireActiveUser()` 辅助函数会更稳妥。
+5. **AI 服务商仍会收到其他个人资料。** 身份证号已遮盖，但姓名、邮箱、电话和地址仍会发送给 Anthropic。应在隐私说明或用户同意中注明。
 
 ### 🔴 流程缺口
 
-1. **续约会隐藏正在进行的租约。**
-   - 位置：`tenant/tenancy` 和 `tenant/messages`。
-   - 问题：两个页面都只显示**最新**的租约，一旦存在续约邀请，正在进行的 ACTIVE 租约就消失了。
-   - 建议：增加租约切换器，或新增 `/dashboard/tenant/tenancy/[id]`。
-2. **房东无法取消邀请或待处理（PENDING）的租约**，且待处理租约永远不会过期。
-3. **有押金凭证后，撤回和拒绝可能失败。**
-   - 问题：`DepositProof → Tenancy` 是 `ON DELETE RESTRICT`。
-   - 撤回在租客签署或押金付清后仍被允许。需要决定是禁止还是保留记录。
-4. **有过往租约的房间无法删除。**
-   - 问题：`Tenancy.room` 是 `Restrict`，删除会返回 500。
-   - 建议：给出明确提示阻止删除，或将房间归档。
-5. **无法编辑房产。** 驳回和撤销通知让房东"更新房源"，但没有编辑页面，也没有 `PATCH /api/properties/[id]`。
-6. **无法从界面续约已过期的租约。** 续约页面允许过期租约，但入口只在 ACTIVE 且 30 天内到期时显示。
-7. **已关联的企业住户无任何权限。** `CorporateOccupant.linkedUserId` 有写入但从未读取，关联住户并不会获得访问权限。已移除的住户也可以被重新关联。
-8. **审核期间仍可修改条件证据。** 对方审核时（`PENDING_REVIEW`、`COUNTER_EVIDENCE_ADDED`），证据仍可编辑，且任何一方都能修改对方的草稿清单。
-9. **对已定稿协议点击"重新生成"。** 它会悄悄把租客正在审阅的版本重置为草稿。建议加确认步骤，或直接禁止。
-10. **定稿会覆盖已生效租约的条款。** 即使押金已付清，它仍会覆盖租金、押金和日期。
-11. **时间线的"条件"步骤无法到达。** `src/lib/uiRedesign.ts` 中租约时间线的"条件"步骤在正常租约上永远不可达。
+1. **PENDING 状态的租约永不过期。** 目前只有无人回应的邀请会被自动清除。
+2. **已关联的企业住户没有任何权限。**
+   - `CorporateOccupant.linkedUserId` 有写入但从未读取，关联住户实际不起作用。
+   - 已移除的住户还能被重新关联。
+3. **审核期间仍可修改房屋状况证据。**
+   - 对方审核时（`PENDING_REVIEW`、`COUNTER_EVIDENCE_ADDED`），证据仍可编辑。
+   - 任何一方都能修改对方的草稿清单。
+4. **对已定稿协议点击"重新生成"。** 会悄悄把租客正在审阅的版本重置为草稿。建议加确认步骤或直接禁止。
+5. **定稿会覆盖已生效租约的条款。** 即使押金已付清，仍会覆盖租金、押金和日期。
+6. **时间线的"状况"步骤在进行中的租约上永远无法到达**（`src/lib/uiRedesign.ts`）。
+7. **有历史租约的房间完全不能删除**（现在是有意如此，并有明确提示）。可以考虑增加"归档房间"功能，让房东把它们隐藏起来。
 
 ### 🟠 数据库（需要迁移）
 
@@ -166,54 +166,51 @@
    - `DepositDeduction.refundId`
    - `CoTenant.tenancyId`
    - `Notification(userId, createdAt)`
-2. **删除限制。**
-   - `AuditLog.actor` 限制删除，因此只要用户执行过被审计的操作，`scripts/delete-users.ts` 就会失败。
-   - `DepositProof.tenancy` 有相同限制。
-3. **从未写入的枚举值：**
+2. **删除限制。** `AuditLog.actor` 限制删除，因此用户只要执行过被审计的操作，`scripts/delete-users.ts` 就会失败。
+3. **系统操作没有执行者。** 定时任务把过期邀请记录在房东名下，因为 `AuditLog.actorId` 是必填项。改成可为空（或建一个系统用户）会更准确。
+4. **从未写入的枚举值：**
    - `ReportStatus.SUBMITTED` 和 `LOCKED`
    - `AgreementEventType.SIGNED`
    - `NotificationType.CONDITION_REPORT_CREATED`、`CONDITION_REPORT_ACKNOWLEDGED` 和 `MUTUAL_TERMINATION_PROPOSED`
    - `PaymentStatus.LATE`
-4. **通知类型被复用于其他事件。** `DEPOSIT_REFUND_PAID` 用于"所有扣款已达成一致"，`MUTUAL_TERMINATION_RESPONDED` 用于单方面终止。
-5. **金额合计使用浮点数。** 扣款和退款用 JS 浮点数相加。应改用整数分或 `Prisma.Decimal`。
-6. **多步写入没有事务包裹：**
-   - 删除房产（同时会遗留 Cloudinary 照片）；
-   - 协议版本号，并发保存时可能触发唯一约束冲突。
-7. **未命名的迁移目录。** `20260411061512_` 和 `20260412052917_` 名称为空（仅影响外观）。
+5. **通知类型被挪作他用。**
+   - `DEPOSIT_REFUND_PAID` 用于"所有扣款已达成一致"。
+   - `MUTUAL_TERMINATION_RESPONDED` 用于单方面终止。
+   - `INVITATION_RESPONDED` 现在也用于取消和过期。
+   - 单独的 `INVITATION_CANCELLED` 类型会更清楚。
+6. **金额合计用浮点数计算。** 扣款和退款用 JS 浮点数相加，应改用整数分或 `Prisma.Decimal`。
+7. **没有事务包裹的写入。** 删除房产不在同一事务中，且会留下 Cloudinary 上的孤立照片。协议版本号在并发保存时可能触发唯一约束冲突。
 
 ### 🟠 需决定保留或删除
 
-1. **未使用的双语词典。**
-   - 内容：`src/lib/i18n.ts`（473 行，英文和马来文齐全）没有被引用。`User.language` 有存储，但界面没有读取。
-   - 选择：接入界面（很好的 FYP 亮点），或删除。
-2. **没有界面调用的 API 处理函数：**
+1. **翻译覆盖范围。** 以下页面仍只有英文：
+   - 协议查看器和编辑器；
+   - 向导；
+   - 房屋状况报告；
+   - 押金结算；
+   - 付款；
+   - 房东的房产和租约详情页；
+   - 管理后台；
+   - 登录和注册页（没有会话可读取语言）。
+2. **没有界面调用的 API：**
    - `DELETE /api/agreements/[id]`、`DELETE /api/condition-reports/[id]`、`condition-reports/[id]/acknowledge`
    - `PATCH /api/rooms/[id]`
-   - `GET /api/admin/kyc`、`GET /api/kyc/status`、`GET /api/messages/unread`（与 `/unread-counts` 重复）
+   - `GET /api/kyc/status`、`GET /api/messages/unread`
    - `/api/admin/users/[id]/revoke`
-   - 多个资源的 GET 处理函数
-   - `terminate` 中的租客分支
-3. **构建脚本中的迁移。** `npm run build` 中的 `prisma migrate deploy` 也会在预览构建时执行（见 [`DEPLOYMENT.md`](DEPLOYMENT.md)）。
-4. **未使用的辅助导出。** `blockchain.ts` 导出的 `verifyHashOnChain` 没有被调用（它很适合做"链上验证"按钮）。`conditionReports.ts` 导出了一个未使用的常量。
+   - 多个资源的 GET 接口，以及 `terminate` 中的租客分支
+3. **构建脚本中执行迁移。** `npm run build` 里的 `prisma migrate deploy` 在预览构建中也会运行（见 [`DEPLOYMENT.md`](DEPLOYMENT.md)）。
+4. **`verifyHashOnChain` 未使用。** 它在 `src/lib/blockchain.ts` 中，很适合做"链上验证"按钮。
 
 ### 🟡 一致性与重构
 
-1. **近似重复的组件：**
-   - 三种凭证上传组件：付款、押金、签署；
-   - 三种批准/拒绝卡片；
-   - `VerifyPropertyButton` 与管理员 KYC 操作。
-   - 建议：抽取通用的 `ProofUploader` 和 `ReviewCard`。
-2. **复制粘贴的辅助函数。**
-   - `formatRM` 出现在 8 个文件中，`formatDate` 在 7 个，状态标签映射在 5 个，`toDateInput` 在 2 个。建议统一放入 `src/lib/format.ts`，并共享状态文案。
-   - 页面之间的状态措辞也不一致（"Paid"、"Confirmed"、"Deposit Confirmed"；"Pending Signature" 与 "PENDING SIGNATURE PROOF"）。
-3. **`AgreementViewer.tsx` 有 1174 行。** 它仍是浅色主题，嵌在深色外壳中，导致标题几乎看不见。它还包含一个内联 `<style>`（带 Google Fonts 的 `@import`）和未使用的 CSS 类。建议拆分为阅读、风险提示、历史和签署审计四部分，并改用 `next/font`。
-4. **没有共享的路由辅助函数。** 没有统一的鉴权或归属检查辅助函数；角色错误时返回的 401 和 403 混用，"Unauthorised" 与 "Unauthorized" 并存，校验方式在 zod 与手写检查之间混用，还使用了已弃用的 zod 4 API（`z.string().email()`、`.datetime()`）。
-5. **时区。** 客户端组件格式化日期时没有指定 `timeZone: 'Asia/Kuala_Lumpur'`，导致水合警告，并在 UTC 服务器上出现日期偏差。定时任务使用 `endDate < now` 比较，因此租约在最后一天的马来西亚时间 08:00 就会过期。
-6. **没有 `loading.tsx`。** 数据库查询较重的页面在加载时没有任何反馈。
-7. **没有分页。** 房东付款、管理员用户和管理员房产列表都是全量加载；管理员用户列表还会加载 ID 数组只为计数（应使用 `_count`）。
-8. **根目录的 `Project_Limitations.docx` 与代码矛盾。**
-   - 它说消息功能延后，但消息功能已存在。
-   - 它说 KYC 需要地址证明，但 KYC 实际使用身份证正反面和自拍。
-   - 它说界面只有英文，但双语词典已存在（尽管未接入）。
-   - 它说 Gemini 对扫描件做 OCR，但实际并不做。
+1. **近似重复的组件。** 有三个凭证上传组件和三个批准/拒绝卡片。建议抽取通用的 `ProofUploader` 和 `ReviewCard`。
+2. **复制粘贴的辅助函数。** `formatRM` / `formatDate` 被复制到许多文件里。建议统一放到 `src/lib/format.ts`，使用 `src/lib/i18n.ts` 的 `localeFor()` 和 `Asia/Kuala_Lumpur` 时区。
+3. **`AgreementViewer.tsx`（1174 行）** 在深色外壳里仍是浅色主题。建议拆分并完成主题迁移。
+4. **没有共享的路由辅助函数。** 每个路由都重复写权限和归属检查。错误状态码（401 与 403）和措辞不一致，部分路由还在用已弃用的 zod 4 API。
+5. **时区。** 许多客户端组件格式化日期时没有指定 `timeZone: 'Asia/Kuala_Lumpur'`，会导致水合警告，并在 UTC 服务器上出现日期差一天的问题。
+6. **没有 `loading.tsx` 和分页**，数据量大的仪表盘和列表都受影响。
+7. **`Project_Limitations.docx` 与代码不符。**
+   - 它说消息功能被推迟、界面只有英文。
+   - 它说 KYC 需要地址证明。
+   - 它说 Gemini 负责 OCR。
    - 提交前需要更新。

@@ -9,7 +9,7 @@ The app is designed for **Vercel** with a managed **PostgreSQL** database (Neon,
 3. Leave the framework preset as Next.js. Use Node.js 20 or later.
 4. Add every variable from [`rentalease-malaysia/.env.example`](../rentalease-malaysia/.env.example) under **Settings → Environment Variables**.
 
-The build command (`npm run build`) runs `prisma generate && prisma migrate deploy && next build`. Every deployment, **including preview deployments**, therefore applies pending migrations to whatever database its `DATABASE_URL` points at. Give preview deployments their own database, or move `migrate deploy` out of the build (see [`AUDIT.md`](AUDIT.md)).
+The build command (`npm run build`) runs `prisma generate && prisma migrate deploy && tsx scripts/bootstrap-admin.ts && next build`. Every deployment, **including preview deployments**, therefore applies pending migrations to whatever database its `DATABASE_URL` points at. Give preview deployments their own database, or move `migrate deploy` out of the build (see [`AUDIT.md`](AUDIT.md)).
 
 If your provider gives you a pooled connection string (pgBouncer), use the direct (non-pooled) URL for migrations.
 
@@ -23,7 +23,7 @@ If your provider gives you a pooled connection string (pgBouncer), use the direc
 | Cloudinary | `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET` | `next.config.ts` limits `next/image` to `res.cloudinary.com/<cloud name>/**` |
 | Upstash Redis | `UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN` | Rate limiting |
 | Resend | `RESEND_API_KEY`, `EMAIL_FROM` | Verify the sender domain. Resend's default test sender only delivers to your own address |
-| Admin bootstrap | `ADMIN_EMAIL`, `ADMIN_PASSWORD`, `ADMIN_NAME` (optional) | Created or promoted automatically |
+| Admin bootstrap | `ADMIN_EMAIL`, `ADMIN_PASSWORD` (12+ characters), `ADMIN_NAME` (optional) | Created during `npm run build`, or with `npm run admin:bootstrap`. If a non-admin account already uses `ADMIN_EMAIL` it is left alone; pick another email |
 | Sepolia (optional) | `BLOCKCHAIN_PRIVATE_KEY`, `SEPOLIA_RPC_URL` | Dedicated wallet with test ETH only. If unset, anchoring is skipped and logged |
 
 ## 3. Cron
@@ -59,6 +59,14 @@ npx prisma migrate dev --name <change>
 
 ```bash
 npx tsx scripts/delete-users.ts <userId> [<userId> ...]
+```
+
+### One-off: make existing identity files private
+
+KYC images and signed agreement scans uploaded before the switch to private storage are still public. Run this once per environment, with that environment's `DATABASE_URL` and `CLOUDINARY_*` set. It is safe to run again.
+
+```bash
+npx tsx scripts/make-private-assets.ts
 ```
 
 ## 5. Before a demo or submission

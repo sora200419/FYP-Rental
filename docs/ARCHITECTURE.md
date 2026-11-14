@@ -24,7 +24,7 @@ Vercel Cron ──► api/cron/expire-tenancies (daily)
 
 ## Roles and access
 
-- **Roles:** `LANDLORD`, `TENANT` and `ADMIN` (enum `Role`). Registration offers landlord or tenant only. The admin account is bootstrapped from `ADMIN_EMAIL` / `ADMIN_PASSWORD` (`src/lib/admin/bootstrap.ts`).
+- **Roles:** `LANDLORD`, `TENANT` and `ADMIN` (enum `Role`). Registration offers landlord or tenant only. The admin account is created at build time from `ADMIN_EMAIL` / `ADMIN_PASSWORD` (`scripts/bootstrap-admin.ts` → `src/lib/admin/bootstrap.ts`). An existing non-admin account that uses that email is never promoted.
 - **Sessions:** NextAuth credentials provider with JWT sessions (`src/lib/auth.ts`).
   - The JWT callback re-reads `isSuspended`, `deletedAt` and `passwordChangedAt` on every request. Suspension, deletion and password changes therefore take effect on existing sessions.
   - Login is rate limited per (email, IP).
@@ -59,7 +59,8 @@ Vercel Cron ──► api/cron/expire-tenancies (daily)
 
 ```
 INVITED ──accept──► PENDING ──signed agreement + deposit PAID──► ACTIVE ──endDate passed (cron)──► EXPIRED
-   │ decline (deleted)    │ withdraw (deleted)                     │
+   │ decline / cancel /   │ withdraw / cancel (deleted)            │
+   │ 30-day expiry        │                                        │
    ▼                      ▼                                        └──terminate──► TERMINATED
 ```
 
@@ -68,7 +69,9 @@ INVITED ──accept──► PENDING ──signed agreement + deposit PAID─�
 - **Becoming ACTIVE.** Happens when both conditions hold: the agreement is `SIGNED` and the deposit is `PAID`. Either event can come second; see `getTenancyStatusAfter*` in `src/lib/tenancyLifecycle.ts`. The rent schedule (`buildRentScheduleEntries`, `src/lib/payments.ts`) is created at this point.
 - **Termination.** Waives `PENDING` rent payments due after the termination date.
 - **Renewal.** Creates a new `INVITED` tenancy linked by `renewalOfTenancyId`, copying any corporate lease fields. Only one renewal can be open at a time.
-- **Room availability.** Expiry, termination, decline and withdrawal all recompute room availability.
+- **Cancelling before it starts.** The tenant can decline (INVITED) or withdraw (PENDING); the landlord can cancel either; unanswered invitations are removed after 30 days. Not allowed once the deposit is submitted or the tenant has signed (`getUnstartedTenancyCancellationBlocker`). All of these go through `deleteUnstartedTenancy` (`src/lib/tenancyCancellation.ts`), which writes the audit row in the same transaction.
+- **Room availability.** Expiry, termination, decline, withdrawal and cancellation all recompute room availability.
+- **Tenant view.** A tenant can have several tenancies (e.g. a renewal next to the live one): `/dashboard/tenant/tenancy` lists them and `/dashboard/tenant/tenancy/[id]` shows one. Links in notifications and emails use `tenantTenancyHref(id)` (`src/lib/tenantLinks.ts`).
 
 ### Agreement (`AgreementStatus`)
 
@@ -127,12 +130,27 @@ All AI calls go to Claude Haiku 5.5 (`claude-haiku-5-5`) through the Anthropic S
 - **Stop reasons.** The response's `stop_reason` is checked before anything is parsed. A refusal raises `AiRefusalError`; a response cut off at `max_tokens` raises an error rather than saving a truncated agreement.
 - **Changing the model.** Edit `AI_MODEL` in `src/lib/ai.ts`. If Haiku's agreements are not good enough, `claude-sonnet-5-5` is the next step up.
 - **Rate limits.** Every AI endpoint is rate limited per user and agreement (`src/lib/ratelimit.ts`). If Redis is unavailable, the limits fail open.
+- **IC numbers never reach the model.** `runClaude` replaces every Malaysian IC number with a placeholder such as `[[IC_1]]` (`src/lib/icRedaction.ts`) and puts the real numbers back afterwards: in full in the agreement text, masked (`******-**-1234`) in summaries and red flags.
+
+## Files and privacy
+
+- **Public assets.** Property photos, payment/deposit/refund proofs and condition photos are ordinary Cloudinary uploads. Pages only link them after an ownership check, but the URLs themselves are not secret.
+- **Private assets.** KYC images and signed agreement scans are uploaded as `authenticated` assets. The UI links to `/api/files/kyc/[submissionId]/[part]` and `/api/files/signature-proofs/[proofId]`. These routes check the requester (owner, landlord of the tenancy, or admin) and redirect to a signed link that expires after 5 minutes (`getAssetAccessUrl` in `src/lib/cloudinary.ts`).
+- **Upload validation.** Every upload is checked by its first bytes, not its declared MIME type (`validateUpload` in `src/lib/uploadValidation.ts`), and stored under a random public ID.
+
+## Language
+
+- **Where the text comes from.** UI text comes from `src/lib/i18n.ts`, which has an English and a Bahasa Malaysia dictionary. The Malay one is typed against the English one, so a missing translation fails the build.
+- **How the language is chosen.** Users pick a language on their profile page. It is stored in `User.language`, re-read into the session on every request, and provided to client components by `LanguageProvider` from the dashboard layout.
+- **Server components.** These call `t(key, toLanguage(session.user.language))`.
+- **Other helpers:** `tc()` handles singular/plural, `statusLabel()` translates enum statuses, and `localeFor()` chooses the date/number locale.
 
 ## Background work
 
 The only scheduled job is `GET /api/cron/expire-tenancies`, which runs daily at 17:00 UTC (01:00 Malaysia time) via `vercel.json` and is protected by `CRON_SECRET`. It:
 
 - expires overdue `ACTIVE` tenancies and frees their rooms;
+- removes invitations unanswered for 30 days;
 - sends 30-day and 7-day ending-soon notifications and emails.
 
 Dashboards also create ending-soon notifications when they load (`src/lib/endingSoonNotifications.ts`). Both paths use the same notification link, so they de-duplicate each other.

@@ -99,9 +99,35 @@ Severity:
 
 Replaced Google Gemini (`@google/generative-ai`, which Google had deprecated) with Claude Haiku 5.5 through the Anthropic SDK. JSON results now use schema-constrained structured outputs instead of prompt-only JSON plus clean-up code, and refusals or truncated responses are detected before parsing. See `docs/ARCHITECTURE.md` → AI usage. The environment variable is now `ANTHROPIC_API_KEY`.
 
+### Round 2 — security, flow gaps and language
+
+Done after the first audit, following the roadmap.
+
+- **Private identity files.** KYC images and signed agreement scans are now `authenticated` Cloudinary assets.
+  - They are served only through `/api/files/kyc/...` and `/api/files/signature-proofs/...`, which check who is asking and redirect to a signed link that expires after 5 minutes.
+  - Files uploaded earlier stay public until `scripts/make-private-assets.ts` is run once.
+- **No IC numbers to the AI.** Every Claude request replaces Malaysian IC numbers with placeholders (`src/lib/icRedaction.ts`) and puts them back on the server: in full in the agreement, masked in summaries and red flags.
+- **Upload checks by content.** Every upload route detects the real file type from its first bytes (`src/lib/uploadValidation.ts`) and uses random file names. Non-KYC uploads are rate limited.
+- **Password reset.** Tokens are claimed atomically, and other open reset links are revoked.
+- **One password rule.** 12–128 characters for both registration and reset (`src/lib/passwordPolicy.ts`).
+- **Tenant lookup.** Rate limited, and it no longer reveals removed or suspended accounts.
+- **Admin bootstrap.** Runs at build time (`npm run admin:bootstrap`) instead of on every page request. It never promotes an existing account that happens to use `ADMIN_EMAIL`, and refuses a weak admin password.
+- **Several tenancies per tenant.** Tenants with more than one tenancy see a list at `/dashboard/tenant/tenancy` and a page per tenancy. Notifications, emails and reminders link to the specific tenancy, and messages can switch between threads.
+- **Cancelling.** Landlords can cancel an invitation or a tenancy that hasn't started. Tenant withdraw follows the same rule: blocked once the deposit is submitted or the tenant has signed. Invitations with no answer are removed after 30 days by the daily cron.
+- **Editing properties.** A rejected listing is resubmitted on save. A verified listing goes back to review only if its location changes. The address is locked while a tenancy is open, and landlords now see the admin's rejection feedback.
+- **Smaller fixes:**
+  - expired tenancies link to the renewal page;
+  - deleting a room with past tenancies gives a clear message instead of a 500;
+  - dashboard banners link to the page that needs action.
+- **Bahasa Malaysia interface.** A language switch on the profile page. Translated so far:
+  - the shell, notifications and banners;
+  - the dashboards and every status label;
+  - the tenant tenancy and messages pages.
+  - The dictionary is typed, so a missing Malay string fails the build.
+
 ### Tests
 
-Added `tests/unit/audit-fixes.test.ts`, covering email normalisation, ordinal suffixes, wizard resume, and the rent schedule. There are now 41 tests in total.
+Added `tests/unit/audit-fixes.test.ts`, `security.test.ts`, `flow-gaps.test.ts` and `i18n.test.ts`. There are now 70 tests in total.
 
 ---
 
@@ -109,53 +135,27 @@ Added `tests/unit/audit-fixes.test.ts`, covering email normalisation, ordinal su
 
 ### 🔴 Security and privacy
 
-1. **Identity documents are public URLs.**
-   - Where: `src/lib/cloudinary.ts`.
-   - Problem: KYC images (IC front and back, selfie) and signed-agreement scans, which contain IC numbers, are standard public Cloudinary uploads. Anyone with the URL can view them.
-   - Fix: upload them as `type: 'authenticated'` and serve signed, short-lived URLs from an endpoint that checks permissions.
-2. **Full IC numbers are sent to the AI provider.**
-   - Where: `src/lib/ai.ts`, the agreement prompt (sent to Anthropic).
-   - Problem: this is a PDPA concern.
-   - Fix: send a placeholder, then substitute the real IC on the server after generation.
-3. **Uploads trust the browser's MIME type.**
-   - Where: every upload route.
-   - Fix: check magic bytes (for example with the `file-type` package) before uploading.
-4. **Admin bootstrap runs on every request and can promote an account.**
-   - Where: `src/app/layout.tsx`.
-   - Problem: the root layout runs `ensureAdminBootstrap()` on every page request, adding a database query and making every page dynamic. It also promotes any existing account with `ADMIN_EMAIL` to ADMIN.
-   - Fix: move it to a one-off script (`npm run admin:bootstrap`) or a seed.
-5. **Suspension is only enforced by `proxy.ts`.**
-   - Problem: route handlers don't check `isSuspended` themselves.
-   - Mitigation: the JWT callback now re-reads it on every request, but a shared `requireActiveUser()` helper would be more robust.
-6. **Password-reset tokens can be used twice concurrently.**
-   - Where: `api/reset-password`.
-   - Fix: claim the token with `updateMany({ where: { token, usedAt: null } })` and check the count.
-7. **Tenant lookup allows account enumeration.**
-   - Where: `api/tenants/lookup`.
-   - Problem: any landlord can enumerate tenant accounts; there is no rate limit and soft-deleted users aren't filtered out.
-8. **Leaked secrets in the submission archive.** The submitted source archive contained a `.env` with real credentials (database, NextAuth, Gemini, Cloudinary, Sepolia private key, Resend, Upstash, admin password). **Rotate all of them.**
-9. **Weaker registration password rule.** Registration accepts 8-character passwords; reset requires 12. Decide on one policy.
+1. **Rotate the leaked secrets.** The submitted source archive contained a `.env` with real credentials (database, NextAuth, Gemini, Cloudinary, Sepolia private key, Resend, Upstash, admin password). Rotate all of them; [`DEPLOYMENT.md`](DEPLOYMENT.md) has the steps.
+2. **Other personal files are still public URLs.**
+   - Payment, deposit and refund proofs (bank slips) and condition photos are linked only from pages that check ownership, but anyone holding the URL can open them.
+   - The same private-file mechanism used for KYC images (`getAssetAccessUrl` + an `/api/files/...` route) would cover them.
+3. **Registration reveals existing accounts.** It returns different errors for "email already registered" and "IC already registered", which lets someone probe which emails or IC numbers have accounts.
+4. **Suspension relies on the proxy and the session.** Route handlers don't check `isSuspended` themselves. The JWT re-reads it on every request, but a shared `requireActiveUser()` helper would be more robust.
+5. **The AI provider still receives other personal details.** IC numbers are now redacted, but names, emails, phone numbers and addresses still go to Anthropic. Mention this in the privacy notice / user consent.
 
 ### 🔴 Flow gaps
 
-1. **Renewal hides the live tenancy.**
-   - Where: `tenant/tenancy` and `tenant/messages`.
-   - Problem: both pages show only the **newest** tenancy, so once a renewal invite exists the live ACTIVE tenancy disappears.
-   - Fix: add a tenancy switcher or `/dashboard/tenant/tenancy/[id]`.
-2. **Landlords can't cancel an invitation or a PENDING tenancy**, and PENDING tenancies never expire.
-3. **Withdraw and decline can fail after a deposit proof exists.**
-   - Problem: `DepositProof → Tenancy` is `ON DELETE RESTRICT`.
-   - Withdraw is also allowed after the tenant has signed or paid the deposit. Decide whether to block that or keep a record.
-4. **Rooms with past tenancies can't be deleted.**
-   - Problem: `Tenancy.room` is `Restrict`, so the delete fails with a 500.
-   - Fix: block the delete with a clear message, or archive the room.
-5. **No property editing.** Rejection and revoke notifications tell landlords to "update the listing", but no edit page or `PATCH /api/properties/[id]` exists.
-6. **Expired tenancies can't be renewed from the UI.** The renew page allows them, but the only link is shown for ACTIVE tenancies ending within 30 days.
-7. **Linked corporate occupants get nothing.** `CorporateOccupant.linkedUserId` is written but never read, so linking an occupant grants no access. REMOVED occupants can also be re-linked.
-8. **Condition evidence can change during review.** It stays editable while the other party is reviewing (`PENDING_REVIEW`, `COUNTER_EVIDENCE_ADDED`), and either party can edit the other's draft checklist.
-9. **"Regenerate" on a FINALIZED agreement.** It silently resets the version the tenant is reviewing back to DRAFT. Consider a confirmation step or blocking it.
-10. **Finalize overwrites terms on an ACTIVE tenancy.** It writes rent, deposit and dates even when the deposit is already PAID.
-11. **Timeline step is unreachable.** The "Condition" step of the tenancy timeline (`src/lib/uiRedesign.ts`) can never be reached on a live tenancy.
+1. **PENDING tenancies never expire.** Only unanswered invitations are cleared automatically.
+2. **Linked corporate occupants get no access.**
+   - `CorporateOccupant.linkedUserId` is written but never read, so linking an occupant does nothing.
+   - REMOVED occupants can also be re-linked.
+3. **Condition evidence can change during review.**
+   - It stays editable while the other party is reviewing (`PENDING_REVIEW`, `COUNTER_EVIDENCE_ADDED`).
+   - Either party can edit the other's draft checklist.
+4. **"Regenerate" on a FINALIZED agreement.** It silently resets the version the tenant is reviewing back to DRAFT. Consider a confirmation step or blocking it.
+5. **Finalize overwrites terms on an ACTIVE tenancy.** It writes rent, deposit and dates even when the deposit is already PAID.
+6. **The timeline's "Condition" step is unreachable** on a live tenancy (`src/lib/uiRedesign.ts`).
+7. **Rooms with past tenancies can't be deleted at all** (by design now, with a clear message). An "archive room" option would let landlords hide them.
 
 ### 🟠 Database (needs a migration)
 
@@ -166,54 +166,51 @@ Added `tests/unit/audit-fixes.test.ts`, covering email normalisation, ordinal su
    - `DepositDeduction.refundId`
    - `CoTenant.tenancyId`
    - `Notification(userId, createdAt)`
-2. **Delete restrictions.**
-   - `AuditLog.actor` restricts deletion, so `scripts/delete-users.ts` fails for any user who performed an audited action.
-   - `DepositProof.tenancy` has the same restriction.
-3. **Enum values that are never written:**
+2. **Delete restrictions.** `AuditLog.actor` restricts deletion, so `scripts/delete-users.ts` fails for any user who performed an audited action.
+3. **System actions have no actor.** The cron records expired invitations under the landlord's ID because `AuditLog.actorId` is required. A nullable actor (or a system user) would be more accurate.
+4. **Enum values that are never written:**
    - `ReportStatus.SUBMITTED` and `LOCKED`
    - `AgreementEventType.SIGNED`
    - `NotificationType.CONDITION_REPORT_CREATED`, `CONDITION_REPORT_ACKNOWLEDGED` and `MUTUAL_TERMINATION_PROPOSED`
    - `PaymentStatus.LATE`
-4. **Notification types reused for other events.** `DEPOSIT_REFUND_PAID` is sent for "all deductions agreed", and `MUTUAL_TERMINATION_RESPONDED` for a one-sided termination.
-5. **Floating-point money totals.** Deductions and refunds are summed with JS floats. Use integer cents or `Prisma.Decimal`.
-6. **Non-transactional multi-step writes:**
-   - property deletion (which also leaves Cloudinary photos orphaned);
-   - agreement revision numbering, where concurrent saves can hit the unique constraint.
-7. **Unnamed migration folders.** `20260411061512_` and `20260412052917_` have empty names (cosmetic).
+5. **Notification types reused for other events.**
+   - `DEPOSIT_REFUND_PAID` is sent for "all deductions agreed".
+   - `MUTUAL_TERMINATION_RESPONDED` is sent for a one-sided termination.
+   - `INVITATION_RESPONDED` is now also used for cancellations and expiry.
+   - A dedicated `INVITATION_CANCELLED` type would be clearer.
+6. **Floating-point money totals.** Deductions and refunds are summed with JS floats. Use integer cents or `Prisma.Decimal`.
+7. **Non-transactional writes.** Property deletion is not one transaction and leaves Cloudinary photos orphaned. Agreement revision numbering can hit the unique constraint under concurrent saves.
 
 ### 🟠 Decide: keep or remove
 
-1. **Unused i18n dictionary.**
-   - What: `src/lib/i18n.ts` (473 lines, complete English and Bahasa Malaysia) has no importers. `User.language` is stored but nothing in the UI reads it.
-   - Choice: wire it into the UI (a strong FYP feature) or delete it.
+1. **Translation coverage.** These pages are still English-only:
+   - the agreement viewer and editor;
+   - the wizard;
+   - condition reports;
+   - deposit settlement;
+   - payments;
+   - the landlord property/tenancy detail pages;
+   - admin tools;
+   - the login and registration pages (which have no session to read a language from).
 2. **API handlers with no UI caller:**
    - `DELETE /api/agreements/[id]`, `DELETE /api/condition-reports/[id]`, `condition-reports/[id]/acknowledge`
    - `PATCH /api/rooms/[id]`
-   - `GET /api/admin/kyc`, `GET /api/kyc/status`, `GET /api/messages/unread` (duplicates `/unread-counts`)
+   - `GET /api/kyc/status`, `GET /api/messages/unread`
    - `/api/admin/users/[id]/revoke`
-   - the GET handlers of several resources
-   - the tenant branch of `terminate`
+   - several resource GET handlers, and the tenant branch of `terminate`
 3. **Migrations in the build script.** `prisma migrate deploy` inside `npm run build` also runs on preview builds (see [`DEPLOYMENT.md`](DEPLOYMENT.md)).
-4. **Unused helper exports.** `blockchain.ts` exports `verifyHashOnChain`, which nothing calls (it would make a nice "verify on chain" button). `conditionReports.ts` exports an unused constant.
+4. **`verifyHashOnChain` is unused.** It is in `src/lib/blockchain.ts` and would make a good "verify on chain" button.
 
 ### 🟡 Consistency and refactoring
 
-1. **Near-duplicate components:**
-   - three proof uploaders: payment, deposit and signature;
-   - three approve/reject cards;
-   - `VerifyPropertyButton` and the admin KYC actions.
-   - Fix: extract a generic `ProofUploader` and `ReviewCard`.
-2. **Copied helpers.**
-   - `formatRM` appears in 8 files, `formatDate` in 7, status-pill maps in 5, `toDateInput` in 2. Move them to `src/lib/format.ts` and share the status labels.
-   - Status wording also differs between pages ("Paid", "Confirmed", "Deposit Confirmed"; "Pending Signature" vs "PENDING SIGNATURE PROOF").
-3. **`AgreementViewer.tsx` is 1,174 lines.** It is still light-themed inside the dark shell, so the title is almost invisible. It also contains an inline `<style>` with a Google Fonts `@import` and unused CSS classes. Split it into reader, red flags, history and signing-audit parts, and use `next/font`.
-4. **No shared route helpers.** There is no shared auth or ownership helper, and wrong-role errors are a mix of 401 and 403, "Unauthorised" and "Unauthorized", zod and hand-written checks, and deprecated zod 4 APIs (`z.string().email()`, `.datetime()`).
-5. **Time zones.** Client components format dates without `timeZone: 'Asia/Kuala_Lumpur'`, which causes hydration warnings and off-by-one dates on a UTC server. The cron compares `endDate < now`, so tenancies expire at 08:00 Malaysia time on their last day.
-6. **No `loading.tsx`.** Pages with heavy database work give no feedback while they load.
-7. **No pagination.** Landlord payments, admin users and admin properties load everything; admin users loads ID arrays just to count them (use `_count`).
-8. **Root-level `Project_Limitations.docx` contradicts the code.**
-   - It says messaging was deferred; messaging exists.
-   - It says KYC needs proof of address; KYC uses IC front, IC back and a selfie.
-   - It says the UI is English-only; a bilingual dictionary exists, though it is unused.
-   - It says Gemini does OCR of scans; it doesn't.
+1. **Near-duplicate components.** There are three proof uploaders and three approve/reject cards. Extract a generic `ProofUploader` and `ReviewCard`.
+2. **Copied helpers.** `formatRM` / `formatDate` are copied into many files. Move them to `src/lib/format.ts`, using `localeFor()` from `src/lib/i18n.ts` and the `Asia/Kuala_Lumpur` time zone.
+3. **`AgreementViewer.tsx` (1,174 lines)** is still light-themed inside the dark shell. Split it and finish the theme.
+4. **No shared route helpers.** Authorisation and ownership checks are repeated in every route. Error status codes (401 vs 403) and wording are inconsistent, and some routes still use deprecated zod 4 APIs.
+5. **Time zones.** Many client components format dates without `timeZone: 'Asia/Kuala_Lumpur'`, which causes hydration warnings and off-by-one dates on a UTC server.
+6. **No `loading.tsx` or pagination** for the heavy dashboards and lists.
+7. **`Project_Limitations.docx` contradicts the code.**
+   - It says messaging is deferred and the UI is English-only.
+   - It says KYC needs proof of address.
+   - It says Gemini does OCR.
    - Update it before submission.
