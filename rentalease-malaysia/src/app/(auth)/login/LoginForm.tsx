@@ -44,7 +44,12 @@ export default function LoginForm() {
     setIsLoading(false);
 
     if (result?.error) {
-      setServerError('Invalid email or password');
+      // NextAuth forwards the message thrown by authorize() (invalid
+      // credentials, suspended/removed account, rate limit). Fall back to the
+      // generic message for NextAuth's own error codes.
+      setServerError(
+        result.error === 'CredentialsSignin' ? 'Invalid email or password' : result.error,
+      );
       return;
     }
 

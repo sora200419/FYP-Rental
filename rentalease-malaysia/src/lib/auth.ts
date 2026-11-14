@@ -3,6 +3,7 @@ import CredentialsProvider from 'next-auth/providers/credentials';
 import { prisma } from './prisma';
 import bcrypt from 'bcryptjs';
 import { loginRateLimit, enforceLimit } from './ratelimit';
+import { normalizeEmail } from './emailAddress';
 
 // Single generic message for both "no such user" and "wrong password". Returning
 // distinct messages would let attackers enumerate which emails are registered
@@ -27,7 +28,7 @@ export const authOptions: NextAuthOptions = {
           throw new Error('Email and password are required');
         }
 
-        const normalisedEmail = credentials.email.toLowerCase();
+        const normalisedEmail = normalizeEmail(credentials.email);
 
         // Rate limit: 5 attempts per (email, IP) tuple per 15 minutes.
         // Keying on the tuple stops an attacker from locking out a victim's
@@ -77,16 +78,6 @@ export const authOptions: NextAuthOptions = {
           throw new Error(INVALID_CREDENTIALS_MESSAGE);
         }
 
-        // Soft-deleted and suspended messages are intentionally distinct —
-        // those users genuinely need different UX guidance.
-        if (user.deletedAt) {
-          throw new Error('This account has been removed.');
-        }
-
-        if (user.isSuspended) {
-          throw new Error('Your account has been suspended. Please contact support.');
-        }
-
         // Compare the submitted password with the hashed password
         const isValidPassword = await bcrypt.compare(
           credentials.password,
@@ -95,6 +86,18 @@ export const authOptions: NextAuthOptions = {
 
         if (!isValidPassword) {
           throw new Error(INVALID_CREDENTIALS_MESSAGE);
+        }
+
+        // Soft-deleted and suspended messages are intentionally distinct —
+        // those users genuinely need different UX guidance. They are only
+        // revealed after the password matches, so they cannot be used to
+        // probe which emails are registered.
+        if (user.deletedAt) {
+          throw new Error('This account has been removed.');
+        }
+
+        if (user.isSuspended) {
+          throw new Error('Your account has been suspended. Please contact support.');
         }
 
         return {
@@ -123,10 +126,10 @@ export const authOptions: NextAuthOptions = {
         // attackers holding a stolen JWT after the user does a password reset.
         const dbUser = await prisma.user.findUnique({
           where: { id: token.id as string },
-          select: { isSuspended: true, passwordChangedAt: true },
+          select: { isSuspended: true, passwordChangedAt: true, deletedAt: true },
         });
-        if (!dbUser) {
-          // User was deleted out from under this session — invalidate.
+        if (!dbUser || dbUser.deletedAt) {
+          // User was deleted (hard or soft) out from under this session — invalidate.
           throw new Error('Session invalidated');
         }
         token.isSuspended = dbUser.isSuspended;

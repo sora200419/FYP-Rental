@@ -44,7 +44,8 @@ export async function PATCH(
 
   await prisma.property.update({
     where: { id },
-    data: { rejectedReason: reason },
+    // A rejected property must not stay verified (the UI would show both).
+    data: { rejectedReason: reason, isVerified: false },
   });
 
   await logAudit({

@@ -9,7 +9,11 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { PasswordInput } from '@/components/ui/PasswordInput';
 
 const schema = z.object({
-  password: z.string().min(8, 'Password must be at least 8 characters'),
+  // Must match the server rule in /api/reset-password (12–128 characters).
+  password: z
+    .string()
+    .min(12, 'Password must be at least 12 characters')
+    .max(128, 'Password must be 128 characters or fewer'),
   confirm: z.string(),
 }).refine((d) => d.password === d.confirm, {
   message: 'Passwords do not match',
@@ -68,7 +72,7 @@ function ResetPasswordForm() {
       <PasswordInput
         registration={register('password')}
         label="New Password"
-        placeholder="Min. 8 characters"
+        placeholder="Min. 12 characters"
         error={errors.password?.message}
       />
       <PasswordInput
