@@ -4,6 +4,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { syncRoomAvailability } from '@/lib/roomAvailability';
 import { createNotification } from '@/lib/notifications';
 import { sendDepositSettlementEmail } from '@/lib/email';
 import { z } from 'zod';
@@ -74,7 +75,14 @@ export async function POST(
       select: { endDate: true },
     });
     if (tenancyFull && tenancyFull.endDate < new Date()) {
-      await prisma.tenancy.update({ where: { id: tenancyId }, data: { status: 'EXPIRED' } });
+      await prisma.$transaction(async (tx) => {
+        const expired = await tx.tenancy.update({
+          where: { id: tenancyId },
+          data: { status: 'EXPIRED' },
+          select: { roomId: true },
+        });
+        await syncRoomAvailability(tx, expired.roomId);
+      });
       effectiveStatus = 'EXPIRED';
     }
   }

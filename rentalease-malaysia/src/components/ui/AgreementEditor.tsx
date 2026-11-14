@@ -122,7 +122,9 @@ export default function AgreementEditor({
   };
 
   const handleAiAssist = async () => {
-    if (!instruction.trim()) return;
+    // Same guard as the button: Enter must not bypass the 10-character minimum
+    // the API enforces, or fire a second request while one is in flight.
+    if (instruction.trim().length < 10 || aiState.status === 'loading') return;
     setAiState({ status: 'loading' });
 
     try {

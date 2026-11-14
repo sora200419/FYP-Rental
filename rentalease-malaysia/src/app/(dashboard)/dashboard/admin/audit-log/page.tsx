@@ -5,15 +5,42 @@ import { prisma } from '@/lib/prisma';
 import { PageHeader } from '@/components/ui/RedesignPrimitives';
 import { AdminNav } from '@/components/ui/AdminTabBar';
 
+// Every action written via logAudit() in src/app/api. Unknown values fall
+// back to the raw action string.
 const ACTION_LABELS: Record<string, string> = {
   USER_DELETED: 'User Deleted',
+  USER_SUSPENDED: 'User Suspended',
+  USER_REACTIVATED: 'User Reactivated',
+  USER_VERIFICATION_REVOKED: 'User Verification Revoked',
+  KYC_APPROVED: 'KYC Approved',
+  KYC_REJECTED: 'KYC Rejected',
   PROPERTY_DELETED: 'Property Deleted',
+  PROPERTY_VERIFIED: 'Property Verified',
+  PROPERTY_REJECTED: 'Property Rejected',
+  PROPERTY_VERIFICATION_REVOKED: 'Property Verification Revoked',
+  PROPERTY_PHOTO_DELETED: 'Property Photo Deleted',
   ROOM_DELETED: 'Room Deleted',
-  TENANT_DOCUMENT_DELETED: 'Document Deleted',
+  TENANCY_DECLINED: 'Invitation Declined',
+  TENANCY_WITHDRAWN: 'Tenancy Withdrawn',
+  AGREEMENT_DELETED: 'Agreement Deleted',
+  CONDITION_REPORT_DELETED: 'Condition Report Deleted',
   CONDITION_PHOTO_DELETED: 'Condition Photo Deleted',
   CO_TENANT_DELETED: 'Co-tenant Deleted',
-  PROPERTY_PHOTO_DELETED: 'Property Photo Deleted',
 };
+
+// Entity names actually written to AuditLog.entityName.
+const ENTITIES = [
+  'User',
+  'KycSubmission',
+  'Property',
+  'PropertyPhoto',
+  'Room',
+  'Tenancy',
+  'Agreement',
+  'ConditionReport',
+  'ConditionPhoto',
+  'CoTenant',
+];
 
 export default async function AuditLogPage({
   searchParams,
@@ -24,8 +51,11 @@ export default async function AuditLogPage({
   if (!session || session.user.role !== 'ADMIN') redirect('/dashboard/admin');
 
   const params = await searchParams;
-  const entityFilter = params.entity ?? 'all';
-  const page = Math.max(1, parseInt(params.page ?? '1', 10));
+  const entityFilter =
+    params.entity && ENTITIES.includes(params.entity) ? params.entity : 'all';
+  // parseInt of a non-numeric value is NaN, which Prisma rejects as `skip`.
+  const parsedPage = parseInt(params.page ?? '1', 10);
+  const page = Number.isFinite(parsedPage) ? Math.max(1, parsedPage) : 1;
   const pageSize = 20;
 
   const where = entityFilter !== 'all' ? { entityName: entityFilter } : {};
@@ -43,15 +73,13 @@ export default async function AuditLogPage({
 
   const totalPages = Math.ceil(total / pageSize);
 
-  const entities = ['User', 'Property', 'Room', 'TenantDocument', 'ConditionPhoto', 'CoTenant', 'PropertyPhoto'];
-
   return (
     <div className="max-w-5xl">
       <AdminNav active="audit-log" />
       <PageHeader
         eyebrow="Admin"
         title="Audit Log"
-        description="Full record of all deletion events in the system."
+        description="Record of deletions and other sensitive admin and tenancy actions."
       />
 
       <form method="GET" className="mb-6 flex gap-3">
@@ -61,7 +89,7 @@ export default async function AuditLogPage({
           className="bg-white/5 border border-[rgba(196,154,60,0.2)] text-white rounded-lg px-3 py-2 text-sm focus:border-[rgba(196,154,60,0.5)] focus:outline-none"
         >
           <option value="all">All entities</option>
-          {entities.map((e) => (
+          {ENTITIES.map((e) => (
             <option key={e} value={e}>{e}</option>
           ))}
         </select>

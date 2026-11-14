@@ -201,7 +201,8 @@ const AGREEMENT_PILL: Record<string, string> = {
   DRAFT: `${PILL_BASE} bg-white/5 text-white/30 border border-white/10`,
   FINALIZED: `${PILL_BASE} bg-[rgba(74,222,128,0.12)] text-[#4ade80] border border-[rgba(74,222,128,0.3)]`,
   NEGOTIATING: `${PILL_BASE} bg-[rgba(196,154,60,0.12)] text-[#C49A3C] border border-[rgba(196,154,60,0.3)]`,
-  PENDING_TENANT: `${PILL_BASE} bg-[rgba(250,204,21,0.12)] text-[#facc15] border border-[rgba(250,204,21,0.3)]`,
+  PENDING_SIGNATURE_PROOF: `${PILL_BASE} bg-[rgba(250,204,21,0.12)] text-[#facc15] border border-[rgba(250,204,21,0.3)]`,
+  SIGNED: `${PILL_BASE} bg-[rgba(74,222,128,0.12)] text-[#4ade80] border border-[rgba(74,222,128,0.3)]`,
 };
 
 function QueueMetric({ label, value }: { label: string; value: number }) {
@@ -261,7 +262,7 @@ function ActiveTenancyCard({ tenancy }: { tenancy: ActiveTenancyType }) {
             <div className="mt-4 flex items-center gap-3">
               <span className="text-xs text-white/40">Agreement:</span>
               <span className={AGREEMENT_PILL[agreementStatus] ?? `${PILL_BASE} bg-white/5 text-white/30`}>
-                {agreementStatus.replace('_', ' ')}
+                {agreementStatus.replaceAll('_', ' ')}
               </span>
               {agreementStatus === 'FINALIZED' && (
                 <Link href="/dashboard/tenant/tenancy" className="text-xs font-medium text-[#C49A3C] hover:text-[#E8B84B]">

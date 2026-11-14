@@ -1,8 +1,16 @@
 // src/lib/wizardFormatters.ts
-// Converts wizard enum values to human-readable strings for Gemini prompts
-// and PDF rendering. Both English and Malay versions are provided.
+// Converts wizard enum values to human-readable English strings. The result
+// (buildWizardPolicyBlock) is injected into the Gemini agreement prompt.
 
 import type { AgreementPreferences } from '@prisma/client';
+
+// 1 → "1st", 2 → "2nd", 11 → "11th", 21 → "21st", 22 → "22nd", 23 → "23rd".
+export function formatOrdinal(n: number): string {
+  const lastTwo = n % 100;
+  if (lastTwo >= 11 && lastTwo <= 13) return `${n}th`;
+  const suffix = ({ 1: 'st', 2: 'nd', 3: 'rd' } as Record<number, string>)[n % 10] ?? 'th';
+  return `${n}${suffix}`;
+}
 
 // ── English formatters ──────────────────────────────────────────────────────
 
@@ -218,7 +226,7 @@ Utility Bill Disputes: ${formatUtilityDispute(prefs.utilityDisputeMethod)}${
 Air-Conditioning Servicing: ${formatServicing(prefs.acServicing)}
 Pest Control: ${formatServicing(prefs.pestControl)}
 
-Rent Due Day: ${prefs.rentDueDay}${['st', 'nd', 'rd'][prefs.rentDueDay - 1] ?? 'th'} of each calendar month
+Rent Due Day: ${formatOrdinal(prefs.rentDueDay)} of each calendar month
 Grace Period: ${prefs.gracePeriodDays} day${prefs.gracePeriodDays !== 1 ? 's' : ''} before late penalty applies
 Late Payment Penalty: ${formatLatePenalty(prefs.latePenaltyType, latePenaltyAmount)}
 Acceptable Payment Methods: ${formatPaymentMethods(prefs.acceptablePaymentMethods)}

@@ -87,53 +87,52 @@ export async function PATCH(
 
     const newStatus = parsed.data.action === 'ACCEPT' ? 'ACCEPTED' : 'DISPUTED';
 
-    await prisma.depositDeduction.update({
-      where: { id: deductionId },
-      data: {
-        status: newStatus,
-        tenantDisputeNote: parsed.data.disputeNote ?? null,
-      },
-    });
+    // One transaction so two quick responses cannot both miss the
+    // "all deductions resolved" state and leave the refund stuck IN_REVIEW.
+    const refundAfter = await prisma.$transaction(async (tx) => {
+      await tx.depositDeduction.update({
+        where: { id: deductionId },
+        data: {
+          status: newStatus,
+          tenantDisputeNote: parsed.data.disputeNote ?? null,
+        },
+      });
 
-    // Move refund to IN_REVIEW once tenant starts responding
-    await prisma.depositRefund.update({
-      where: { id },
-      data: { status: 'IN_REVIEW' },
-    });
+      // Re-fetch all deductions after the update so the check uses fresh data (BUG-02)
+      const freshDeductions = await tx.depositDeduction.findMany({
+        where: { refundId: id },
+        select: { id: true, status: true, amount: true },
+      });
 
-    // Re-fetch all deductions after the update so the check uses fresh data (BUG-02)
-    const freshDeductions = await prisma.depositDeduction.findMany({
-      where: { refundId: id },
-      select: { id: true, status: true, amount: true },
-    });
+      const nonWithdrawn = freshDeductions.filter((d) => d.status !== 'WITHDRAWN');
+      const allResolved = nonWithdrawn.every((d) => ['ACCEPTED', 'DISPUTED'].includes(d.status));
 
-    const nonWithdrawn = freshDeductions.filter((d) => d.status !== 'WITHDRAWN');
-    const allResolved = nonWithdrawn.every((d) => ['ACCEPTED', 'DISPUTED'].includes(d.status));
+      if (!allResolved) {
+        // Tenant has started responding
+        return tx.depositRefund.update({ where: { id }, data: { status: 'IN_REVIEW' } });
+      }
 
-    if (allResolved) {
       const hasDispute = nonWithdrawn.some((d) => d.status === 'DISPUTED');
-      const finalStatus = hasDispute ? 'DISPUTED' : 'AGREED';
-
-      // Recalculate refund amount from accepted non-withdrawn deductions (IMP-07)
+      // Every non-withdrawn deduction (accepted or disputed) still counts
+      // against the refund until the landlord withdraws it (IMP-07).
       const totalDeductions = nonWithdrawn.reduce((sum, d) => sum + Number(d.amount), 0);
       const refundAmount = Math.max(0, Number(deduction.refund.originalAmount) - totalDeductions);
 
-      await prisma.depositRefund.update({
+      return tx.depositRefund.update({
         where: { id },
-        data: { status: finalStatus, refundAmount },
+        data: { status: hasDispute ? 'DISPUTED' : 'AGREED', refundAmount },
       });
+    });
 
-      // Notify landlord to upload payment proof when all deductions are agreed (IMP-12)
-      if (finalStatus === 'AGREED') {
-        const landlordId = deduction.refund.tenancy.room.property.landlordId;
-        createNotification(
-          landlordId,
-          'DEPOSIT_REFUND_PAID',
-          'All deductions agreed — please arrange deposit refund',
-          'The tenant has agreed to all deductions. Please arrange the deposit refund payment.',
-          `/dashboard/landlord/tenancies`,
-        );
-      }
+    // Notify landlord to upload payment proof when all deductions are agreed (IMP-12)
+    if (refundAfter.status === 'AGREED') {
+      createNotification(
+        deduction.refund.tenancy.room.property.landlordId,
+        'DEPOSIT_REFUND_PAID',
+        'All deductions agreed — please arrange deposit refund',
+        'The tenant has agreed to all deductions. Please arrange the deposit refund payment.',
+        `/dashboard/landlord/tenancies`,
+      );
     }
 
     // Notify landlord of tenant's response (non-blocking)
@@ -148,7 +147,7 @@ export async function PATCH(
     );
 
     const updated = await prisma.depositDeduction.findUnique({ where: { id: deductionId } });
-    return NextResponse.json({ deduction: updated });
+    return NextResponse.json({ deduction: updated, refund: refundAfter });
   }
 
   // Landlord withdrawing
